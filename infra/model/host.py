@@ -4,18 +4,18 @@ import itertools
 
 class Host(object):
 
-    def __init__(self, ip, user, password, key_file_path, alias, host_id, host_type, allocation_id=''):
-        assert (password and not key_file_path) or (not password and key_file_path), \
-            "password and key are mutually exclusive (password=%s, key=%s)" % (password, key_file_path)
+    def __init__(self, host_config):
+        assert (host_config.password and not host_config.key_file_path) or (not host_config.password and host_config.key_file_path), \
+            "password and key are mutually exclusive (password=%s, key=%s)" % (host_config.password, host_config.key_file_path)
 
-        self.ip = ip
-        self.user = user
-        self.alias = alias
-        self.password = password
-        self.keyfile = key_file_path
-        self.id = host_id
-        self.type = host_type
-        self.allocation_id = allocation_id
+        self.ip = host_config.ip
+        self.user = host_config.user
+        self.alias = host_config.alias
+        self.password = host_config.password
+        self.keyfile = host_config.key_file_path
+        self.id = host_config.host_id
+        self.type = host_config.host_type
+        self.allocation_id = host_config.allocation_id
         self.__plugins = {}
         self._temp_dir_counter = itertools.count()
 
@@ -40,3 +40,6 @@ class Host(object):
 
     def __str__(self):
         return self.alias
+
+
+plugins.register('Host', Host)

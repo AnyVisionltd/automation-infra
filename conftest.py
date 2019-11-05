@@ -3,6 +3,8 @@ import json
 from munch import *
 import pytest
 
+from infra.model.base_config import BaseConfig
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -18,7 +20,7 @@ def pytest_addoption(parser):
 def base_config(request):
     with open("base_config.json", 'r') as f:
         j = json.load(f)
-    base_config = DefaultMunch.fromDict(j, DefaultMunch)
+    base_config = BaseConfig.fromDict(j, DefaultFactoryMunch)
     return base_config
 
 
