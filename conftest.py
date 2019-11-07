@@ -8,10 +8,21 @@ from infra.model.base_config import BaseConfig
 
 def pytest_addoption(parser):
     parser.addoption(
+        "--alias",
+        action="store",
+        default="config1",
+        help="configuration alias",
+    )
+    parser.addoption(
         "--ip",
         action="store",
         default="0.0.0.0",
         help="host ip address",
+    )
+    parser.addoption(
+        "--setup_only",
+        action="store_true",
+        help="only do hardware setup or also run tests"
     )
 # TODO: add like another million of these instead of base_config.json???
 
@@ -24,8 +35,7 @@ def base_config(request):
     return base_config
 
 
-# TODO: what does this type of stuff do and when is it needed??
-# def pytest_generate_tests(metafunc):
-#     print(f"fixturenames: {metafunc.fixturenames}")
-#     if "ip" in metafunc.fixturenames:
-#         metafunc.parametrize("ip", metafunc.config.getoption("ip"))
+@pytest.fixture(autouse=True)
+def setup_only(request):
+    return request.config.getoption("--setup_only")
+
