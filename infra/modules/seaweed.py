@@ -8,14 +8,10 @@ from infra.model import plugins
 
 
 class Seaweed(object):
-    def __init__(self, host, sw_host=CONSTS.SEAWEED, sw_port=CONSTS.SEAWEED_PORT):
-        # self._host = host
-        # self._sw_host = sw_host
-        # self._sw_port = sw_port
-        self._sw_path_prefix = f'http://{sw_host}:{sw_port}'
+    def __init__(self, host):
         self.tunnel = sshtunnel.open_tunnel(host.ip,
                                    ssh_username=host.user, ssh_password=host.password,
-                                   remote_bind_address=(sw_host, sw_port))
+                                   remote_bind_address=(CONSTS.SEAWEED, CONSTS.SEAWEED_PORT))
         self.tunnel.start()
 
     def get_full_seaweed_path(self, relative_path):

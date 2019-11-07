@@ -8,18 +8,18 @@ from infra.model import plugins
 
 
 class Memsql(object):
-    def __init__(self, host, memsql_host=CONSTS.MEMSQL, memsql_port=CONSTS.MEMSQL_PORT):
+    def __init__(self, host):
         self.tunnel = sshtunnel.open_tunnel(host.ip,
                                    ssh_username=host.user, ssh_password=host.password,
-                                   remote_bind_address=(memsql_host, memsql_port))
+                                   remote_bind_address=(CONSTS.MEMSQL, CONSTS.MEMSQL_PORT))
         self.tunnel.start()
         self._connection = None
 
     @property
     def connection(self):
         if self._connection is None:
-            self.connection = self._get_connection()
-        return self.connection
+            self._connection = self._get_connection()
+        return self._connection
 
     def _get_connection(self):
         connection = pymysql.connect(host='localhost',

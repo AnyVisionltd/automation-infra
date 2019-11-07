@@ -8,12 +8,13 @@ import pipe_ng_service_pb2_grpc
 
 
 class PipeNg(object):
-    def __init__(self, host, pipeng_alias=CONSTS.PIPENG, pipeng_port=CONSTS.PIPENG_PORT):
+    # TODO: I need to support multiple pipes..
+    # Do I need to detect them automaticall?
+    def __init__(self, host):
         self._host = host
-        self._port = pipeng_port
         self._tunnel = sshtunnel.open_tunnel(host.ip,
                                              ssh_username=host.user, ssh_password=host.password,
-                                             remote_bind_address=(pipeng_alias, pipeng_port))
+                                             remote_bind_address=(CONSTS.PIPENG, CONSTS.PIPENG_PORT))
         self._tunnel.start()
         self._channel = None
 
