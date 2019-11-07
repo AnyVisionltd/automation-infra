@@ -6,3 +6,5 @@ PIPENG = 'pipeng.tls.ai'
 PIPENG_PORT = 50051
 KAFKA = 'kafka.tls.ai'
 KAFKA_PORT = 8765
+CONSUL = 'consul.tls.ai'
+CONSUL_PORT = 8500
