@@ -3,7 +3,6 @@ import time
 
 import pytest
 
-#from conftest import setup_only
 from infra.model.host import Host
 
 from infra.modules.memsql import Memsql
@@ -14,13 +13,12 @@ from infra.modules.consul import Consul
 
 from tests.test_decorator import hardware_config
 
-cluster={"host1": {"ram": 10, "host_type": "virtual"},
+cluster = {"host1": {"ram": 10, "host_type": "virtual"},
            "host2" : {"gpu": (1,), "gpu_type": "1080Ti"}}
 
 # These are all example tests:
-@hardware_config(cluster={"host1": {"ram": 10, "host_type": "virtual"},
-           "host2" : {"gpu": (1,), "gpu_type": "1080Ti"}})
-def test_host_construction(base_config, setup_only):
+@hardware_config(cluster=cluster)
+def test_host_construction(base_config):
     print("doing host_construction test")
     print(f"args received: {base_config}")
     base_config.cluster.hosts.host2.test = 'host2test'
@@ -31,26 +29,23 @@ def test_host_construction(base_config, setup_only):
     assert base_config.cluster.hosts.host1.Host.alias == 'monster'
 
 
-@hardware_config(cluster={"host1": {"ram": 10, "host_type": "virtual"},
-           "host2" : {"gpu": (1,), "gpu_type": "1080Ti"}})
-def test_ssh(base_config, setup_only):
+@hardware_config(cluster=cluster)
+def test_ssh(base_config):
     assert base_config.cluster.hosts.host1.ip == '192.168.20.34'
     contents = base_config.cluster.hosts.host1.Host.SSH.get_contents('/tmp/f1.txt')
     assert contents == b's is a tew\nawetoawefjaw\nafwefoj\n'
 
 
-@hardware_config(cluster={"host1": {"ram": 10, "host_type": "virtual"},
-           "host2" : {"gpu": (1,), "gpu_type": "1080Ti"}})
-def test_s3(base_config, setup_only):
+@hardware_config(cluster=cluster)
+def test_s3(base_config):
     img_path = 'Screenshot%20from%202019-09-16%2017-44-29.png'
     res = base_config.cluster.hosts.host1.Host.Seaweed.get_image(img_path)
     assert res.status_code == 200
     base_config.cluster.hosts.host2
 
 
-@hardware_config(cluster={"host1": {"ram": 10, "host_type": "virtual"},
-           "host2" : {"gpu": (1,), "gpu_type": "1080Ti"}})
-def test_memsql_add_suspect(base_config, setup_only):
+@hardware_config(cluster=cluster)
+def test_memsql_add_suspect(base_config):
     poi_id = random.randint(0, 999999)
     query = f'''INSERT INTO `reid_db`.`poi`
             (`poi_id`,`detection_type`,`is_ignored`,`feature_id`,`features`,`valid_until`)
@@ -60,15 +55,15 @@ def test_memsql_add_suspect(base_config, setup_only):
     assert res == 1
 
 
-@hardware_config(cluster={"host1": {"ram": 10, "host_type": "virtual"},
-           "host2" : {"gpu": (1,), "gpu_type": "1080Ti"}})
-def test_pipeng_features(base_config, setup_only):
+@hardware_config(cluster=cluster)
+def test_pipeng_features(base_config):
     image_path = r'file:///tmp/accuracy_test/ori.jpg'
     response = base_config.cluster.hosts.host1.Host.PipeNg.get_features(image_path)
     assert response.result[0].data[0].detector_score == 0.9088160991668701
 
-@hardware_config(cluster)
-def test_consul_get_services(base_config, setup_only):
+
+@hardware_config(cluster=cluster)
+def test_consul_get_services(base_config):
     services_dict = base_config.cluster.hosts.host1.Host.Consul.get_services()[1]
     assert services_dict['camera-service'][0] == 'api-services'
     put_key, put_val = ("test_key", "test_val")
