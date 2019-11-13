@@ -33,9 +33,3 @@ def base_config(request):
         j = json.load(f)
     base_config = BaseConfig.fromDict(j, DefaultFactoryMunch)
     return base_config
-
-
-@pytest.fixture(autouse=True)
-def setup_only(request):
-    return request.config.getoption("--setup_only")
-
