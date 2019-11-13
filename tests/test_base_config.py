@@ -10,6 +10,7 @@ from infra.modules.pipeng import PipeNg
 from infra.modules.seaweed import Seaweed
 from infra.modules.ssh import SSH
 from infra.modules.consul import Consul
+from infra.modules.kafka import Kafka
 
 from tests.test_decorator import hardware_config
 
@@ -72,6 +73,16 @@ def test_consul_get_services(base_config):
     val = base_config.cluster.hosts.host1.Host.Consul.get_key("test_key")
     assert val.decode('utf-8') == put_val
 
+
+@hardware_config(cluster=cluster)
+def test_kafka_functionality(base_config):
+    topics = base_config.cluster.hosts.host1.Host.Kafka.get_topics()
+    assert len(topics.topics) > 0
+    success = base_config.cluster.hosts.host1.Host.Kafka.create_topic('oris_new_topic')
+    assert success
+    time.sleep(5)
+    success = base_config.cluster.hosts.host1.Host.Kafka.delete_topic('oris_new_topic')
+    assert success
 
 
 @pytest.mark.parametrize("file_name, expected_faces",
