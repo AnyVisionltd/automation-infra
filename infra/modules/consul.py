@@ -1,12 +1,13 @@
 import sshtunnel
 import consul
+from munch import Munch
 
 import CONSTS
 from infra.model import plugins
 
 
 class Consul(object):
-    def __init__(self, host):
+    def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
         self._tunnel = sshtunnel.open_tunnel(host.ip,
                                              ssh_username=host.user, ssh_password=host.password,
                                              remote_bind_address=(CONSTS.CONSUL, CONSTS.CONSUL_PORT))

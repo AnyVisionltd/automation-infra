@@ -1,5 +1,6 @@
 from contextlib import closing
 
+from munch import Munch
 import pymysql
 import sshtunnel
 
@@ -8,7 +9,7 @@ from infra.model import plugins
 
 
 class Memsql(object):
-    def __init__(self, host):
+    def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
         self.tunnel = sshtunnel.open_tunnel(host.ip,
                                    ssh_username=host.user, ssh_password=host.password,
                                    remote_bind_address=(CONSTS.MEMSQL, CONSTS.MEMSQL_PORT))

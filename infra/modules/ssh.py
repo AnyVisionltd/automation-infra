@@ -2,6 +2,7 @@ import subprocess
 from subprocess import CalledProcessError
 import logging
 
+from munch import Munch
 
 from infra.model import plugins
 from infra.modules import connection
@@ -9,7 +10,7 @@ from infra.modules import connection
 
 class SSH(object):
 
-    def __init__(self, host):
+    def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
         self._host = host
         self._connection = None
         self.connect()

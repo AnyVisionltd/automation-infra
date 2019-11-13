@@ -1,4 +1,5 @@
 import grpc
+from munch import Munch
 import sshtunnel
 import CONSTS
 from infra.model import plugins
@@ -10,7 +11,7 @@ import pipe_ng_service_pb2_grpc
 class PipeNg(object):
     # TODO: I need to support multiple pipes..
     # Do I need to detect them automaticall?
-    def __init__(self, host):
+    def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
         self._host = host
         self._tunnel = sshtunnel.open_tunnel(host.ip,
                                              ssh_username=host.user, ssh_password=host.password,

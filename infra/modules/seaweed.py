@@ -1,3 +1,4 @@
+from munch import Munch
 import requests
 import sshtunnel
 from PIL import Image
@@ -8,7 +9,7 @@ from infra.model import plugins
 
 
 class Seaweed(object):
-    def __init__(self, host):
+    def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
         self.tunnel = sshtunnel.open_tunnel(host.ip,
                                    ssh_username=host.user, ssh_password=host.password,
                                    remote_bind_address=(CONSTS.SEAWEED, CONSTS.SEAWEED_PORT))
