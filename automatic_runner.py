@@ -1,5 +1,6 @@
 import inspect
 import importlib
+from collections import defaultdict
 from pprint import pprint
 import pytest
 import munch
@@ -8,27 +9,32 @@ import hardware_initializer
 from infra.model import base_config
 
 
-
-def run_test_module(module_name):
+def run_test_module(module_name, test_name=None):
     module_results = {module_name: {}}
     module = importlib.import_module(f"{module_name}")
     functions = inspect.getmembers(module)
     module_tests = [(k, v) for (k, v) in functions if k.startswith('test')]
     for name, test in module_tests:
-        test_hardware = test.__hardware_reqs
-        print(f"{name} hardware reqs:")
-        pprint(test_hardware)
-        hardware_initializer.init_hardware(test_hardware)
-        print("running pytest...")
-        res = pytest.main(['-s', f"./tests/{module_name}.py::{name}"])
-        module_results[module_name][name] = res
-        #test(base_config.init_base_config_obj())
+        if (test_name is None) or (name == test_name):
+            test_hardware = test.__hardware_reqs
+            print(f"{name} hardware reqs:")
+            pprint(test_hardware)
+            hardware_initializer.init_hardware(test_hardware)
+            print("running pytest...")
+            res = pytest.main(['-s', f"./tests/{module_name}.py::{name}"])
+            module_results[module_name][name] = res
+            #test(base_config.init_base_config_obj())
     return munch.DefaultFactoryMunch.fromDict(module_results, munch.DefaultFactoryMunch)
 
 
 if __name__ == '__main__':
     # Example run:
-    all_results = {}
+    all_results = defaultdict(dict)
+
+    module = 'test_base_config'
+    test = 'test_kafka_functionality'
+    test_results = run_test_module(module, test)
+    all_results[module][test] = test_results
 
     test_name = 'test_decorator'
     test_results = run_test_module(test_name)
