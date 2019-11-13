@@ -5,6 +5,6 @@ MEMSQL_PORT = 3306
 PIPENG = 'pipeng.tls.ai'
 PIPENG_PORT = 50051
 KAFKA = 'kafka.tls.ai'
-KAFKA_PORT = 8765
+KAFKA_PORT = 9092
 CONSUL = 'consul.tls.ai'
 CONSUL_PORT = 8500
