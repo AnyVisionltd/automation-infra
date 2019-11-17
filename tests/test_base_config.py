@@ -5,12 +5,12 @@ import pytest
 
 from infra.model.host import Host
 
-from infra.modules.memsql import Memsql
-from infra.modules.pipeng import PipeNg
-from infra.modules.seaweed import Seaweed
-from infra.modules.ssh import SSH
-from infra.modules.consul import Consul
-from infra.modules.kafka import Kafka
+from infra.plugins.memsql import Memsql
+from infra.plugins.pipeng import PipeNg
+from infra.plugins.seaweed import Seaweed
+from infra.plugins.ssh import SSH
+from infra.plugins.consul import Consul
+from infra.plugins.kafka import Kafka
 
 from runner.helpers import hardware_config
 

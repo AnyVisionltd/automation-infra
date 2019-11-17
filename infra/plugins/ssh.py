@@ -5,7 +5,7 @@ import logging
 from munch import Munch
 
 from infra.model import plugins
-from infra.modules import connection
+from infra.plugins import connection
 
 
 class SSH(object):

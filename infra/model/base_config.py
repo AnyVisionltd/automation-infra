@@ -3,7 +3,7 @@ from munch import *
 
 from infra.model import plugins
 from infra.model.host import Host
-from infra.modules.pipeng import PipeNg
+from infra.plugins.pipeng import PipeNg
 
 
 def nested_value(search_key, nested_dict):

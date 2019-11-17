@@ -1,7 +1,7 @@
 import paramiko
 import time
 import os
-from infra.modules import run
+from infra.plugins import run
 import glob
 
 
