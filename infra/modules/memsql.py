@@ -4,7 +4,7 @@ from munch import Munch
 import pymysql
 import sshtunnel
 
-import CONSTS
+from runner import CONSTS
 from infra.model import plugins
 
 

@@ -2,7 +2,7 @@ import sshtunnel
 import consul
 from munch import Munch
 
-import CONSTS
+from runner import CONSTS
 from infra.model import plugins
 
 

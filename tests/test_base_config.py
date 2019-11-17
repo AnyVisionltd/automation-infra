@@ -12,7 +12,7 @@ from infra.modules.ssh import SSH
 from infra.modules.consul import Consul
 from infra.modules.kafka import Kafka
 
-from tests.test_decorator import hardware_config
+from runner.helpers import hardware_config
 
 cluster = {"host1": {"ram": 10, "host_type": "virtual"},
            "host2" : {"gpu": (1,), "gpu_type": "1080Ti"}}

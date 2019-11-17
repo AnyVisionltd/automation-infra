@@ -1,10 +1,8 @@
 from munch import Munch
 import requests
 import sshtunnel
-from PIL import Image
-from io import BytesIO
 
-import CONSTS
+from runner import CONSTS
 from infra.model import plugins
 
 

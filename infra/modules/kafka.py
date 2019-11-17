@@ -1,13 +1,11 @@
-import os
 import time
 from pprint import pprint
 
-from munch import Munch
 import sshtunnel
-import consul
+from munch import Munch
 import random
 
-import CONSTS
+from runner import CONSTS
 from infra.model import plugins
 
 from confluent_kafka import Consumer, Producer, TopicPartition

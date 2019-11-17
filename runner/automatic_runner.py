@@ -4,9 +4,9 @@ from collections import defaultdict
 from pprint import pprint
 import pytest
 import munch
+import json
 
-import hardware_initializer
-from infra.model import base_config
+from runner import hardware_initializer
 
 
 def run_test_module(module_name, test_name=None):
@@ -19,9 +19,14 @@ def run_test_module(module_name, test_name=None):
             test_hardware = test.__hardware_reqs
             print(f"{name} hardware reqs:")
             pprint(test_hardware)
-            hardware_initializer.init_hardware(test_hardware)
+            # TODO: I this actually this is where its best to build the base_config
+            # rather than parsing this json and sending it in to pytest via cmd params..
+            base_config = hardware_initializer.init_hardware(test_hardware)
             print("running pytest...")
-            res = pytest.main(['-s', f"./tests/{module_name}.py::{name}"])
+            # TODO: here I need to add cmdline params which have to do with initiated hardware (ip address, user/pass, etc)..
+            cluster_config = f'--cluster_config={json.dumps(base_config)}'
+            print(f"cluster_config: {cluster_config}")
+            res = pytest.main(['-s', f"./tests/{module_name}.py::{name}", cluster_config])
             module_results[module_name][name] = res
             #test(base_config.init_base_config_obj())
     return munch.DefaultFactoryMunch.fromDict(module_results, munch.DefaultFactoryMunch)

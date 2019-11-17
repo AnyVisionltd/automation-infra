@@ -1,7 +1,7 @@
 import grpc
-from munch import Munch
 import sshtunnel
-import CONSTS
+from munch import Munch
+from runner import CONSTS
 from infra.model import plugins
 import common_pb2
 import image_processing_pb2

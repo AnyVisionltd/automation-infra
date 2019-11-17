@@ -24,12 +24,22 @@ def pytest_addoption(parser):
         action="store_true",
         help="only do hardware setup or also run tests"
     )
+    parser.addoption(
+        "--cluster_config",
+        action="store",
+        default="cluster1",
+        help="cluster alias",
+    )
 # TODO: add like another million of these instead of base_config.json???
 
 
 @pytest.fixture(scope='session')
 def base_config(request):
-    with open("base_config.json", 'r') as f:
-        j = json.load(f)
-    base_config = BaseConfig.fromDict(j, DefaultFactoryMunch)
+    config = json.loads(request.config.getoption('--cluster_config'))
+    base_config = BaseConfig.fromDict(config, DefaultFactoryMunch)
+    # for host in base_config.cluster.hosts:
+    #     pass
+    #     # TODO: init ssh
+    # TODO: init communication docker container
+    # TODO: switch if working in docker/k8s
     return base_config
