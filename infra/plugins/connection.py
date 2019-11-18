@@ -8,7 +8,7 @@ import glob
 class Connection(object):
 
     def __init__(self, host, port=22, **kwargs):
-        #assert (keyfile or password) and not (keyfile and password)
+        assert (host.keyfile or host.password) and not (host.keyfile and host.password)
         self._ip = host.ip
         self._username = host.user
         self._password = host.password

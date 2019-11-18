@@ -40,7 +40,7 @@ class SSH(object):
     def execute(self, program, timeout=20 * 60):
         temp_ex = None
         try:
-            completed_process = self._connection.run.execute(program, output_timeout=timeout).stdout
+            completed_process = self._connection.run.execute(program, output_timeout=timeout)
             return completed_process.stdout
         except CalledProcessError as ex:
             temp_ex = ex
