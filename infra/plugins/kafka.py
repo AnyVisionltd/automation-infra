@@ -19,6 +19,7 @@ class Kafka(object):
     def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
         self._tunnel = sshtunnel.open_tunnel(host.ip,
                                              ssh_username=host.user, ssh_password=host.password,
+                                             ssh_pkey=host.keyfile,
                                              remote_bind_address=(CONSTS.KAFKA, CONSTS.KAFKA_PORT))
         self._tunnel.start()
         self.bs_servers = {'bootstrap.servers': f'localhost:{self._tunnel.local_bind_port}'}

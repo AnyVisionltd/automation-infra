@@ -11,7 +11,7 @@ from infra.model import plugins
 class Memsql(object):
     def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
         self.tunnel = sshtunnel.open_tunnel(host.ip,
-                                   ssh_username=host.user, ssh_password=host.password,
+                                   ssh_username=host.user, ssh_password=host.password, ssh_pkey=host.keyfile,
                                    remote_bind_address=(CONSTS.MEMSQL, CONSTS.MEMSQL_PORT))
         self.tunnel.start()
         self._connection = None
