@@ -3,9 +3,9 @@ import time
 from infra.model import base_config
 
 
-def hardware_config(cluster):
+def hardware_config(hardware):
     def wrapper(func):
-        func.__hardware_reqs = cluster
+        func.__hardware_reqs = hardware
         return func
     return wrapper
 
