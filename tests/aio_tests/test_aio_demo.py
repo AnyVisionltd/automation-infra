@@ -11,6 +11,7 @@ from infra.plugins.seaweed import Seaweed
 from infra.plugins.ssh import SSH
 from infra.plugins.consul import Consul
 from infra.plugins.kafka import Kafka
+from infra.plugins.camera_service import CameraService
 
 from runner.helpers import hardware_config
 
@@ -77,6 +78,12 @@ def test_kafka_functionality(host):
     success = host.Kafka.delete_topic('oris_new_topic')
     assert success
 
+
+@hardware_config(hardware={"type": "aio"})
+def test_camera_service(host):
+    cameras = host.CameraService.get_cameras()
+    print(cameras)
+    assert 1
 
 # @pytest.mark.parametrize("file_name, expected_faces",
 #                          [

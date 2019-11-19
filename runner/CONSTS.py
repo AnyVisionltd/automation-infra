@@ -8,3 +8,5 @@ KAFKA = 'kafka.tls.ai'
 KAFKA_PORT = 9092
 CONSUL = 'consul.tls.ai'
 CONSUL_PORT = 8500
+CAMERA_SERVICE = 'camera-service.tls.ai'
+CAMERA_SERVICE_PORT = 1120
