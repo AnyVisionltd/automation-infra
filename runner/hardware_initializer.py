@@ -1,12 +1,4 @@
-import json
 import time
-
-# cluster = {"host1": {"ram": 10, "host_type": "virtual"},
-#            "host2" : {"gpu": (1,), "gpu_type": "1080Ti"}}
-from munch import Munch
-
-from infra.model.base_config import BaseConfig, DefaultFactoryMunch
-from infra.model.host import Host
 
 hardware_types = {
     "aio":
@@ -40,8 +32,9 @@ hardware_types = {
 def init_hardware(hardware_req):
     print("initilizing hardware...")
     # TODO: here I would turn to a server admin service and get ips, userPass/sshKeys of the cluster
-    # This is pseudo from the
-    # base_config = servers_manager.set_up(cluster)
+    # In the future there will be a real server provisioner which manages and returns hardware details,
+    # and then the call would be something like this:
+    # hardware = servers_manager.set_up(hardware_req)
     # TODO: but in addition to the cluster details, dont I also need to request services, like memsql, pipeng..?
     # For now, this place holder:
     time.sleep(1)
