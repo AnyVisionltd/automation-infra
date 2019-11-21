@@ -17,7 +17,7 @@ consumer_group = {"group.id": 'automation_group'}
 
 class Kafka(object):
     def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
-        self._tunnel = sshtunnel.open_tunnel(host.ip,
+        self._tunnel = sshtunnel.open_tunnel((host.ip, CONSTS.TUNNEL_PORT),
                                              ssh_username=host.user, ssh_password=host.password,
                                              ssh_pkey=host.keyfile,
                                              remote_bind_address=(CONSTS.KAFKA, CONSTS.KAFKA_PORT))
@@ -157,7 +157,8 @@ def check_flow_works():
 
 
 if __name__ == '__main__':
-    kafka_obj = Kafka(Munch(ip='0.0.0.0', user='user', password='pass'))
+    host = Munch(ip='0.0.0.0', user='user', password='pass', keyfile='')
+    kafka_obj = Kafka(host)
     topics = kafka_obj.get_topics()
     pprint(topics.topics)
     assert len(topics.topics) > 1

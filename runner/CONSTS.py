@@ -1,3 +1,4 @@
+TUNNEL_PORT = 2222
 SEAWEED = 'seaweedfs-filer-localnode.tls.ai'
 SEAWEED_PORT = 8888
 MEMSQL = 'memsql.tls.ai'

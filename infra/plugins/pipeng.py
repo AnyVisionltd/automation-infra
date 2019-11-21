@@ -14,7 +14,7 @@ class PipeNg(object):
     # Do I need to detect them automaticall?
     def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
         self._host = host
-        self._tunnel = sshtunnel.open_tunnel(host.ip,
+        self._tunnel = sshtunnel.open_tunnel((host.ip, CONSTS.TUNNEL_PORT),
                                              ssh_username=host.user, ssh_password=host.password, ssh_pkey=host.keyfile,
                                              remote_bind_address=(CONSTS.PIPENG, CONSTS.PIPENG_PORT))
         self._tunnel.start()
