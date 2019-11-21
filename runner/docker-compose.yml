@@ -1,0 +1,9 @@
+version: "3"
+
+services:
+   ssh_container:
+     image: automation-infra:0.1
+     network_mode: "host"
+     volumes:
+       - /home/ori/:/home/ori
+       - /etc/hosts:/etc/hosts
