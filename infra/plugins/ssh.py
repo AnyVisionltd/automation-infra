@@ -2,22 +2,19 @@ import subprocess
 from subprocess import CalledProcessError
 import logging
 
-from munch import Munch
-
 from infra.model import plugins
 from infra.plugins import connection
-from runner import CONSTS
 
 
 class SSH(object):
 
-    def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
+    def __init__(self, host):
         self._host = host
         self._connection = None
         self.connect()
 
-    def connect(self, timeout=10):
-        self._connection = connection.Connection(self._host, CONSTS.TUNNEL_PORT)
+    def connect(self, port=22, timeout=10):
+        self._connection = connection.Connection(self._host, port)
         self._connection.connect(timeout)
 
     def run_script(self, script, timeout=20 * 60):
