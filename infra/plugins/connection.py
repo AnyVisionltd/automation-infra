@@ -23,7 +23,7 @@ class Connection(object):
     def _files_to_upload(self, filenames):
         all_files = []
         for f in filenames:
-            f = f if os.path.isabs(f) else os.path.join(os.environ['WORKSPACE_TOP'], f)
+            f = f if os.path.isabs(f) else os.path.join(os.path.abspath(os.path.curdir), f)
             all_files.extend(glob.glob(f))
         assert all_files, "No files to upload: " + ",".join(filenames)
         return set(all_files)
