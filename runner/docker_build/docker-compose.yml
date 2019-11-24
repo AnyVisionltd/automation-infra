@@ -2,7 +2,7 @@ version: "3"
 
 services:
    ssh_container:
-     image: automation-infra:0.1
+     image: automation-infra:0.2
      network_mode: "host"
      volumes:
        - /home/ori/:/home/ori
