@@ -1,3 +1,4 @@
+EXAMPLE_IP = '192.168.21.163'
 TUNNEL_PORT = 2222
 SEAWEED = 'seaweedfs-filer-localnode.tls.ai'
 SEAWEED_PORT = 8888

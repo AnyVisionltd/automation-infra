@@ -4,11 +4,12 @@ from munch import Munch
 
 from infra.model import plugins
 from infra.plugins.ssh import SSH
+from runner import CONSTS
 
 host_config_example1 = {
-    "ip": "192.168.20.34",
-    "user": "user",
-    "password": "pass",
+    "ip": CONSTS.EXAMPLE_IP,
+    "user": "ori",
+    "password": "",
     "key_file_path": "",
     "alias": "monster",
     "host_id": 123,
@@ -16,7 +17,7 @@ host_config_example1 = {
     "allocation_id": ""
 }
 host_config_example2 = {
-    "ip": "192.168.20.75",
+    "ip": CONSTS.EXAMPLE_IP,
     "user": "user",
     "password": "",
     "key_file_path": "/home/ori/.ssh/id_rsa",
@@ -44,7 +45,6 @@ class Host(object):
         self.allocation_id = host_config.allocation_id
         self.__plugins = {}
         self._temp_dir_counter = itertools.count()
-        self.init_ssh()
 
     def __getattr__(self, name):
         if name not in self.__plugins:
@@ -69,14 +69,6 @@ class Host(object):
     def __str__(self):
         return self.ip
 
-    def init_ssh(self):
-        try:
-            self.SSH.execute('ls /', timeout=5)
-        except Exception as e:
-            print(e)
-            raise
-        return
-
 
 plugins.register('Host', Host)
 
@@ -89,6 +81,11 @@ def test_functionality():
     print("initializing host2...")
     host2 = Host(Munch.fromDict(host_config_example2))
     print(f"successful constructing {host2}")
+
+
+def init_example_host():
+    host = Host(Munch.fromDict(host_config_example1))
+    return host
 
 
 if __name__ == '__main__':
