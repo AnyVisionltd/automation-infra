@@ -8,22 +8,12 @@ from runner import CONSTS
 
 host_config_example1 = {
     "ip": CONSTS.EXAMPLE_IP,
-    "user": "ori",
+    "user": "root",
     "password": "",
-    "key_file_path": "",
+    "key_file_path": "runner/docker_build/docker_user.pem",
     "alias": "monster",
     "host_id": 123,
     "host_type": "virtual",
-    "allocation_id": ""
-}
-host_config_example2 = {
-    "ip": CONSTS.EXAMPLE_IP,
-    "user": "user",
-    "password": "",
-    "key_file_path": "/home/ori/.ssh/id_rsa",
-    "alias": "monster",
-    "host_id": 123,
-    "host_type": "on-prem",
     "allocation_id": ""
 }
 
@@ -77,10 +67,6 @@ def test_functionality():
     print("initializing host1...")
     host1 = Host(Munch.fromDict(host_config_example1))
     print(f"successful constructing {host1}")
-
-    print("initializing host2...")
-    host2 = Host(Munch.fromDict(host_config_example2))
-    print(f"successful constructing {host2}")
 
 
 def init_example_host():

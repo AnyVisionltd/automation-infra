@@ -57,7 +57,16 @@ def base_config(request):
     remove_proxy_container(host.SSH)
 
 
-if __name__ == '__main__':
+def verify_fuctionality():
     h = host_module.init_example_host()
     h.SSH.connect()
     run_proxy_container(h.SSH)
+    h.SSH.connect(CONSTS.TUNNEL_PORT)
+    h.SSH.connect()
+    remove_proxy_container(h.SSH)
+
+
+if __name__ == '__main__':
+    verify_fuctionality()
+
+
