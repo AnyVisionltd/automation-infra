@@ -3,6 +3,7 @@ import json
 from munch import *
 import pytest
 
+from infra.model.base_config import BaseConfig
 from infra.model.host import Host
 from infra.model import host as host_module
 from runner import CONSTS
@@ -46,15 +47,16 @@ def remove_proxy_container(connected_ssh_module):
 @pytest.fixture(scope='session')
 def base_config(request):
     config = json.loads(request.config.getoption('--sut_config'))
-    host = Host(Munch.fromDict(config['host']))
+    base = BaseConfig.fromDict(config, DefaultFactoryMunch)
     # The SSH and the SSH_host dont need to be separate, they can just be initialized on diff ports (default is 22)..
-    host.SSH.connect()
     run_proxy_container(host.SSH)
-    host.SSH.connect(CONSTS.TUNNEL_PORT)
+    base.host = Host(base.host)
+    base.host.SSH.connect()
+    base.host.SSH.connect(CONSTS.TUNNEL_PORT)
     # TODO: switch if working in docker/k8s
-    yield host
-    host.SSH.connect()
-    remove_proxy_container(host.SSH)
+    yield base
+    base.host.SSH.connect()
+    remove_proxy_container(base.host.SSH)
 
 
 def verify_fuctionality():
