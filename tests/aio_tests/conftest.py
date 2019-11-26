@@ -30,28 +30,36 @@ def pytest_addoption(parser):
     )
 
 
-def run_proxy_container(connected_ssh_module):
+def deploy_proxy_container(connected_ssh_module, auth_args):
+    # TODO: check if running instead of just trying to remove
+    try:
+        remove_proxy_container(connected_ssh_module)
+    except:
+        pass
+
     res = connected_ssh_module.execute('mkdir -p /tmp/build')
     res = connected_ssh_module.put('./runner/docker_build/Dockerfile', '/tmp/build')
-    res = connected_ssh_module.put('./runner/docker_build/docker-compose.yml', '/tmp/build')
-    res = connected_ssh_module.execute('docker build -t automation-tests:0.1 /tmp/build')
-    res = connected_ssh_module.execute('docker-compose -f /tmp/build/docker-compose.yml up -d')
-    print(res)
+    res = connected_ssh_module.put('./runner/docker_build/entrypoint.sh', '/tmp/build')
+
+    image_tag = 'automation-tests:1.111'
+    build_cmd = f'docker build -t {image_tag} /tmp/build'
+    res = connected_ssh_module.execute(build_cmd)
+    run_cmd = f'docker run -d --network=host --name=ssh_container {image_tag} {" ".join(auth_args)}'
+    res = connected_ssh_module.execute(run_cmd)
 
 
 def remove_proxy_container(connected_ssh_module):
-    res = connected_ssh_module.execute('docker-compose -f /tmp/build/docker-compose.yml down')
-    print(res)
+    res = connected_ssh_module.execute(f'docker rm -f ssh_container')
 
 
 @pytest.fixture(scope='session')
 def base_config(request):
     config = json.loads(request.config.getoption('--sut_config'))
     base = BaseConfig.fromDict(config, DefaultFactoryMunch)
-    # The SSH and the SSH_host dont need to be separate, they can just be initialized on diff ports (default is 22)..
-    run_proxy_container(host.SSH)
     base.host = Host(base.host)
     base.host.SSH.connect()
+    docker_args = ['pem', base.host.user] if base.host.keyfile else ['password', base.host.user, base.host.password]
+    deploy_proxy_container(base.host.SSH, docker_args)
     base.host.SSH.connect(CONSTS.TUNNEL_PORT)
     # TODO: switch if working in docker/k8s
     yield base
