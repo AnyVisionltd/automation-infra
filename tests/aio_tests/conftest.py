@@ -8,24 +8,34 @@ from infra.model.host import Host
 from infra.model import host as host_module
 from runner import CONSTS
 
+host_config_example1 = """{"host": {
+    "ip": "%s",
+    "user": "user",
+    "password": "pass",
+    "key_file_path": "",
+    "alias": "monster",
+    "host_id": 123,
+    "host_type": "virtual",
+    "allocation_id": ""
+    }}""" % CONSTS.EXAMPLE_IP
+
+host_config_example2 = """{"host": {
+    "ip": "%s",
+    "user": "root",
+    "password": "",
+    "key_file_path": "runner/docker_build/docker_user.pem",
+    "alias": "monster",
+    "host_id": 123,
+    "host_type": "virtual",
+    "allocation_id": ""
+}}""" % CONSTS.EXAMPLE_IP
+
 
 def pytest_addoption(parser):
     parser.addoption(
         "--sut_config",
         action="store",
-        default="""{ "host":
-            {
-                "ip": "192.168.21.163",
-                "user": "root",
-                "password": "",
-                "key_file_path": "/home/ori/Projects/automation-infra/runner/docker_build/docker_user.pem",
-                "alias": "monster",
-                "host_id": 123,
-                "host_type": "physical",
-                "allocation_id": ""
-            }
-        }
-        """,
+        default=host_config_example2,
         help="ip user/pass config details",
     )
 
@@ -67,16 +77,7 @@ def base_config(request):
     remove_proxy_container(base.host.SSH)
 
 
-def verify_fuctionality():
-    h = host_module.init_example_host()
-    h.SSH.connect()
-    run_proxy_container(h.SSH)
-    h.SSH.connect(CONSTS.TUNNEL_PORT)
-    h.SSH.connect()
-    remove_proxy_container(h.SSH)
-
-
-if __name__ == '__main__':
-    verify_fuctionality()
-
+def test_functionality(base_config):
+    print("successfully inited fixture!")
+    assert 1
 
