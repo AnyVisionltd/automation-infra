@@ -7,7 +7,7 @@ from infra.model import plugins
 
 
 class Seaweed(object):
-    def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
+    def __init__(self, host):
         self.tunnel = sshtunnel.open_tunnel((host.ip, CONSTS.TUNNEL_PORT),
                                    ssh_username=host.user, ssh_password=host.password, ssh_pkey=host.keyfile,
                                    remote_bind_address=(CONSTS.SEAWEED, CONSTS.SEAWEED_PORT))

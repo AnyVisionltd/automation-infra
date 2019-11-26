@@ -12,7 +12,7 @@ import consul_health_check_service_pb2, consul_health_check_service_pb2_grpc
 class PipeNg(object):
     # TODO: I need to support multiple pipes..
     # Do I need to detect them automaticall?
-    def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
+    def __init__(self, host):
         self._host = host
         self._tunnel = sshtunnel.open_tunnel((host.ip, CONSTS.TUNNEL_PORT),
                                              ssh_username=host.user, ssh_password=host.password, ssh_pkey=host.keyfile,

@@ -16,7 +16,7 @@ consumer_group = {"group.id": 'automation_group'}
 
 
 class Kafka(object):
-    def __init__(self, host=Munch(ip='0.0.0.0', user='user', password='user1!')):
+    def __init__(self, host):
         self._tunnel = sshtunnel.open_tunnel((host.ip, CONSTS.TUNNEL_PORT),
                                              ssh_username=host.user, ssh_password=host.password,
                                              ssh_pkey=host.keyfile,
