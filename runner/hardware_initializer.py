@@ -2,7 +2,19 @@ import time
 
 hardware_types = {
     "aio":
-        {"ori":
+        {"ori_pass":
+             """{"host": {
+                "ip": "192.168.21.163",
+                "user": "user",
+                "password": "pass",
+                "key_file_path": "",
+                "alias": "monster",
+                "host_id": 123,
+                "host_type": "physical",
+                "allocation_id": "" }
+                }
+             """,
+        "ori_pem":
              """{"host": {
                 "ip": "192.168.21.163",
                 "user": "root",
@@ -39,7 +51,7 @@ def init_hardware(hardware_req):
     # TODO: but in addition to the cluster details, dont I also need to request services, like memsql, pipeng..?
     # For now, this place holder:
     time.sleep(1)
-    hardware = hardware_types[hardware_req["type"]]['ori']
+    hardware = hardware_types[hardware_req["type"]]['ori_pass']
     print("successfully initialized hardware!")
     print()
     # TODO: Here I really need to run dev-ops tests which check that all hardware is working, no?
