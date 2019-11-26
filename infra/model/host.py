@@ -8,6 +8,17 @@ from runner import CONSTS
 
 host_config_example1 = {
     "ip": CONSTS.EXAMPLE_IP,
+    "user": "ori",
+    "password": "tiferet84",
+    "key_file_path": "",
+    "alias": "monster",
+    "host_id": 123,
+    "host_type": "virtual",
+    "allocation_id": ""
+}
+
+host_config_example2 = {
+    "ip": CONSTS.EXAMPLE_IP,
     "user": "root",
     "password": "",
     "key_file_path": "runner/docker_build/docker_user.pem",
@@ -69,9 +80,10 @@ def test_functionality():
     print(f"successful constructing {host1}")
 
 
-def init_example_host():
-    host = Host(Munch.fromDict(host_config_example1))
-    return host
+def init_example_hosts():
+    host1 = Host(Munch.fromDict(host_config_example1))
+    host2 = Host(Munch.fromDict(host_config_example2))
+    return [host1, host2]
 
 
 if __name__ == '__main__':
