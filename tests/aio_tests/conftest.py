@@ -2,6 +2,7 @@ import json
 
 from munch import *
 import pytest
+from paramiko.ssh_exception import NoValidConnectionsError
 
 from infra.model.base_config import BaseConfig
 from infra.model.host import Host
@@ -62,19 +63,40 @@ def remove_proxy_container(connected_ssh_module):
     res = connected_ssh_module.execute(f'docker rm -f ssh_container')
 
 
-@pytest.fixture(scope='session')
-def base_config(request):
-    config = json.loads(request.config.getoption('--sut_config'))
-    base = BaseConfig.fromDict(config, DefaultFactoryMunch)
-    base.host = Host(base.host)
+def connect_via_running_docker(base):
+    base.host.SSH.connect(CONSTS.TUNNEL_PORT)
+
+
+def init_docker_and_connect(base):
+    print("initializing docker")
     base.host.SSH.connect()
     docker_args = ['pem', base.host.user] if base.host.keyfile else ['password', base.host.user, base.host.password]
     deploy_proxy_container(base.host.SSH, docker_args)
     base.host.SSH.connect(CONSTS.TUNNEL_PORT)
-    # TODO: switch if working in docker/k8s
-    yield base
+    print("docker is running and ssh connected")
+
+
+def tear_down_docker(base):
+    print("tearing down docker")
     base.host.SSH.connect()
     remove_proxy_container(base.host.SSH)
+    print("docker is stopped and disconnected")
+
+
+@pytest.fixture(scope='session')
+def base_config(request):
+    print("initing base config..")
+    config = json.loads(request.config.getoption('--sut_config'))
+    base = BaseConfig.fromDict(config, DefaultFactoryMunch)
+    base.host = Host(base.host)
+    try:
+        connect_via_running_docker(base)
+        yield base
+    except NoValidConnectionsError:
+        init_docker_and_connect(base)
+        yield base
+        # TODO: switch if working in docker/k8s
+        tear_down_docker(base)
 
 
 def test_functionality(base_config):
