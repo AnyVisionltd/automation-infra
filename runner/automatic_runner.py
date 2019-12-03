@@ -1,3 +1,4 @@
+import os
 import inspect
 import importlib
 import time
@@ -8,6 +9,8 @@ import munch
 import logging
 
 from runner import hardware_initializer
+from runner.collector import TestCollector
+
 
 def init_logger():
     logging.basicConfig(level=logging.DEBUG,
@@ -16,36 +19,34 @@ def init_logger():
 
 init_logger()
 
-def run_test_module(module_name, test_name=None):
-    module_results = {module_name: {}}
-    module = importlib.import_module(f"{module_name}")
-    functions = inspect.getmembers(module)
-    module_tests = [(k, v) for (k, v) in functions if k.startswith('test')]
-    test_names = list()
-    for name, test in module_tests:
-        if (test_name is None) or (name == test_name):
-            test_hardware = test.__hardware_reqs
-            logging.info(f"{name} hardware reqs:")
-            pprint(test_hardware)
-            hardware_config = hardware_initializer.init_hardware(test_hardware)
-            logging.info("running pytest...")
-            sut_config = f'--sut_config={hardware_config}'
-            logging.info(f"sut_config: {sut_config}")
-            test_path = '/'.join(module_name.split('.'))
-            test_names.append(name)
-    pytest_args = ['-s', *[f"./tests/{test_path}.py::{name}" for name in test_names], '-n 1', sut_config]
-    #pytest_args.append('--log-file=output.log')
+
+def collect_tests_and_init_hardware(module_name):
+    collector = TestCollector()
+    pytest.main(['--collect-only', module_name], plugins=[collector])
+
+    tests = collector.collected
+    for test in tests:
+        test.hardware_config = hardware_initializer.init_hardware(test.obj.__hardware_reqs)
+    return tests
+
+
+def run_test_module(module_name):
+    initialized_tests = collect_tests_and_init_hardware(module_name)
+
+    tests_config = [[f'{os.path.split(test.fspath.strpath)[0]}/{test.nodeid}', f'--sut_config={test.hardware_config}']
+                    for test in initialized_tests]
+    pytest_args = ['-s', '-n 1']
+    for test_config in tests_config:
+        pytest_args.extend(test_config)
     res = pytest.main(pytest_args)
     return res
-    #return munch.DefaultFactoryMunch.fromDict(module_results, munch.DefaultFactoryMunch)
 
 
 def sample_module_run():
     all_results = defaultdict(dict)
-    module = 'aio_tests.test_aio_demo'
-    test = None #  'test_ssh'
+    module = 'tests/aio_tests/test_aio_demo.py'
     start = time.time()
-    test_results = run_test_module(module, test)
+    test_results = run_test_module(module)
     runtime = time.time() - start
     all_results[module] = test_results
 
