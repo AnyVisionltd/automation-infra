@@ -11,7 +11,6 @@ class SSH(object):
     def __init__(self, host):
         self._host = host
         self._connection = None
-        self.connect()
 
     def connect(self, port=22, timeout=10):
         self._connection = connection.Connection(self._host, port)
