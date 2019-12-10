@@ -38,7 +38,7 @@ def run_test_module(module_name):
 
     tests_config = [[f'{os.path.dirname(test.fspath.strpath)}/{os.path.basename(test.nodeid)}', f'--sut_config={test.hardware_config}']
                     for test in initialized_tests]
-    pytest_args = ['-s', '-n 1']
+    pytest_args = ['-s', '-n 1', '--html=report.html', '--self-contained-html']
     for test_config in tests_config:
         pytest_args.extend(test_config)
     res = pytest.main(pytest_args)
