@@ -1,0 +1,44 @@
+# This isnt currently active, we are running a docker pod for ssh connectivity.
+# But maybe in the future we will want to replace it with a daemonset pod.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: automation-ssh-container
+  namespace: default
+  labels:
+    k8s-app: ssh
+spec:
+  selector:
+    matchLabels:
+      name: automation-ssh-container
+  template:
+    metadata:
+      labels:
+        name: automation-ssh-container
+    spec:
+      containers:
+      - name: automation-ssh-container
+        image: orihab/ubuntu_ssh:latest
+        args: ["password", "user", "pass"]
+        command: ["/entrypoint.sh"]
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+      hostNetwork: true
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
