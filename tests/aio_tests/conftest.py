@@ -3,7 +3,6 @@ import socket
 
 from munch import *
 import pytest
-from paramiko.ssh_exception import NoValidConnectionsError
 
 from infra.model.base_config import BaseConfig
 from infra.model.host import Host
@@ -54,15 +53,11 @@ def base_config(request):
     try:
         helpers.connect_via_running_docker(base)
         yield base
-    except NoValidConnectionsError:
+    except Exception:
         helpers.init_docker_and_connect(base)
         yield base
         # TODO: switch if working in docker/k8s
         helpers.tear_down_docker(base)
-    except socket.timeout as e:
-        raise Exception("socket timeout trying to connect via running docker")
-    except Exception as e:
-        pass
 
 
 def test_functionality(base_config):
