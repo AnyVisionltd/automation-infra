@@ -7,6 +7,7 @@ from infra.plugins import connection
 
 
 class SSH(object):
+    TUNNEL_PORT = 2222
 
     def __init__(self, host):
         self._host = host

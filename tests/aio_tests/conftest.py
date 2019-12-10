@@ -6,11 +6,12 @@ import pytest
 
 from infra.model.base_config import BaseConfig
 from infra.model.host import Host
-from runner import CONSTS
 from runner import helpers
 
 #import sys
 #sys.stdout = sys.stderr
+
+EXAMPLE_IP = '0.0.0.0'
 
 host_config_example1 = """{"host": {
     "ip": "%s",
@@ -21,7 +22,7 @@ host_config_example1 = """{"host": {
     "host_id": 123,
     "host_type": "virtual",
     "allocation_id": ""
-    }}""" % CONSTS.EXAMPLE_IP
+    }}""" % EXAMPLE_IP
 
 host_config_example2 = """{"host": {
     "ip": "%s",
@@ -32,7 +33,7 @@ host_config_example2 = """{"host": {
     "host_id": 123,
     "host_type": "virtual",
     "allocation_id": ""
-}}""" % CONSTS.EXAMPLE_IP
+}}""" % EXAMPLE_IP
 
 
 def pytest_addoption(parser):

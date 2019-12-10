@@ -72,7 +72,7 @@ def init_docker_and_connect(base):
     base.host.SSH.connect()
     docker_args = ['pem', base.host.user] if base.host.keyfile else ['password', base.host.user, base.host.password]
     deploy_proxy_container(base.host.SSH, docker_args)
-    base.host.SSH.connect(CONSTS.TUNNEL_PORT)
+    base.host.SSH.connect(base.host.SSH.TUNNEL_PORT)
     print("docker is running and ssh connected")
 
 

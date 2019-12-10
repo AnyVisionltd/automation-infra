@@ -3,11 +3,11 @@ import itertools
 from munch import Munch
 
 from infra.model import plugins
-from infra.plugins.ssh import SSH
-from runner import CONSTS
+
+EXAMPLE_IP = '35.231.0.137'
 
 host_config_example1 = {
-    "ip": CONSTS.EXAMPLE_IP,
+    "ip": EXAMPLE_IP,
     "user": "user",
     "password": "pass",
     "key_file_path": "",
@@ -18,7 +18,7 @@ host_config_example1 = {
 }
 
 host_config_example2 = {
-    "ip": CONSTS.EXAMPLE_IP,
+    "ip": EXAMPLE_IP,
     "user": "root",
     "password": "",
     "key_file_path": "runner/docker_build/docker_user.pem",
