@@ -28,15 +28,9 @@ def deploy_proxy_container(connected_ssh_module, auth_args):
     except:
         pass
 
-    res = connected_ssh_module.execute('mkdir -p /tmp/build')
-    res = connected_ssh_module.put('./runner/docker_build/Dockerfile', '/tmp/build')
-    res = connected_ssh_module.put('./runner/docker_build/entrypoint.sh', '/tmp/build')
-
-    image_tag = 'automation-tests:1.111'
-    build_cmd = f'docker build -t {image_tag} /tmp/build'
-    res = connected_ssh_module.execute(build_cmd)
-    run_cmd = f'docker run -d --network=host --name=ssh_container {image_tag} {" ".join(auth_args)}'
+    run_cmd = f'docker run -d --network=host --name=ssh_container orihab/ubuntu_ssh {" ".join(auth_args)}'
     res = connected_ssh_module.execute(run_cmd)
+    return res
 
 
 def remove_proxy_container(connected_ssh_module):
