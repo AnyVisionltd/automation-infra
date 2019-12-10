@@ -53,6 +53,7 @@ class Host(object):
             try:
                 self.__plugins[name] = plugins.plugins[name](self)
             except KeyError:
+                print(f"plugin {name} wasnt found!")
                 raise AttributeError
         return self.__plugins[name]
 
