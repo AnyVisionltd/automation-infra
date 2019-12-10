@@ -1,4 +1,5 @@
 import json
+import socket
 
 from munch import *
 import pytest
@@ -6,10 +7,11 @@ from paramiko.ssh_exception import NoValidConnectionsError
 
 from infra.model.base_config import BaseConfig
 from infra.model.host import Host
-from infra.model import host as host_module
 from runner import CONSTS
-
 from runner import helpers
+
+#import sys
+#sys.stdout = sys.stderr
 
 host_config_example1 = """{"host": {
     "ip": "%s",
@@ -57,6 +59,10 @@ def base_config(request):
         yield base
         # TODO: switch if working in docker/k8s
         helpers.tear_down_docker(base)
+    except socket.timeout as e:
+        raise Exception("socket timeout trying to connect via running docker")
+    except Exception as e:
+        pass
 
 
 def test_functionality(base_config):
