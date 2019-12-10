@@ -31,9 +31,12 @@ def collect_tests_and_init_hardware(module_name):
 
 
 def run_test_module(module_name):
+    # TODO: I dont like how this runs pytest twice. There has got to be a way to collect, init_hardware and then continue
+    #  running the already collected tests. look up pytest hooks or somn.
+
     initialized_tests = collect_tests_and_init_hardware(module_name)
 
-    tests_config = [[f'{os.path.split(test.fspath.strpath)[0]}/{test.nodeid}', f'--sut_config={test.hardware_config}']
+    tests_config = [[f'{os.path.dirname(test.fspath.strpath)}/{os.path.basename(test.nodeid)}', f'--sut_config={test.hardware_config}']
                     for test in initialized_tests]
     pytest_args = ['-s', '-n 1']
     for test_config in tests_config:
