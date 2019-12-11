@@ -34,11 +34,12 @@ def run_test_module(module_name):
     logging.info("done collecting and initing...")
     tests_config = [[f'{os.path.dirname(test.fspath.strpath)}/{os.path.basename(test.nodeid)}', f'--sut_config={test.hardware_config}']
                     for test in initialized_tests]
-    pytest_args = ['-s', '-n 1', '--html=report.html', '--self-contained-html']
-    for test_config in tests_config:
-        pytest_args.extend(test_config)
     logging.info("running tests really...")
-    res = pytest.main(pytest_args)
+    for idx, test_config in enumerate(tests_config):
+        pytest_args = ['-s', '-n 1', f'--html=report{idx}.html', '--self-contained-html']
+        test_config.extend(pytest_args)
+        logging.info(f"pytest args: {test_config}")
+        res = pytest.main(test_config)
     logging.info("done running tests!")
     return res
 
