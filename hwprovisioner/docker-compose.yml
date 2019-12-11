@@ -1,0 +1,10 @@
+---
+version: '3.6'
+services:
+  keepalive:
+    image: anyvision-hwprovisioner-keepalive
+    build:
+      context: ./keepalive
+      dockerfile: Dockerfile
+    ports:
+      - 9080:8080
