@@ -1,14 +1,14 @@
 import logging
 import time
 import pprint
+
 from runner import helpers
 
 helpers.init_logger()
 
 hardware_types = {
-    "aio":
-        {"ori_pass":
-             """{"host": {
+    "ori_pass":
+        """{"host": {
                 "ip": "192.168.21.163",
                 "user": "user",
                 "password": "pass",
@@ -19,8 +19,8 @@ hardware_types = {
                 "allocation_id": "" }
                 }
              """,
-        "ori_pem":
-             """{"host": {
+    "ori_pem":
+        """{"host": {
                 "ip": "192.168.21.163",
                 "user": "root",
                 "password": "",
@@ -31,9 +31,9 @@ hardware_types = {
                 "allocation_id": "" }
                 }
              """,
-         "guy":
-             """{"host": {
-                    "ip": "35.199.172.249",
+    "gcr":
+        """{"host": {
+                    "ip": "35.231.0.137",
                     "user": "anyvision-devops",
                     "password": "",
                     "key_file_path": "/home/ori/Downloads/anyvision-devops.pem",
@@ -42,8 +42,31 @@ hardware_types = {
                     "host_type": "cloud",
                     "allocation_id": "" }
                 }
+             """,
+    "sasha_vm":
+        """{"host": {
+                    "ip": "192.168.21.177",
+                    "user": "root",
+                    "password": "user1!",
+                    "key_file_path": "",
+                    "alias": "sasha_vm",
+                    "host_id": 124,
+                    "host_type": "on_prem",
+                    "allocation_id": "" }
+                }
+             """,
+    "ori_vm":
+        """{"host": {
+                    "ip": "192.168.122.45",
+                    "user": "user",
+                    "password": "user1!",
+                    "key_file_path": "",
+                    "alias": "ori_vm",
+                    "host_id": 124,
+                    "host_type": "virtual",
+                    "allocation_id": "" }
+                }
              """
-         }
 }
 
 
