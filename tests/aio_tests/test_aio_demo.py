@@ -7,25 +7,25 @@ from runner.helpers import hardware_config
 
 
 # These are all example tests:
-@hardware_config(hardware={"type": "aio"})
+@hardware_config(hardware={"type": "ori_pem"})
 def test_ssh(base_config):
-    logging.warning("Running ssh test!")
+    logging.info(f"Running ssh test on host {base_config.host.ip}")
     os.system("echo this is a test > /tmp/temp.txt")
     base_config.host.SSH.put('/tmp/temp.txt', '/tmp')
-    logging.warning("put file!")
+    logging.info("put file!")
     res = base_config.host.SSH.execute('ls /tmp')
     assert 'temp.txt' in res.split()
     base_config.host.SSH.execute('rm /tmp/temp.txt')
     res = base_config.host.SSH.execute('ls /tmp')
-    logging.warning("sleeping..")
+    logging.info("sleeping..")
     time.sleep(1)
-    logging.warning("woke up !")
+    logging.info("woke up !")
     assert 'temp.txt' not in res.split()
 
 
-@hardware_config(hardware={"type": "aio"})
+@hardware_config(hardware={"type": "ori_vm"})
 def test_ssh2(base_config):
-    logging.warning("Running ssh test2!")
+    logging.info(f"Running ssh2 test on host {base_config.host.ip}")
     time.sleep(1)
     os.system("echo this is a test > /tmp/temp2.txt")
     base_config.host.SSH.put('/tmp/temp2.txt', '/tmp')
