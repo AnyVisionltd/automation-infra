@@ -1,0 +1,10 @@
+---
+version: '3.6'
+services:
+  allocator:
+    image: anyvision-hwprovisioner-allocator
+    build:
+      context: ./allocator
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
