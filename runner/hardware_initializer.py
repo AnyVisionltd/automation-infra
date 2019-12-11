@@ -1,4 +1,9 @@
+import logging
 import time
+import pprint
+from runner import helpers
+
+helpers.init_logger()
 
 hardware_types = {
     "aio":
@@ -43,7 +48,6 @@ hardware_types = {
 
 
 def init_hardware(hardware_req):
-    print("initilizing hardware...")
     # TODO: here I would turn to a server admin service and get ips, userPass/sshKeys of the cluster
     # In the future there will be a real server provisioner which manages and returns hardware details,
     # and then the call would be something like this:
@@ -51,9 +55,8 @@ def init_hardware(hardware_req):
     # TODO: but in addition to the cluster details, dont I also need to request services, like memsql, pipeng..?
     # For now, this place holder:
     time.sleep(1)
-    hardware = hardware_types[hardware_req["type"]]['ori_pass']
-    print("successfully initialized hardware!")
-    print()
+    hardware = hardware_types[hardware_req["type"]]
+    logging.info(f"successfully initialized hardware:\n{pprint.pformat(hardware)}")
     # TODO: Here I really need to run dev-ops tests which check that all hardware is working, no?
     # because the server_admin_service just gave me blank servers.
 

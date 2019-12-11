@@ -1,3 +1,4 @@
+import logging
 import socket
 import time
 
@@ -5,6 +6,12 @@ from paramiko.ssh_exception import NoValidConnectionsError, AuthenticationExcept
 
 from infra.model import base_config
 from infra.plugins.ssh import SSHCalledProcessError
+
+
+def init_logger():
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)',
+                        filename='output.log')
 
 
 def hardware_config(hardware):
