@@ -18,6 +18,10 @@ The allocator will be responsible for allocating hardware to a request. It will 
 
 As the user is using the requested resource, a keepalive will be sent to a service to persist it's locked state, ensuring other users can not book it.
 
+### Reclaim
+
+In the event that a resource has been released (for example, when a particular user has finished testing on it) that resource will need to be reclaimed, resetting it to a known good state. As each resource may have it's own process for performing a reset, the reclaim service will run a dedicated Docker container allocated for a particular resource. This gives the reclaim service a consistent means of reclaiming a resource, and grants us the flexibility to include unique libraries and scripts per resource.
+
 ### Logs
 
 All service logs will be output into docker stdout/stderr
