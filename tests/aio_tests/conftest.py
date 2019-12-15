@@ -6,7 +6,7 @@ import pytest
 
 from infra.model.base_config import BaseConfig
 from infra.model.host import Host
-from runner import helpers
+from runner import helpers, hardware_initializer
 
 #import sys
 #sys.stdout = sys.stderr
@@ -36,20 +36,17 @@ host_config_example2 = """{"host": {
 }}""" % EXAMPLE_IP
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--sut_config",
-        action="store",
-        default=host_config_example2,
-        help="ip user/pass config details",
-    )
+@pytest.hookimpl()
+def pytest_runtest_setup(item):
+    # TODO: I cant run 2 tests with 1 hardware without reinitializing it.
+    hardware_config = hardware_initializer.init_hardware(item.function.__hardware_reqs)
+    item.function.__initialized_hardware = json.loads(hardware_config)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 def base_config(request):
     print("initing base config..")
-    config = json.loads(request.config.getoption('--sut_config'))
-    base = BaseConfig.fromDict(config, DefaultFactoryMunch)
+    base = BaseConfig.fromDict(request.function.__initialized_hardware, DefaultFactoryMunch)
     base.host = Host(base.host)
     try:
         helpers.connect_via_running_docker(base)
