@@ -46,13 +46,13 @@ def deploy_proxy_container(connected_ssh_module, auth_args):
     except:
         pass
 
-    run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --network=host --name=ssh_container orihab/ubuntu_ssh:1.1 {" ".join(auth_args)}'
+    run_cmd = f'sudo {use_gravity_exec(connected_ssh_module)} docker run -d --network=host --name=ssh_container orihab/ubuntu_ssh:latest {" ".join(auth_args)}'
     res = connected_ssh_module.execute(run_cmd)
     return res
 
 
 def remove_proxy_container(connected_ssh_module):
-    res = connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker rm -f ssh_container')
+    res = connected_ssh_module.execute(f'sudo {use_gravity_exec(connected_ssh_module)} docker rm -f ssh_container')
     print(res)
 
 
@@ -77,7 +77,12 @@ def connect_via_running_docker(base):
 def init_docker_and_connect(base):
     print("initializing docker")
     base.host.SSH.connect()
-    docker_args = ['pem', base.host.user] if base.host.keyfile else ['password', base.host.user, base.host.password]
+    if base.host.keyfile:
+        with open(base.host.keyfile, 'rb') as pem:
+            k = pem.read().decode()
+        pem_string = k.strip('\n')[k.find('\n'):k.strip().rfind('\n')].strip().replace('\n', '')
+
+    docker_args = ['pem', base.host.user, pem_string] if base.host.keyfile else ['password', base.host.user, base.host.password]
     deploy_proxy_container(base.host.SSH, docker_args)
     base.host.SSH.connect(base.host.SSH.TUNNEL_PORT)
     print("docker is running and ssh connected")
