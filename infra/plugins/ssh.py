@@ -2,11 +2,13 @@ import subprocess
 from subprocess import CalledProcessError
 import logging
 
+from infra import model
 from infra.model import plugins
 from infra.plugins import connection
 
 
 class SSH(object):
+    # TODO: I need to get this from hardware initializer
     TUNNEL_PORT = 2222
 
     def __init__(self, host):
@@ -15,6 +17,12 @@ class SSH(object):
 
     def connect(self, port=22, timeout=10):
         self._connection = connection.Connection(self._host, port)
+        self._connection.connect(timeout)
+
+    def docker_connect(self, port=TUNNEL_PORT, timeout=10):
+        # TODO: have handle security here
+        host = model.host.create_host(self._host.ip, 'root', 'pass', None)
+        self._connection = connection.Connection(host, port)
         self._connection.connect(timeout)
 
     def run_script(self, script, timeout=20 * 60):
