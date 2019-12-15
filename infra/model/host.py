@@ -75,6 +75,21 @@ class Host(object):
 plugins.register('Host', Host)
 
 
+def create_host(ip, u, p=None, pem_path=None):
+    host_config = {
+        "ip": ip,
+        "user": u,
+        "password": p,
+        "key_file_path": pem_path,
+        "alias": "monster",
+        "host_id": 123,
+        "host_type": "virtual",
+        "allocation_id": ""
+    }
+    host = Host(Munch.fromDict(host_config))
+    return host
+
+
 def test_functionality():
     print("initializing host1...")
     host1 = Host(Munch.fromDict(host_config_example1))

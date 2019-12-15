@@ -39,26 +39,26 @@ def use_gravity_exec(connected_ssh_module):
         return ''
 
 
-def deploy_proxy_container(connected_ssh_module, auth_args):
+def deploy_proxy_container(connected_ssh_module, auth_args=['password', 'root', 'pass']):
     # TODO: check if running instead of just trying to remove
     try:
         remove_proxy_container(connected_ssh_module)
     except:
         pass
 
-    run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --network=host --name=ssh_container orihab/ubuntu_ssh:1.1 {" ".join(auth_args)}'
+    run_cmd = f'sudo {use_gravity_exec(connected_ssh_module)} docker run -d --network=host --name=ssh_container orihab/ubuntu_ssh:1.5 {" ".join(auth_args)}'
     res = connected_ssh_module.execute(run_cmd)
     return res
 
 
 def remove_proxy_container(connected_ssh_module):
-    res = connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker rm -f ssh_container')
+    res = connected_ssh_module.execute(f'sudo {use_gravity_exec(connected_ssh_module)} docker rm -f ssh_container')
     print(res)
 
 
 def connect_via_running_docker(base):
     try:
-        base.host.SSH.connect(base.host.SSH.TUNNEL_PORT)
+        base.host.SSH.docker_connect(base.host.SSH.TUNNEL_PORT)
         return
     except NoValidConnectionsError:
         print("no valid connections")
@@ -73,13 +73,11 @@ def connect_via_running_docker(base):
     raise Exception("unsuccessful connecting via running docker...")
 
 
-
 def init_docker_and_connect(base):
     print("initializing docker")
     base.host.SSH.connect()
-    docker_args = ['pem', base.host.user] if base.host.keyfile else ['password', base.host.user, base.host.password]
-    deploy_proxy_container(base.host.SSH, docker_args)
-    base.host.SSH.connect(base.host.SSH.TUNNEL_PORT)
+    deploy_proxy_container(base.host.SSH)
+    base.host.SSH.docker_connect(base.host.SSH.TUNNEL_PORT)
     print("docker is running and ssh connected")
 
 
