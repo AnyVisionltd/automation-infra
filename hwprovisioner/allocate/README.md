@@ -1,0 +1,121 @@
+# "allocate" service
+
+It is the responsibility of the Allocate service to "allocate" compute resources to users.
+
+*Scenario: "As a developer, I want a dedicated nvidia GeForce RTX 208 to develop and test against"*
+
+## api
+
+```json
+# GET /inventory/
+# description: expose all registered resources
+# response:
+{
+    "status": 200,
+    "data": [
+        {
+            "inventory_id": "8a526e72-bcde-45e6-8a5f-f598b350f093",
+            "labels": ["nvidia"],
+            "cpu_count": 12,
+            "memory_gb": 32,
+            "gpu": [{
+                "label": "GeForce RTX 208",
+                "memory_gb": 2,
+            }],
+            "type": "server-onsite",
+        },
+        {
+            "inventory_id": "2a526e72-bcde-45e6-8a5f-f598b350f091",
+            "labels": ["intel-nuc"],
+            "cpu_count": 8,
+            "memory_gb": 16,
+            "gpu": [{
+                "label": "Radeon RX 540",
+                "memory_gb": 1,
+            }],
+            "type": "device",
+        },
+    ]
+}
+
+# GET /inventory/$inventory_id
+# description: expose a specific registered resource
+# response:
+{
+    "status": 200,
+    "data": [
+        {
+            "inventory_id": "8a526e72-bcde-45e6-8a5f-f598b350f093",
+            "labels": ["nvidia"],
+            "cpu_count": 12,
+            "memory_gb": 32,
+            "gpu": [{
+                "label": "GeForce RTX 208",
+                "memory_gb": 2,
+            }],
+            "type": "VM",
+        },
+    ]
+}
+
+# DELETE /allocate/$allocation_id
+# description: remove (or 'free up') an allocation
+# payload: {}
+# response:
+{
+    "status": 200,
+    "data": "deleted allocation",
+}
+
+# WEBSOCKET /allocate/
+# description: communicate the status of an allocation
+# payload:
+# {
+#   "requirements": {
+#     "tags": ["nvidia"],
+#     "username": "$host_name",
+#     "allocation_timeout_seconds": 20,
+#     "expires": 1576686942,
+#   }
+# }
+# response:
+{
+    "status": 200,
+    "data": {
+        "status": "ready",
+        "allocation_id": "036cf5ef-099d-4bc9-8150-82c512bd3f3c",
+        "connection": {
+            "host": "1.2.3.4",
+            "username": "test",
+            "password": "foo",
+        },
+        "expires": 1576688942,
+    },
+}
+
+# WEBSOCKET /agent/
+# allow agents to register their resources
+# payload:
+# {
+#   "agent_id": "d4863713-1388-4297-a479-a582b306f5cb",
+#   "resources": [
+#        {
+#            "labels": ["nvidia"],
+#            "cpu_count": 12,
+#            "memory_gb": 32,
+#            "gpu": [{
+#                "label": "GeForce RTX 208",
+#                "memory_gb": 2,
+#            }],
+#            "type": "VM",
+#        },
+#   ],
+# }
+# response:
+{
+    "status": 200,
+    "data": {
+        "status": "ok",
+    },
+}
+```
