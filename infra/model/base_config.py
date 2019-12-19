@@ -65,31 +65,6 @@ class BaseConfig(DefaultMunch):
             return self.__plugins[k]
 
 
-def test_nested_values():
-    with open("base_config.json", 'r') as f:
-        j = json.load(f)
-    assert nested_value("password", j) == 'password'
-    assert nested_value("cluster", example) == {
-        "alias": "cluster1",
-        "hosts": {
-            "host1": {
-                "ip": "192.168.20.34",
-                "user": "user",
-                "password": "password",
-                "key_file_path": "",
-                "alias": "monster",
-                "host_id": 123,
-                "host_type": "type1",
-                "allocation_id": ""
-            }
-        }
-    }
-    assert nested_value("foo", example) is None
-    assert nested_value('host_id', example) == 123
-    assert nested_value('allocation_id', example) == ""
-    assert nested_value('uri', example) == "rtmp://192.168.20.34/live/st1"
-
-
 def test_base_config_init():
     bc = BaseConfig.fromDict(example, DefaultFactoryMunch)
     assert bc.alias == 'config1'

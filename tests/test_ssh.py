@@ -1,12 +1,15 @@
+import logging
 import os
 import time
 
-import logging
+import pytest
 
 from runner.helpers import hardware_config
 
+pytest_plugins = "pytest_automation_infra"
 
-# These are all example tests:
+
+#@pytest.mark.timeout(30)
 @hardware_config(hardware={"type": "ori_pem"})
 def test_ssh(base_config):
     logging.info(f"Running ssh test on host {base_config.host.ip}")
@@ -23,15 +26,6 @@ def test_ssh(base_config):
     assert 'temp.txt' not in res.split()
 
 
-@hardware_config(hardware={"type": "ori_vm"})
-def test_ssh2(base_config):
-    logging.info(f"Running ssh2 test on host {base_config.host.ip}")
-    time.sleep(1)
-    os.system("echo this is a test > /tmp/temp2.txt")
-    base_config.host.SSH.put('/tmp/temp2.txt', '/tmp')
-    res = base_config.host.SSH.execute('ls /tmp')
-    assert 'temp2.txt' in res.split()
-    base_config.host.SSH.execute('rm /tmp/temp2.txt')
-    res = base_config.host.SSH.execute('ls /tmp')
-    time.sleep(1)
-    assert 'temp2.txt' not in res.split()
+if __name__ == '__main__':
+    # These can be run via pytest or like this too:
+    pytest.main(args=['.', ], plugins=[])
