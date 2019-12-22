@@ -24,6 +24,9 @@ class SSH(object):
         host = model.host.create_host(self._host.ip, 'root', 'pass', None)
         self._connection = connection.Connection(host, port)
         self._connection.connect(timeout)
+        
+    def get_transport(self):
+        return self._connection._ssh_client.get_transport()
 
     def run_script(self, script, timeout=20 * 60):
         temp_ex = None
