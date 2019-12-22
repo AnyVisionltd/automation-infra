@@ -32,11 +32,18 @@ def runner(tests):
 
 
 def use_gravity_exec(connected_ssh_module):
+    if is_k8s(connected_ssh_module):
+        return 'gravity exec'
+    else:
+        return ''
+
+
+def is_k8s(connected_ssh_module):
     try:
         connected_ssh_module.execute("kubectl get po")
-        return 'gravity exec'
+        return True
     except SSHCalledProcessError:
-        return ''
+        return False
 
 
 def deploy_proxy_container(connected_ssh_module, auth_args=['password', 'root', 'pass']):
