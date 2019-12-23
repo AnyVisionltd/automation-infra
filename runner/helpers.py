@@ -1,10 +1,7 @@
 import logging
 import socket
-import time
-
 from paramiko.ssh_exception import NoValidConnectionsError, AuthenticationException, SSHException
 
-from infra.model import base_config
 from infra.plugins.ssh import SSHCalledProcessError
 
 
@@ -19,16 +16,6 @@ def hardware_config(hardware):
         func.__hardware_reqs = hardware
         return func
     return wrapper
-
-
-def runner(tests):
-    conf = base_config.init_base_config_obj()
-    for _, test in tests.items():
-        hardware_req = test.__config
-        print(f"initializing hardware: {hardware_req}")
-        time.sleep(3)
-        print("done initializing hardware.. Running test..")
-        test(conf)
 
 
 def use_gravity_exec(connected_ssh_module):
