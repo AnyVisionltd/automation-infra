@@ -1,6 +1,6 @@
 # build like:
-# docker build -t automation-tests:0.1 .
-# and then run docker-compse up -d
+# docker build -t  orihab/ubuntu_ssh:2.0 .
+# docker push orihab/ubuntu_ssh:2.0 (to docker hub)
 
 FROM ubuntu:18.04
 LABEL maintainer="orielh@anyvision.co"

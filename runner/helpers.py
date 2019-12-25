@@ -20,14 +20,14 @@ def hardware_config(hardware):
 
 def use_gravity_exec(connected_ssh_module):
     if is_k8s(connected_ssh_module):
-        return 'gravity exec'
+        return 'sudo gravity exec'
     else:
         return ''
 
 
 def is_k8s(connected_ssh_module):
     try:
-        connected_ssh_module.execute("kubectl get po")
+        connected_ssh_module.execute("sudo kubectl get po")
         return True
     except SSHCalledProcessError:
         return False
@@ -40,13 +40,13 @@ def deploy_proxy_container(connected_ssh_module, auth_args=['password', 'root', 
     except:
         pass
 
-    run_cmd = f'sudo {use_gravity_exec(connected_ssh_module)} docker run -d --network=host --name=ssh_container orihab/ubuntu_ssh:1.5 {" ".join(auth_args)}'
+    run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --network=host --name=ssh_container orihab/ubuntu_ssh:2.0 {" ".join(auth_args)}'
     res = connected_ssh_module.execute(run_cmd)
     return res
 
 
 def remove_proxy_container(connected_ssh_module):
-    res = connected_ssh_module.execute(f'sudo {use_gravity_exec(connected_ssh_module)} docker rm -f ssh_container')
+    res = connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker rm -f ssh_container')
     print(res)
 
 
