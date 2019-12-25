@@ -26,17 +26,15 @@ class Handler(SocketServer.BaseRequestHandler):
                 self.request.getpeername(),
             )
         except Exception as e:
-            print(
-                "Incoming request to %s:%d failed: %s"
+            raise Exception(
+                "Exception trying to open_channel to %s:%d failed: %s"
                 % (self.chain_host, self.chain_port, repr(e))
             )
-            return
         if chan is None:
-            print(
-                "Incoming request to %s:%d was rejected by the SSH server."
+            raise Exception(
+                "Error trying to open_channel: Incoming request to %s:%d was rejected by the SSH server."
                 % (self.chain_host, self.chain_port)
             )
-            return
 
         print(
             "Connected!  Tunnel open %r -> %r -> %r"
