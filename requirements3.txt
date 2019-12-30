@@ -59,3 +59,4 @@ zipp==0.6.0
 confluent-kafka==1.2.0
 pytest-html==2.0.1
 PyYAML==5.2
+jinja2==2.10.3
