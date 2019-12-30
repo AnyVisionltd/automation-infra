@@ -17,6 +17,10 @@ def _do_delete(args):
     return requests.delete("http://%s/vms/%s" % (args.allocator, args.name))
 
 
+def _do_list_images(args):
+    return requests.get("http://%s/images" % (args.allocator))
+
+
 def _do_list_vms(args):
     return requests.get("http://%s/vms" % (args.allocator))
 
@@ -38,10 +42,12 @@ if __name__ == "__main__":
     create = commands.add_parser("delete", help="Delete VM")
     create.add_argument("--name", help="Name of the VM to delete", required=True)
 
+    create = commands.add_parser("images", help="List images")
     create = commands.add_parser("list", help="List vms")
 
     commands = {"create" : _do_create,
                 "delete" : _do_delete,
+                "images" : _do_list_images,
                 "list"   : _do_list_vms}
 
     args = parser.parse_args()

@@ -48,3 +48,6 @@ class HyperVisor(object):
     async def handle_list_vms(self, _):
         return web.json_response({'vms' : self.allocator.vms}, status=200)
 
+    async def handle_list_images(self, _):
+        images = await self.image_store.list_images()
+        return web.json_response({'images' : images}, status=200)
