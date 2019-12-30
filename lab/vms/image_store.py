@@ -24,6 +24,11 @@ class ImageStore(object):
         image_name = '%s.qcow2' % image_label
         return os.path.abspath(os.path.join(self.base_qcow_path, image_name))
 
+    async def list_images(self):
+        files = await self.loop.run_in_executor(None,
+                        lambda: os.listdir(os.path.abspath(self.base_qcow_path)))
+        return [os.path.splitext(file)[0] for file in files]
+
     async def clone_qcow(self, base_qcow_image_name, image_name):
         # first check if file exists
         backing_file = self.base_qcow_path_from_name(base_qcow_image_name)
