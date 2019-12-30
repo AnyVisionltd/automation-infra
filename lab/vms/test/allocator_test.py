@@ -33,7 +33,8 @@ def _generate_macs(num_macs):
 
 
 def _verify_vm_valid(allocator, vm, expected_vm_name, expected_base_image, expected_gpus,
-                     expected_networks, num_cpus, expected_mem):
+                     expected_networks, num_cpus, expected_mem, disks=None):
+    disks = disks or []
     assert expected_vm_name in allocator.vms
     assert vm.image == expected_base_image
     assert vm.name == expected_vm_name
@@ -49,6 +50,11 @@ def _verify_vm_valid(allocator, vm, expected_vm_name, expected_base_image, expec
 
     assert vm.num_cpus == num_cpus
     assert vm.memsize == expected_mem
+    assert len(vm.disks) == len(disks)
+    for i, disk in enumerate(vm.disks):
+        assert disk['type'] == disks[i]['type']
+        assert disk['image'] == disks[i]['image']
+        assert disk['size'] == disks[i]['size']
 
 
 @pytest.mark.asyncio
@@ -80,6 +86,43 @@ async def test_allocate_machine_happy_case(event_loop, mock_libvirt, mock_image_
     mock_image_store.delete_qcow.assert_called_with("/home/sasha_king.qcow")
     mock_libvirt.kill_by_name.assert_called_with("sasha-vm-0")
 
+
+@pytest.mark.asyncio
+async def test_allocate_machine_with_disks(event_loop, mock_libvirt, mock_image_store):
+    gpu1 = _generate_device(1)
+    macs = _generate_macs(1)
+    mock_image_store.clone_qcow = asyncmock.AsyncMock(return_value="/home/sasha_king.qcow")
+    mock_image_store.create_qcow = asyncmock.AsyncMock(side_effect=["/home/disk1.qcow", "/home/disk2.qcow"])
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+
+    await tested.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1,
+                             disks=[{"type": "ssd", "size" : 10},
+                                    {"type" : "hdd", "size" : 5}])
+    assert len(tested.vms) == 1
+    vm = tested.vms['sasha-vm-0']
+    _verify_vm_valid(tested, vm, expected_vm_name="sasha-vm-0",
+                     expected_base_image="/home/sasha_king.qcow",
+                     expected_gpus=gpu1,
+                     expected_mem=1,
+                     expected_networks=[{"mac" : macs[0], "type" : "bridge", "source" : "eth0"}],
+                     num_cpus=2,
+                     disks=[{"type" : "ssd", "size" : 10, "image": "/home/disk1.qcow"},
+                            {"type" : "hdd", "size" : 5, "image": "/home/disk2.qcow"}])
+
+    mock_image_store.clone_qcow.assert_called_with("sasha_image1", "sasha-vm-0")
+    mock_libvirt.define_vm.assert_called()
+
+    # Now destroy the VM
+    await tested.destroy_vm("sasha-vm-0")
+    assert len(tested.vms) == 0
+    assert tested.gpus_list == gpu1
+    assert tested.mac_addresses == macs
+    # One for boot, one for ssd one for hdd
+    assert mock_image_store.delete_qcow.call_count == 3
+    deleted_images = set([call[0][0] for call in mock_image_store.delete_qcow.call_args_list])
+    assert deleted_images == set(["/home/sasha_king.qcow", "/home/disk1.qcow","/home/disk2.qcow"])
+    mock_libvirt.kill_by_name.assert_called_with("sasha-vm-0")
 
 @pytest.mark.asyncio
 async def test_kill_non_existing_vm(event_loop, mock_libvirt, mock_image_store):

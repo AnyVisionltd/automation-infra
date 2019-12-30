@@ -48,6 +48,8 @@ if __name__ == '__main__':
     parser.add_argument("--qemu-uri", help="qemu uri", default="qemu:///system")
     parser.add_argument("--images-dir", help="Default backing images dir", default="var/lib/libvirt/images")
     parser.add_argument("--run-dir", help="Images run dir", default="var/lib/libvirt/images")
+    parser.add_argument("--ssd-dir", help="SSD disks dir, where ssd images will be stored", default="var/lib/libvirt/images")
+    parser.add_argument("--hdd-dir", help="HDD disks dir, where hdd images will be stored", default="var/lib/libvirt/images")
     parser.add_argument("--log-level", help="Log level defaults to INFO", default="INFO")
     parser.add_argument("--max-vms", help="Maximum amount of VMs to support concurrently", default=1, type=int)
     parser.add_argument("--private-net", help="Private network device for NAT networks", default="default")
@@ -65,7 +67,7 @@ if __name__ == '__main__':
     _check_kvm_ok()
     vmm = libvirt_wrapper.LibvirtWrapper(args.qemu_uri)
     storage = image_store.ImageStore(loop, base_qcow_path=args.images_dir,
-                                     run_qcow_path=args.run_dir,ssd_path=args.run_dir, hdd_path=args.run_dir)
+                                     run_qcow_path=args.run_dir,ssd_path=args.ssd_dir, hdd_path=args.hdd_dir)
     gpu_pci_devices = config['pci']
     pci.vfio_bind_pci_devices(config['pci'])
     manager = vm_manager.VMManager(loop, vmm, storage)

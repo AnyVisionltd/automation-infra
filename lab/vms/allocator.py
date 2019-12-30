@@ -43,7 +43,7 @@ class Allocator(object):
         self.gpus_list.extend(gpus)
         self.mac_addresses.extend(macs)
 
-    async def allocate_vm(self, base_image, memory_gb, networks, num_gpus=0, num_cpus=4):
+    async def allocate_vm(self, base_image, memory_gb, networks, num_gpus=0, num_cpus=4, disks=None):
         ''' 
         @networks - list of networks that we want to allocate, possible 
         values are "isolated, bridged"
@@ -51,9 +51,12 @@ class Allocator(object):
         @num_cpus - number of CPU`s to allocate
         @memory_gb - memory in GB for vm
         @networks - list of networks types to allocate, possible values are 'bridge', 'NAT'
+        @disks   - dict of {"size" : X, 'type' : [ssd or hdd]} to allocate disks
         '''
-        logging.debug("Allocate vm image %(base_image)s memory %(memory_gb)s networks %(networks)s cpus %(num_cpus)s gpus %(num_gpus)s",
-                      dict(base_image=base_image, memory_gb=memory_gb, num_gpus=num_gpus, num_cpus=num_cpus, networks=networks))
+        disks = disks or []
+        logging.debug("Allocate vm image %(base_image)s memory %(memory_gb)s networks\
+                       %(networks)s cpus %(num_cpus)s gpus %(num_gpus)s disks %(disks)s",
+                      dict(base_image=base_image, memory_gb=memory_gb, num_gpus=num_gpus, num_cpus=num_cpus, networks=networks, disks=disks))
 
         # check that i have enough networks in pool 
         if len(networks) > len(self.mac_addresses):
@@ -70,7 +73,8 @@ class Allocator(object):
         vm_name = "%s-vm-%d" % (self.server_name, len(self.vms))
         vm = munch.Munch(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
                          net_ifaces=networks, sol_port=self._sol_port(),
-                         pcis=gpus, base_image=base_image)
+                         pcis=gpus, base_image=base_image,
+                         disks=disks)
         self.vms[vm_name] = vm
 
         try:

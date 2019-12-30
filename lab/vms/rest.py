@@ -23,12 +23,14 @@ class HyperVisor(object):
         num_gpus = int(data.get('num_gpus', 0))
         base_image = data['base_image']
         memory_gb = int(data['ram'])
+        disks = data['disks']
         try:
             vm = await self.allocator.allocate_vm(base_image=base_image,
                                        memory_gb=memory_gb,
                                        networks=networks,
                                        num_gpus=num_gpus,
-                                       num_cpus=num_cpus)
+                                       num_cpus=num_cpus,
+                                       disks=disks)
         except:
             logging.exception("Failed to create VM")
             return web.json_response({'status' : 'Failed'}, status=500)
