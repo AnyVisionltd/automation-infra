@@ -11,14 +11,21 @@ class QcowException(Exception):
 
 class ImageStore(object):
 
-    def __init__(self, loop, base_qcow_path, run_qcow_path):
+    def __init__(self, loop, base_qcow_path, run_qcow_path, ssd_path, hdd_path):
         self.loop = loop
         self.base_qcow_path = base_qcow_path
         self.run_qcow_path = run_qcow_path
+        self.ssd_path = ssd_path
+        self.hdd_path = hdd_path
 
     def run_qcow_path_from_name(self, vm_name):
         image_file_name = "%s_%s.qcow2" % (vm_name, str(time.time()))
         return os.path.abspath(os.path.join(self.run_qcow_path, image_file_name))
+
+    def _storage_path(self, storage_type, vm_name, serial_num):
+        base_path = self.ssd_path if storage_type == "ssd" else self.hdd_path
+        file_name = "%s_%s_%s.qcow2" % (vm_name, storage_type, serial_num)
+        return os.path.abspath(os.path.join(base_path, file_name))
 
     def base_qcow_path_from_name(self, image_label):
         image_name = '%s.qcow2' % image_label
@@ -48,6 +55,19 @@ class ImageStore(object):
                           dict(backing_file=backing_file, output_file=path, returncode=returncode))
             out = await proc.stdout.read()
             raise QcowException("Failed clone qcow for label %s out: %s" % (base_qcow_image_name, out))
+        return path
+
+    async def create_qcow(self, vm_name, storage_type, size_gb, serial_num):
+        path = self._storage_path(storage_type, vm_name, serial_num)
+        size = "%dG" % size_gb
+        args = ['qemu-img', 'create', '-f', 'qcow2', path, size]
+        logging.debug("Running command %s", args)
+        proc = await asyncio.create_subprocess_exec(*args, close_fds=True,
+                                                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
+        returncode = await proc.wait()
+        if returncode != 0:
+            out = await proc.stdout.read()
+            raise QcowException("Failed create qcow for file %s out: %s" % (path, out))
         return path
 
     async def qcow_info(self, image_path):
@@ -94,7 +114,7 @@ if __name__ == '__main__':
     run_qcow_name = os.path.basename(run_abs_path)
 
     loop = asyncio.get_event_loop()
-    store = ImageStore(loop, backing_dir, run_qcow_dir)
+    store = ImageStore(loop, backing_dir, run_qcow_dir, run_qcow_dir, run_qcow_dir)
     if args.command == 'create':
         loop.run_until_complete(store.clone_qcow(backing_file, run_qcow_name))
     elif args.command == 'delete':

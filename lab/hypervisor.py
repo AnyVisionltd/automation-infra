@@ -64,7 +64,8 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     _check_kvm_ok()
     vmm = libvirt_wrapper.LibvirtWrapper(args.qemu_uri)
-    storage = image_store.ImageStore(loop, base_qcow_path=args.images_dir, run_qcow_path=args.run_dir)
+    storage = image_store.ImageStore(loop, base_qcow_path=args.images_dir,
+                                     run_qcow_path=args.run_dir,ssd_path=args.run_dir, hdd_path=args.run_dir)
     gpu_pci_devices = config['pci']
     pci.vfio_bind_pci_devices(config['pci'])
     manager = vm_manager.VMManager(loop, vmm, storage)
