@@ -60,3 +60,4 @@ wcwidth==0.1.7
 zipp==0.6.0
 confluent-kafka==1.2.0
 pytest-html==2.0.1
+PyYAML==5.2
