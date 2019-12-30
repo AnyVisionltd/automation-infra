@@ -60,3 +60,7 @@ confluent-kafka==1.2.0
 pytest-html==2.0.1
 PyYAML==5.2
 jinja2==2.10.3
+asyncmock==0.4.1
+asynctest==0.13.0
+pytest-asyncio==0.10.0
+xmltodict==0.12.0
