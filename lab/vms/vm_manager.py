@@ -1,5 +1,7 @@
 import concurrent.futures
 import logging
+import string
+import uuid
 
 
 class VMManager(object):
@@ -9,10 +11,17 @@ class VMManager(object):
         self.libvirt_api = libvirt_api
         self.image_store = image_store
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+        # "sda" is taken for boot drive
+        self.vol_names = ["sd%s" % letter for letter in  string.ascii_lowercase[1:]]
 
     async def _create_storage(self, vm):
         image_path = await self.image_store.clone_qcow(vm['base_image'], vm['name'])
         vm['image'] = image_path
+
+        for i, disk in enumerate(vm['disks']):
+            disk['serial'] = str(uuid.uuid4())
+            disk['device_name'] = self.vol_names[i]
+            disk['image'] = await self.image_store.create_qcow(vm['name'], disk['type'], disk['size'], disk['serial'])
 
     async def _delete_qcow_no_exception(self, image_path):
         try:
@@ -25,18 +34,26 @@ class VMManager(object):
             await self._delete_qcow_no_exception(vm['image'])
             del vm['image']
 
+        for disk in vm['disks']:
+            if 'image' in disk:
+                disk['image'] = await self._delete_qcow_no_exception(disk['image'])
+                del disk['image']
+
     async def allocate_vm(self, vm):
-        await self._create_storage(vm)
         try:
+            await self._create_storage(vm)
             await self.loop.run_in_executor(self.thread_pool,
                                                      lambda: self.libvirt_api.define_vm(vm))
             await self.loop.run_in_executor(self.thread_pool,
                                                lambda: self.libvirt_api.start_vm(vm))
-        except:
+        except Exception as e:
             logging.error("Failed to create VM %s", vm)
-            await self.destroy_vm(vm)
-            await self._delete_storage(vm)
-            raise
+            try:
+                await self.destroy_vm(vm)
+                await self._delete_storage(vm)
+            except:
+                logging.exception("Error during vm destroy of %s", vm['name'])
+            raise e
         else:
             return vm
 

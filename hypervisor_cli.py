@@ -8,7 +8,13 @@ def _do_create(args):
             "ram" : args.ram,
             "num_cpus": args.cpus,
             "networks" : args.networks_all,
-            "num_gpus" : args.gpus }
+            "num_gpus" : args.gpus,
+            "disks" : [] }
+
+    if args.ssd:
+        data["disks"].append({"size" : args.ssd, "type" : "ssd"})
+    if args.hdd:
+        data["disks"].append({"size" : args.hdd, "type" : "hdd"})
 
     return requests.post("http://%s/vms" % args.allocator, json=data)
 
@@ -34,6 +40,8 @@ if __name__ == "__main__":
     create = commands.add_parser("create", help="Create VM")
     create.add_argument("--image", help="Name of base image from which to create VM", required=True)
     create.add_argument("--ram", help="Ram in GBytes", type=int, required=True)
+    create.add_argument("--ssd", help="SSD disk in Gbytes", type=int, required=False)
+    create.add_argument("--hdd", help="HDD disk in Gbytes", type=int, required=False)
     create.add_argument("--cpus", help="Number of CPU`s to allocate", type=int, required=True)
     create.add_argument("--networks", dest="accumulate", action="store_const", const=sum, default=max, help="Specify networks")
     create.add_argument("networks_all", metavar="N", type=str, nargs="+", help="Networks", default=["bridge"])

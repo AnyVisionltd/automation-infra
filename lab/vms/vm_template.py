@@ -44,6 +44,16 @@ template = '''
       <address type='pci' domain='0x0000' bus='0x00' slot='0x08' function='0x0'/>
     </disk>
 
+    {% for disk in machine.disks %}
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='{{disk.image}}'/>
+      <target dev='{{disk.device_name}}' bus='virtio'/>
+      <serial>{{disk.serial}}</serial>
+      <alias name='virtio-disk-{{disk.type}}'/>
+    </disk>
+    {% endfor %}
+
     <controller type='pci' index='0' model='pci-root'>
       <alias name='pci.0'/>
     </controller>
