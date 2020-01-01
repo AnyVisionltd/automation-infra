@@ -1,0 +1,9 @@
+username=${USER}
+userhome=${HOME}
+uid=${UID}
+workdir=${PWD}
+color_prompt=yes
+BUILD_TYPE=${BUILD_TYPE}
+CCACHE_DISABLE=${CCACHE_DISABLE}
+WORKSPACE_TOP=${WORKSPACE_TOP}
+DOCKER_GROUP_ID=$(getent group docker | cut -d: -f3)
