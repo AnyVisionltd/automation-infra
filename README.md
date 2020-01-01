@@ -39,3 +39,7 @@ If you wish time run all of the tests together you can run:
 ```sh
 make tests
 ```
+
+Flow Diagram:
+
+![Alt](media/automation_infra_flow_design.svg)
