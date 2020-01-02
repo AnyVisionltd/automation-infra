@@ -72,4 +72,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     result = commands[args.command](args)
-    print(result.json())
+    if result.ok:
+        print(result.json())
+    else:
+        print("Command failed status: %s" %result.status_code)
