@@ -13,7 +13,8 @@ class HyperVisor(object):
         webapp.router.add_routes([web.post('/vms', self.handle_allocate_vm),
                                   web.delete('/vms/{name}', self.handle_destroy_vm),
                                   web.get('/vms', self.handle_list_vms),
-                                  web.get('/images', self.handle_list_images)])
+                                  web.get('/images', self.handle_list_images),
+                                  web.post('/vms/{name}/status', self.handle_vm_update)])
 
     async def handle_allocate_vm(self, request):
         data = await request.json()
@@ -53,3 +54,17 @@ class HyperVisor(object):
     async def handle_list_images(self, _):
         images = await self.image_store.list_images()
         return web.json_response({'images' : images}, status=200)
+
+    async def handle_vm_update(self, request):
+        vm_name = request.match_info['name']
+        if vm_name not in self.allocator.vms:
+            return web.json_response(status=404)
+
+        data = await request.json()
+        logging.info("Asked to change vm %s status to %s", vm_name, data)
+        power_status = data['power']
+        if power_status == "on":
+            await self.allocator.poweron_vm(vm_name)
+        elif power_status == "off":
+            await self.allocator.poweroff_vm(vm_name)
+        return web.json_response({'status' : 'Success'}, status=200)

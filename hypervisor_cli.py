@@ -1,6 +1,7 @@
 #!/usr/bin/env python3 
 import requests
 import argparse
+import functools
 
 
 def _do_create(args):
@@ -30,6 +31,9 @@ def _do_list_images(args):
 def _do_list_vms(args):
     return requests.get("http://%s/vms" % (args.allocator))
 
+def _do_update_vm(args, status):
+    return requests.post("http://%s/vms/%s/status" % (args.allocator, args.name), json=status)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -53,10 +57,18 @@ if __name__ == "__main__":
     create = commands.add_parser("images", help="List images")
     create = commands.add_parser("list", help="List vms")
 
+    create = commands.add_parser('poweroff', help="Poweroff VM")
+    create.add_argument('--name', help="Name of the VM to poweoff", required=True)
+
+    create = commands.add_parser('poweron', help="Poweron VM")
+    create.add_argument('--name', help="Name of the VM to poweron", required=True)
+
     commands = {"create" : _do_create,
                 "delete" : _do_delete,
                 "images" : _do_list_images,
-                "list"   : _do_list_vms}
+                "list"   : _do_list_vms,
+                "poweroff" : functools.partial(_do_update_vm, status = {"power" : "off"}),
+                "poweron" : functools.partial(_do_update_vm, status = {"power" : "on"})}
 
     args = parser.parse_args()
     result = commands[args.command](args)

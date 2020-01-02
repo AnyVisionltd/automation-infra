@@ -35,6 +35,13 @@ class LibvirtWrapper(object):
             vm.create()
         logging.info("started vm %s", name)
 
+    def poweroff_vm(self, machine_info):
+        name = machine_info['name']
+        with self._libvirt_connection() as connection:
+            vm = connection.lookupByName(name)
+            vm.destroy()
+        logging.info("VM %s destroyed", name)
+
     def kill_by_name(self, name):
         logging.debug("killimg vm %s", name)
         with self._libvirt_connection() as connection:
