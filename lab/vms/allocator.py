@@ -88,6 +88,14 @@ class Allocator(object):
             logging.info("Allocated vm {vm}")
         return vm
 
+    async def poweron_vm(self, name):
+        await self.vm_manager.start_vm(self.vms[name])
+        self.vms[name]['status'] = "on"
+
+    async def poweroff_vm(self, name):
+        await self.vm_manager.stop_vm(self.vms[name])
+        self.vms[name]['status'] = "off"
+
     async def destroy_vm(self, name):
         vm = self.vms[name]
         try:
