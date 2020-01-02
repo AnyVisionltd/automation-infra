@@ -84,6 +84,7 @@ class Allocator(object):
             del self.vms[vm_name]
             raise
         else:
+            self.vms[vm_name]['status'] = "on"
             logging.info("Allocated vm {vm}")
         return vm
 
