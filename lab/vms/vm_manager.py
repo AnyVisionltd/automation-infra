@@ -44,8 +44,7 @@ class VMManager(object):
             await self._create_storage(vm)
             await self.loop.run_in_executor(self.thread_pool,
                                                      lambda: self.libvirt_api.define_vm(vm))
-            await self.loop.run_in_executor(self.thread_pool,
-                                               lambda: self.libvirt_api.start_vm(vm))
+            await self.start_vm(vm)
         except Exception as e:
             logging.error("Failed to create VM %s", vm)
             try:
@@ -56,6 +55,11 @@ class VMManager(object):
             raise e
         else:
             return vm
+
+    async def start_vm(self, vm):
+        logging.debug("Starting vm %s", vm['name'])
+        await self.loop.run_in_executor(self.thread_pool,
+                                               lambda: self.libvirt_api.start_vm(vm))
 
     async def destroy_vm(self, vm):
         await self.loop.run_in_executor(self.thread_pool,
