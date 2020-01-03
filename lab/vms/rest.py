@@ -65,7 +65,7 @@ class HyperVisor(object):
 
         power_status = data['power']
         if power_status == "on":
-            await self.allocator.poweron_vm(vm_name)
+            await self.allocator.vm_manager.start_vm(vm)
         elif power_status == "off":
-            await self.allocator.poweroff_vm(vm_name)
+            await self.allocator.vm_manager.stop_vm(vm)
         return web.json_response({'status' : 'Success'}, status=200)
