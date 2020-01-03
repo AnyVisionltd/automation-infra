@@ -98,7 +98,7 @@ class Allocator(object):
         try:
             await self.vm_manager.destroy_vm(vm)
         except:
-            logging.error("Failed to free vm %s", vm['name'])
+            logging.exception("Failed to free vm %s", vm['name'])
             raise
         else:
             del self.vms[name]
