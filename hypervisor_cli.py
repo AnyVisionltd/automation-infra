@@ -34,6 +34,9 @@ def _do_list_vms(args):
 def _do_update_vm(args, status):
     return requests.post("http://%s/vms/%s/status" % (args.allocator, args.name), json=status)
 
+def _do_vm_info(args):
+    return requests.get("http://%s/vms/%s" % (args.allocator, args.name))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -63,12 +66,16 @@ if __name__ == "__main__":
     create = commands.add_parser('poweron', help="Poweron VM")
     create.add_argument('--name', help="Name of the VM to poweron", required=True)
 
+    create = commands.add_parser('info', help="Get VM information")
+    create.add_argument('--name', help="Name of the VM", required=True)
+
     commands = {"create" : _do_create,
                 "delete" : _do_delete,
                 "images" : _do_list_images,
                 "list"   : _do_list_vms,
                 "poweroff" : functools.partial(_do_update_vm, status = {"power" : "off"}),
-                "poweron" : functools.partial(_do_update_vm, status = {"power" : "on"})}
+                "poweron" : functools.partial(_do_update_vm, status = {"power" : "on"}),
+                "info" : _do_vm_info}
 
     args = parser.parse_args()
     result = commands[args.command](args)
