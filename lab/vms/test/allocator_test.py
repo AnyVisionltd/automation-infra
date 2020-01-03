@@ -245,17 +245,18 @@ async def test_start_stop_machine(event_loop, mock_libvirt, mock_image_store):
     macs = _generate_macs(1)
     mock_image_store.clone_qcow = asyncmock.AsyncMock(return_value="/home/sasha_king.qcow")
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
-    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
-    await tested.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
-    assert len(tested.vms) == 1
-    assert 'sasha-vm-0' in tested.vms
-    assert tested.vms['sasha-vm-0']['status'] == 'on'
-    await tested.poweroff_vm("sasha-vm-0")
-    assert tested.vms['sasha-vm-0']['status'] == "off"
+    await alloc.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
+    assert len(alloc.vms) == 1
+    assert 'sasha-vm-0' in alloc.vms
+    assert alloc.vms['sasha-vm-0']['status'] == 'on'
+
+    await manager.stop_vm(alloc.vms["sasha-vm-0"])
+    assert alloc.vms['sasha-vm-0']['status'] == "off"
     mock_libvirt.poweroff_vm.assert_called_once()
 
     start_count = mock_libvirt.start_vm.call_count
-    await tested.poweron_vm("sasha-vm-0")
-    assert tested.vms['sasha-vm-0']['status'] == "on"
+    await manager.start_vm(alloc.vms["sasha-vm-0"])
+    assert alloc.vms['sasha-vm-0']['status'] == "on"
     assert mock_libvirt.start_vm.call_count == start_count + 1
