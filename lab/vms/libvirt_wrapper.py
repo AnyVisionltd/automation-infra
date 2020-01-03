@@ -54,3 +54,18 @@ class LibvirtWrapper(object):
                 logging.info("vm is active")
                 vm.destroy()
             vm.undefine()
+
+    def dhcp_lease_info(self, name):
+        '''
+        @return:  network information from dhcp server for the VM, note that this will only
+        work for isolated networks. DHCP information for other networks must be obtained
+        from global dhcp server
+        '''
+        result = {}
+        with self._libvirt_connection() as connection:
+            vm = connection.lookupByName(name)
+            nets = vm.interfaceAddresses(libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE, 0)
+        logging.debug("network info for vm %s is %s", name, nets)
+        for net_info in nets.values():
+            result[net_info['hwaddr']] = [net['addr'] for net in net_info['addrs']]
+        return result

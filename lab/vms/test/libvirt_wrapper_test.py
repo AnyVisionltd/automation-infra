@@ -62,3 +62,24 @@ def test_destroy_machine(libvirt_mock):
     assert vm.destroy.call_count == 1
     assert vm.undefine.call_count == 1
 
+
+@patch('libvirt.open', new_callable=_libvirt_mock)
+def test_dhcp_leases(libvirt_mock):
+    tested = libvirt_wrapper.LibvirtWrapper("test_uri")
+
+    # Let the vm returned by lookup be alive
+    vm = libvirt_mock.return_value.lookupByName.return_value
+    vm.interfaceAddresses.return_value = {'vnet0':
+                {'addrs': [{'addr': '192.168.122.186', 'prefix': 24, 'type': 0},
+                           {'addr': '192.168.122.187', 'prefix': 24, 'type': 0}], 'hwaddr': '52:54:00:8d:c0:07'},
+                                          'vnet1':
+                {'addrs': [{'addr': '192.168.122.188', 'prefix': 24, 'type': 0}], 'hwaddr': '52:54:00:8d:c0:08'}}
+
+    expected_info = {'52:54:00:8d:c0:07': ['192.168.122.186', '192.168.122.187'],
+                     '52:54:00:8d:c0:08': ['192.168.122.188']}
+    actual_info = tested.dhcp_lease_info("sasha2")
+    assert actual_info == expected_info
+    libvirt_mock.assert_called_once_with("test_uri")
+    libvirt_mock.return_value.lookupByName.assert_called_once_with("sasha2")
+    assert vm.interfaceAddresses.call_count == 1
+
