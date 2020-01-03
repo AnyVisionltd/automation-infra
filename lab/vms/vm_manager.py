@@ -60,14 +60,20 @@ class VMManager(object):
         logging.debug("Starting vm %s", vm['name'])
         await self.loop.run_in_executor(self.thread_pool,
                                                lambda: self.libvirt_api.start_vm(vm))
+        vm['status'] = 'on'
 
     async def stop_vm(self, vm):
         logging.debug("Stopping vm %s", vm['name'])
         await self.loop.run_in_executor(self.thread_pool,
                                                lambda: self.libvirt_api.poweroff_vm(vm))
+        vm['status'] = 'off'
 
     async def destroy_vm(self, vm):
-        await self.loop.run_in_executor(self.thread_pool,
-                                        lambda: self.libvirt_api.kill_by_name(vm["name"]))
-        await self._delete_storage(vm)
+        try:
+            await self.loop.run_in_executor(self.thread_pool,
+                                            lambda: self.libvirt_api.kill_by_name(vm["name"]))
+            await self._delete_storage(vm)
+        except:
+            vm['status'] = 'Fail'
+            raise
 
