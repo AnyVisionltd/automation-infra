@@ -14,7 +14,8 @@ class HyperVisor(object):
                                   web.delete('/vms/{name}', self.handle_destroy_vm),
                                   web.get('/vms', self.handle_list_vms),
                                   web.get('/images', self.handle_list_images),
-                                  web.post('/vms/{name}/status', self.handle_vm_update)])
+                                  web.post('/vms/{name}/status', self.handle_vm_update),
+                                  web.get('/vms/{name}', self.handle_vm_status)])
 
     async def handle_allocate_vm(self, request):
         data = await request.json()
@@ -69,3 +70,12 @@ class HyperVisor(object):
         elif power_status == "off":
             await self.allocator.vm_manager.stop_vm(vm)
         return web.json_response({'status' : 'Success'}, status=200)
+
+    async def handle_vm_status(self, request):
+        vm_name = request.match_info['name']
+        logging.debug("Requested vm info for vm %s", vm_name)
+        vm = self.allocator.vms.get(vm_name)
+        if vm is None:
+            return web.json_response(status=404)
+        info = await self.allocator.vm_manager.network_info(vm)
+        return web.json_response({'info' : info}, status=200)

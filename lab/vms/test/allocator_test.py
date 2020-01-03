@@ -260,3 +260,27 @@ async def test_start_stop_machine(event_loop, mock_libvirt, mock_image_store):
     await manager.start_vm(alloc.vms["sasha-vm-0"])
     assert alloc.vms['sasha-vm-0']['status'] == "on"
     assert mock_libvirt.start_vm.call_count == start_count + 1
+
+
+@pytest.mark.asyncio
+async def test_machine_info(event_loop, mock_libvirt, mock_image_store):
+    gpu1 = _generate_device(1)
+    macs = _generate_macs(2)
+    mock_image_store.clone_qcow = asyncmock.AsyncMock(return_value="/home/sasha_king.qcow")
+    mock_libvirt.dhcp_lease_info.return_value = {'52:54:00:8d:c0:07': ['192.168.122.186'],
+                                                 '52:54:00:8d:c0:08': ['192.168.122.187']}
+
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+
+    await alloc.allocate_vm("sasha_image1", memory_gb=1, networks=["isolated", "isolated"], num_cpus=2, num_gpus=1,
+                            disks=[{"type": "ssd", "size" : 10},
+                                    {"type" : "hdd", "size" : 5}])
+    assert len(alloc.vms) == 1
+    assert 'sasha-vm-0' in alloc.vms
+    vm_info = await manager.network_info(alloc.vms['sasha-vm-0'])
+    mock_libvirt.dhcp_lease_info.assert_called_once_with("sasha-vm-0")
+    assert len(vm_info['disks']) == 2
+    assert vm_info['status'] == 'on'
+    assert vm_info['dhcp'] == {'52:54:00:8d:c0:07': ['192.168.122.186'],
+                               '52:54:00:8d:c0:08': ['192.168.122.187']}
