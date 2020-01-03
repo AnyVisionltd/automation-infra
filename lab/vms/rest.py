@@ -57,11 +57,12 @@ class HyperVisor(object):
 
     async def handle_vm_update(self, request):
         vm_name = request.match_info['name']
-        if vm_name not in self.allocator.vms:
-            return web.json_response(status=404)
-
         data = await request.json()
         logging.info("Asked to change vm %s status to %s", vm_name, data)
+        vm = self.allocator.vms.get(vm_name)
+        if vm is None:
+            return web.json_response(status=404)
+
         power_status = data['power']
         if power_status == "on":
             await self.allocator.poweron_vm(vm_name)
