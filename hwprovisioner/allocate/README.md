@@ -4,6 +4,25 @@ It is the responsibility of the Allocate service to "allocate" compute resources
 
 *Scenario: "As a developer, I want a dedicated nvidia GeForce RTX 208 to develop and test against"*
 
+## commands
+
+For your convenience, several commands have been added to this directory for you. You can avail of these by running `make <command>`, e.g. `make tests`
+
+```shell
+$ make
+run                            runs the application
+shell                          runs pipenv shell
+lint                           run all linters
+test                           run only python unit tests
+tests                          run all tests and linters for this repo
+test-complexity                run only python complexity analysis
+test-security                  run only python security analysis
+test-lint-python               run only python linter
+test-lint-docker               run only docker linter
+test-lint-shellcheck           run only shell/bash linter
+clean                          clean up environment
+```
+
 ## api
 
 ```json
