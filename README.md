@@ -40,6 +40,10 @@ If you wish time run all of the tests together you can run:
 make tests
 ```
 
+### hwprovisoner architecture
+
+![hwprovisioner architecture](./hwprovisioner/media/hw_provisioner.png)
+
 Flow Diagram:
 
 ![Alt](media/automation_infra_flow_design.svg)
