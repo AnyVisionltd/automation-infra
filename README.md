@@ -19,25 +19,26 @@ make shell
 tests
 -----
 
-You can run only the unit tests with:
-
-```sh
-make test
-```
-
-Additional analysis tools have been provided with:
-
-```sh
-make test-complexity  # run only complexity analysis
-make test-security    # run only security analysis
-make test-lint-python # run only pylint
-make test-lint-docker # run only docker
-```
-
-If you wish time run all of the tests together you can run:
+You can run all tests with:
 
 ```sh
 make tests
+```
+
+You can run all generic linters:
+
+```sh
+make lint
+```
+
+You can run individual analysis using:
+
+```sh
+make test-complexity      # run only complexity analysis
+make test-security        # run only security analysis
+make test-lint-python     # run only pylint
+make test-lint-shellcheck # run only shell/bash linter
+make test-lint-docker     # run only docker linter
 ```
 
 ### hwprovisoner architecture
