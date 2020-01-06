@@ -1,6 +1,6 @@
 include ../Makefile.common
 
-MODULES=allocate agent keepalive resetresource
+MODULES=allocate keepalive resourcemanager
 
 .PHONY: help
 help: _help
