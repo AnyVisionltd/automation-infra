@@ -19,19 +19,20 @@ make shell
 tests
 -----
 
-You can run only the unit tests with:
+You can run all tests with:
 
 ```sh
-make test
+make tests
 ```
 
-Additional analysis tools have been provided with:
+You can run individual analysis using:
 
 ```sh
 make test-complexity  # run only complexity analysis
 make test-security    # run only security analysis
 make test-lint-python # run only pylint
-make test-lint-docker # run only docker
+make test-lint-shellcheck # run only shell/bash linter
+make test-lint-docker # run only docker linter
 ```
 
 If you wish time run all of the tests together you can run:

@@ -1,0 +1,76 @@
+MAKEFLAGS += --no-print-directory --silent
+
+PYTHONPATH ?= $(CURDIR)
+
+.PHONY: _help
+_help:
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' Makefile | \
+	awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: _runpyapp
+_runpyapp: # runs the aiohttp server
+ifdef KILL_PREVIOUS
+	-kill $$(ps ux | grep -e "webapp.app serve" | grep -v grep | awk '{ print $$2 }') > /dev/null 2>&1
+endif
+	@python -m 'webapp.app' serve
+
+.PHONY: _pipshell
+_pipshell: # run pipenv shell
+	@pipenv install --dev
+	@pipenv shell
+
+.PHONY: _test-pythonunittest
+_test-pythonunittest: # run only python unit tests
+	@cd $(PYTHONPATH) && pytest $(PYTHON_MODULES) --cov-report=term-missing --cov $(PYTHON_MODULES)
+
+.PHONY: _test-complexity
+_test-complexity: # run only complexity analysis (radon)
+	@radon cc .
+
+.PHONY: _test-security
+_test-security: # run only security analysis (bandit)
+	@bandit -r .
+
+.PHONY: _test-lint-pythonflake8
+_test-lint-pythonflake8:
+	@cd $(PYTHONPATH) && flake8 $(PYTHON_MODULES)
+
+.PHONY: _test-lint-pythonpylint
+_test-lint-pythonpylint:
+	@cd $(PYTHONPATH) && pylint $(PYTHON_MODULES)
+
+.PHONY: _test-lint-python
+_test-lint-python:
+	FAILED=0; \
+	$(MAKE) _test-lint-pythonflake8 || FAILED=1; \
+	$(MAKE) _test-lint-pythonpylint || FAILED=1; \
+	[ "$${FAILED}" = "0" ] || exit 1
+
+.PHONY: _test-lint-docker
+_test-lint-docker: # run only dockerfile linter (hadolint)
+	@command -v hadolint > /dev/null || (echo 'hadolint not installed!'; exit 1)
+	@if find . -type f -name "Dockerfile*" | grep -q .; then find . -type f -name "Dockerfile*" | xargs -n1 hadolint; fi
+
+.PHONY: _test-lint-shellcheck
+_test-lint-shellcheck: # run only shell/bash linter (shellcheck)
+	@command -v shellcheck > /dev/null || (echo 'shellcheck not installed!'; exit 1)
+	@if find . -type f -name "*.sh" | grep -q .; then find . -type f -name "*.sh" | xargs -n1 shellcheck; fi
+
+.PHONY: _lint
+_lint: # generic linters
+	FAILED=0; \
+	$(MAKE) _test-complexity || FAILED=1; \
+	$(MAKE) _test-lint-docker || FAILED=1; \
+	$(MAKE) _test-lint-python || FAILED=1; \
+	$(MAKE) _test-lint-shellcheck || FAILED=1; \
+	$(MAKE) _test-security || FAILED=1; \
+	[ "$${FAILED}" = "0" ] || exit 1
+
+.PHONY: _tests
+_tests: # run all tests and linters for this repo
+	FAILED=0; \
+	$(MAKE) test || FAILED=1; \
+	$(MAKE) lint || FAILED=1; \
+	[ "$${FAILED}" = "0" ] || exit 1
+
+
