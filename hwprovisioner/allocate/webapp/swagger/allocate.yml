@@ -10,6 +10,19 @@ consumes:
 produces:
   - application/json
 paths:
+  /allocate:
+    get:
+      tags: [Allocate]
+      operationId: webapp.allocate.ws_allocate
+      summary: Get all items from the inventory
+      responses:
+        200:
+          description: Return all items from the inventory
+          schema:
+            type: object
+            properties:
+              host:
+                type: string
   /inventory:
     get:
       tags: [Inventory]
