@@ -42,6 +42,31 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Inventory'
+    post:
+      tags: [Inventory]
+      operationId: webapp.inventory.post
+      summary: Saves an item to the inventory
+      requestBody:
+        description: item to add to the inventory
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  $ref: '#/components/schemas/InventoryWithoutId'
+      responses:
+        200:
+          description: Return all items from the inventory
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    type: integer
+                    description: The status for the operation
+                    example: 200
+                  data:
+                    $ref: '#/components/schemas/Inventory'
   /inventory/{inventory_id}:
     get:
       tags: [Inventory]
@@ -71,12 +96,17 @@ paths:
 components:
   schemas:
     Inventory:
+      allOf:
+        - $ref: '#/components/schemas/InventoryWithoutId'
+        - type: object
+          properties:
+            inventory_id:
+              type: string
+              description: The unique ID for this item
+              example: 8a526e72-bcde-45e6-8a5f-f598b350f093
+    InventoryWithoutId:
       type: object
       properties:
-        inventory_id:
-          type: string
-          description: The unique ID for this item
-          example: 8a526e72-bcde-45e6-8a5f-f598b350f093
         labels:
           type: array
           description: A list of labels associated with this item
