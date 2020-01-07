@@ -2,7 +2,9 @@ include ../../Makefile.common
 
 PYTHON_MODULES = $(shell basename $(CURDIR))
 export PYTHON_MODULES
-PYTHONPATH = ../
+PYTHON_COVERAGE = webapp
+export PYTHON_COVERAGE
+PYTHONPATH = .
 export PYTHONPATH
 
 .PHONY: help

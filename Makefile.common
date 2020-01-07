@@ -1,6 +1,7 @@
 MAKEFLAGS += --no-print-directory --silent
 
 PYTHONPATH ?= $(CURDIR)
+PYTHON_COVERAGE ?= webapp
 
 .PHONY: _help
 _help:
@@ -21,7 +22,7 @@ _pipshell: # run pipenv shell
 
 .PHONY: _test-pythonunittest
 _test-pythonunittest: # run only python unit tests
-	@cd $(PYTHONPATH) && pytest $(PYTHON_MODULES) --cov-report=term-missing --cov $(PYTHON_MODULES)
+	cd $(PYTHONPATH) && pytest --cov-report=term-missing --cov $(PYTHON_COVERAGE)
 
 .PHONY: _test-complexity
 _test-complexity: # run only complexity analysis (radon)
