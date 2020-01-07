@@ -1,14 +1,10 @@
 ---
-swagger: '2.0'
+openapi: '3.0.0'
 info:
   title: AnyVision allocate API
   version: "0.1"
   description: >-
     A service which allocates resources (servers, VMs, devices) for developers
-consumes:
-  - application/json
-produces:
-  - application/json
 paths:
   /allocate:
     get:
@@ -18,11 +14,13 @@ paths:
       responses:
         200:
           description: Return all items from the inventory
-          schema:
-            type: object
-            properties:
-              host:
-                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  host:
+                    type: string
   /inventory:
     get:
       tags: [Inventory]
@@ -31,79 +29,80 @@ paths:
       responses:
         200:
           description: Return all items from the inventory
-          schema:
-            type: object
-            properties:
-              status:
-                type: integer
-                description: The status for the operation
-                example: 200
-              data:
-                type: array
-                items:
-                  $ref: '#/definitions/Inventory'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    description: The status for the operation
+                    example: 200
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Inventory'
   /inventory/{inventory_id}:
     get:
       tags: [Inventory]
       operationId: webapp.inventory.get_one
-      summary: Get all items from the inventory
+      summary: Get a single item from the inventory
       parameters:
-        - $ref: '#/parameters/inventory_id'
+        - name: inventory_id
+          in: path
+          description: the inventory id
+          required: true
+          schema:
+            type: integer
+            format: uuid
       responses:
         200:
           description: Return all items from the inventory
-          schema:
-            properties:
-              status:
-                type: integer
-                description: The status for the operation
-                example: 200
-              data:
-                $ref: '#/definitions/Inventory'
-
-parameters:
-  inventory_id:
-    name: inventory_id
-    description: The inventory id
-    in: path
-    type: string
-    required: true
-    pattern: "^[a-zA-Z0-9-]+$"
-
-definitions:
-  Inventory:
-    type: object
-    properties:
-      inventory_id:
-        type: string
-        description: The unique ID for this item
-        example: 8a526e72-bcde-45e6-8a5f-f598b350f093
-      labels:
-        type: array
-        description: A list of labels associated with this item
-        items:
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    type: integer
+                    description: The status for the operation
+                    example: 200
+                  data:
+                    $ref: '#/components/schemas/Inventory'
+components:
+  schemas:
+    Inventory:
+      type: object
+      properties:
+        inventory_id:
           type: string
-          description: A label
-        example:
-          - belfast
-          - nvidia
-      cpu_count:
-        type: integer
-        description: The number of CPUs on this item
-        example: 12
-      memory_count:
-        type: integer
-        description: The amount of memory on this item
-        example: 32
-      gpus:
-        type: array
-        description: A list of available GPUs on this item
-        items:
+          description: The unique ID for this item
+          example: 8a526e72-bcde-45e6-8a5f-f598b350f093
+        labels:
+          type: array
+          description: A list of labels associated with this item
+          items:
+            type: string
+            description: A label
+          example:
+            - belfast
+            - nvidia
+        cpu_count:
+          type: integer
+          description: The number of CPUs on this item
+          example: 12
+        memory_count:
+          type: integer
+          description: The amount of memory on this item
+          example: 32
+        gpus:
+          type: array
+          description: A list of available GPUs on this item
+          items:
+            type: string
+            description: the name of the gpu
+          example:
+            - nvidia
+        type:
           type: string
-          description: the name of the gpu
-        example:
-          - nvidia
-      type:
-        type: string
-        description: The type of item that this is
-        example: vm
+          description: The type of item that this is
+          example: vm
