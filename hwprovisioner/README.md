@@ -3,6 +3,12 @@ hardware-provisioner
 
 This is a suite of services which manage the provisioning of hardware resources to AnyVision employees for testing purposes.
 
+## requirements
+
+ - docker (tested on version 19.03.5)
+ - docker-compose (tested on version 1.25.0)
+ - make (tested on version GNU Make 4.1)
+
 ## commands
 
 For your convenience, several commands have been added to this directory for you. You can avail of these by running `make <command>`, e.g. `make tests`

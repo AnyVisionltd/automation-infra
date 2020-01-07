@@ -4,6 +4,12 @@ It is the responsibility of the Allocate service to "allocate" compute resources
 
 *Scenario: "As a developer, I want a dedicated nvidia GeForce RTX 208 to develop and test against"*
 
+## requirements
+
+ - python 3.6.9
+ - pipenv (tested on version 2018.11.26)
+ - make (tested on version GNU Make 4.1)
+
 ## commands
 
 For your convenience, several commands have been added to this directory for you. You can avail of these by running `make <command>`, e.g. `make tests`
