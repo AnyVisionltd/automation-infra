@@ -7,7 +7,7 @@ help: _help
 
 .PHONY: run
 run: ## runs the application in docker-compose
-	@echo 'TODO ...'
+	@docker-compose up
 
 .PHONY: tests
 tests: ## run all modules tests sequentially
@@ -35,3 +35,4 @@ test-lint-shellcheck: _test-lint-shellcheck ## run only shell/bash linter
 
 .PHONY: clean
 clean: ## clean up environment
+	@docker-compose rm
