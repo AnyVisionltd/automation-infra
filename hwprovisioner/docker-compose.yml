@@ -1,0 +1,11 @@
+---
+version: "3.7"
+services:
+  allocate:
+    image: anyvision-hwprovisioner-allocate
+    build:
+      context: ./allocate
+      dockerfile: Dockerfile
+    ports:
+      - 8001:8080
+    restart: always
