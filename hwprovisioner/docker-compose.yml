@@ -8,4 +8,19 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8001:8080
+    depends_on:
+      - redis
     restart: always
+  redis:
+    image: anyvision-hwprovisioner-redis
+    build:
+      context: ./redis
+      dockerfile: Dockerfile
+    volumes:
+      - data:/data
+    ports:
+      - 6379:6379
+    entrypoint: redis-server --appendonly yes
+    restart: always
+volumes:
+  data:
