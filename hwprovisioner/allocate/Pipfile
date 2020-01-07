@@ -1,0 +1,20 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+radon = "==4.0.0"
+black = "==19.3b0"
+flake8 = "==3.7.9"
+pytest = "==5.3.1"
+pytest-aiohttp = "==0.3.0"
+pytest-cov = "==2.8.1"
+pylint = "==2.4.4"
+
+[packages]
+connexion = "==2.5.0"
+aiohttp-jinja2 = "==1.2.0"
+
+[requires]
+python_version = "3.6.9"
