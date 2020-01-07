@@ -13,7 +13,7 @@ pytest-cov = "==2.8.1"
 pylint = "==2.4.4"
 
 [packages]
-connexion = "==2.5.0"
+connexion = {extras = ["swagger-ui"],version = "*"}
 aiohttp-jinja2 = "==1.2.0"
 
 [requires]
