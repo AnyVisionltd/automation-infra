@@ -143,7 +143,6 @@ function run_docker () {
             "${HOME}/.ssh:/${HOME}/.ssh"
             "/${HOME}/.netrc:/${HOME}/.netrc"
             "/var/run/docker.sock:/var/run/docker.sock"
-            "/etc/hosts:/etc/hosts"
             "${HOME}/.gitconfig:${HOME}/.gitconfig"
             "${HOME}/.jfrog:${HOME}/.jfrog"
             "$mount_path:$mount_path"
