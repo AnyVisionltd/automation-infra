@@ -12,7 +12,7 @@ function _is_debug() {
 function debug_print() {
     if [ "$(_is_debug)" == "1" ]
     then
-       echo $1
+       echo "$1"
     fi
 }
 
@@ -49,7 +49,7 @@ function main () {
     cmd=$(update_received_cmd "$cmd")
     echo "after updating received command: $cmd"
     echo "running command: ./containerize.sh $cmd"
-    ./containerize.sh $cmd
+    ./containerize.sh "$cmd"
 }
 
 
@@ -60,8 +60,8 @@ if [ "$1" == "-h" ]; then
   echo "--forked is added automatically to run tests in a forked subprocess"
   echo "Can specify run in parallel with -n NUM. Will use provisioner (cant run local)"
   echo "Can specify tests with regular pytest syntax: test_module.py::test_name"
-  echo "Use: V=1 $(basename $0) for debug printing"
-  echo "Or use any additional pytest run args, ex: $(basename $0) --html=report.html --self-contained-html"
+  echo "Use: V=1 $(basename "$0") for debug printing"
+  echo "Or use any additional pytest run args, ex: $(basename "$0") --html=report.html --self-contained-html"
   read -p "Show pytest help? (y/n) " -t 5 yn
   case $yn in
         [Yy]* ) pytest -h;;
