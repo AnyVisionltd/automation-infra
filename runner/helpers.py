@@ -34,8 +34,9 @@ def is_k8s(connected_ssh_module):
 
 
 def deploy_proxy_container(connected_ssh_module, auth_args=['password', 'root', 'pass']):
-    # TODO: check if running instead of just trying to remove
-    remove_proxy_container(connected_ssh_module)
+    removed = remove_proxy_container(connected_ssh_module)
+    if removed:
+        logging.warning("Unexpected behavior: removed proxy container despite that I shouldn't have needed to")
 
     run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --rm --network=host --name=ssh_container orihab/ubuntu_ssh:2.0 {" ".join(auth_args)}'
     res = connected_ssh_module.execute(run_cmd)
@@ -45,6 +46,8 @@ def deploy_proxy_container(connected_ssh_module, auth_args=['password', 'root', 
 def remove_proxy_container(connected_ssh_module):
     try:
         connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker rm -f ssh_container')
+        logging.info("removed successfully!")
+        return True
     except SSHCalledProcessError as e:
         if 'No such container' not in e.stderr:
             raise e
