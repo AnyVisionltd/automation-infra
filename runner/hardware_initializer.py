@@ -77,8 +77,15 @@ def init_hardware(hardware_req):
     # hardware = servers_manager.set_up(hardware_req)
     # TODO: but in addition to the cluster details, dont I also need to request services, like memsql, pipeng..?
     # For now, this place holder:
-    time.sleep(1)
-    hardware = hardware_types[hardware_req["type"]]
+
+    # hardware_req is a dictionary
+    hardware = {}
+    machine_names = hardware_req.keys()
+    for machine_name in machine_names:
+        hardware[machine_name] = machine_details[machine_name]
+
+    return hardware
+
     logging.info(f"successfully initialized hardware:\n{pprint.pformat(hardware)}")
     # TODO: Here I really need to run dev-ops tests which check that all hardware is working, no?
     # because the server_admin_service just gave me blank servers.

@@ -134,8 +134,15 @@ def find_provisioned_hardware(request):
 
 @pytest.fixture(scope=determine_scope)
 def base_config(request):
-    base = BaseConfig.fromDict(request.function.__initialized_hardware, DefaultFactoryMunch)
-    base.host = Host(base.host)
-    helpers.init_docker_and_connect(base)
+    hardware = find_provisioned_hardware(request)
+    base = DefaultMunch(Munch)
+    base.hosts = Munch()
+    for machine_name in hardware.keys():
+        base.hosts[machine_name] = Host(Munch(hardware[machine_name]))
+    helpers.init_dockers_and_connect(base.hosts.items())
+    # TODO: I need to create a direct-ssh plugin on port 22 which stays open in parallel to ssh plugin on port 2222
+    # for installation purposes and such.
     yield base
-    helpers.tear_down_docker(base)
+    helpers.tear_down_dockers(base.hosts.items())
+
+
