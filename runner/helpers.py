@@ -35,10 +35,7 @@ def is_k8s(connected_ssh_module):
 
 def deploy_proxy_container(connected_ssh_module, auth_args=['password', 'root', 'pass']):
     # TODO: check if running instead of just trying to remove
-    try:
-        remove_proxy_container(connected_ssh_module)
-    except:
-        pass
+    remove_proxy_container(connected_ssh_module)
 
     run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --rm --network=host --name=ssh_container orihab/ubuntu_ssh:2.0 {" ".join(auth_args)}'
     res = connected_ssh_module.execute(run_cmd)
@@ -46,8 +43,11 @@ def deploy_proxy_container(connected_ssh_module, auth_args=['password', 'root', 
 
 
 def remove_proxy_container(connected_ssh_module):
-    res = connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker rm -f ssh_container')
-    print(res)
+    try:
+        connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker rm -f ssh_container')
+    except SSHCalledProcessError as e:
+        if 'No such container' not in e.stderr:
+            raise e
 
 
 def connect_via_running_docker(base):
@@ -67,22 +67,26 @@ def connect_via_running_docker(base):
     raise Exception("unsuccessful connecting via running docker...")
 
 
-def init_docker_and_connect(base):
-    print("initializing docker")
-    base.host.SSH.connect()
-    deploy_proxy_container(base.host.SSH)
-    base.host.SSH.docker_connect(base.host.SSH.TUNNEL_PORT)
-    print("docker is running and ssh connected")
+def init_docker(host):
+    logging.info("initializing docker")
+    host.SSH.connect()
+    deploy_proxy_container(host.SSH)
+    host.SSH.docker_connect(host.SSH.TUNNEL_PORT)
+    logging.info("docker is running and ssh connected")
 
 
-def tear_down_docker(base):
-    print("tearing down docker")
-    base.host.SSH.connect()
-    remove_proxy_container(base.host.SSH)
-    print("docker is stopped and disconnected")
+def init_dockers_and_connect(hosts):
+    for name, host in hosts:
+        init_docker(host)
 
 
+def tear_down_docker(host):
+    logging.info("tearing down docker")
+    host.SSH.connect()
+    remove_proxy_container(host.SSH)
+    logging.info("docker is stopped and disconnected")
 
-# if __name__ == '__main__':
-#     to_run = {k: v for k, v in locals().copy().items() if k.startswith('test')}
-#     runner(to_run)
+
+def tear_down_dockers(hosts):
+    for name, host in hosts:
+        tear_down_docker(host)

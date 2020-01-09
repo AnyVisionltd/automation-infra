@@ -6,10 +6,13 @@ from runner.helpers import hardware_config
 pytest_plugins = "pytest_automation_infra"
 
 
-@hardware_config(hardware={"type": "ori_pem"})
+@hardware_config(hardware={"ori_pass": {"gpu": 1, "ram": 16}, "ori_pem": {}})
 def test_base_plugin_fixture(base_config):
-    print(base_config.host)
-    print(f"successfully initialized hardware")
+    logging.warning(f"PID of base_plugin_fixture: {os.getpid()}")
+    print(base_config.hosts.ori_pass)
+    print(f"inside test: successfully initialized hardware")
+    time.sleep(1)
+    #assert False
 
 
 @pytest.mark.xfail
