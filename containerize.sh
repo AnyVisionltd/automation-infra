@@ -137,6 +137,7 @@ function run_docker () {
 
     script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
     mount_path=$(dirname "$script_dir")
+
     debug_print "mounting up 1 from script_dir: $mount_path"
 
     MOUNTS=("/dev:/dev"
@@ -156,9 +157,16 @@ function run_docker () {
     done
     mount_cmd+=" "
 
-    env_cmd="-e PYTHONPATH=$script_dir"
+    python_path=""
+    debug_print "building python path"
+    for file in $(ls $mount_path);
+    do
+        python_path+=":$mount_path/$file"
+    done
 
-    env_cmd="-e DISPLAY=${DISPLAY} -e CONSUL_NODE_ID=local-agent-${HOSTNAME}"
+    debug_print "final python path: $python_path"
+
+    env_cmd+="-e PYTHONPATH=${python_path} -e DISPLAY=${DISPLAY} -e CONSUL_NODE_ID=local-agent-${HOSTNAME}"
 
     # mount source code in same location as in host
     cmd="docker run --name ${NAME} --net=host --privileged  --rm $mount_cmd $env_cmd"
