@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-import pytest
+import logging
+import os
+import time
 
-from runner.helpers import hardware_config
-
-pytest_plugins = "pytest_automation_infra"
+from pytest_automation_infra.helpers import hardware_config
 
 
 @hardware_config(hardware={"ori_pass": {"gpu": 1, "ram": 16}, "ori_pem": {}})

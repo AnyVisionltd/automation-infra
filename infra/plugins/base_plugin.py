@@ -25,7 +25,7 @@ class TunneledPlugin(object):
 
 ##### EXAMPLE ##########
 import requests
-from runner import helpers
+from pytest_automation_infra import helpers
 from infra.model import plugins
 
 
