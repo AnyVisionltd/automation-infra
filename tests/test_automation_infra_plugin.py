@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-import pytest
+import logging
+import os
+import time
 
-from runner.helpers import hardware_config
-
-pytest_plugins = "pytest_automation_infra"
+from pytest_automation_infra.helpers import hardware_config
 
 
 @hardware_config(hardware={"ori_pass": {"gpu": 1, "ram": 16}, "ori_pem": {}})
@@ -13,9 +13,3 @@ def test_base_plugin_fixture(base_config):
     print(f"inside test: successfully initialized hardware")
     time.sleep(1)
     #assert False
-
-
-@pytest.mark.xfail
-def test_should_fail():
-    print("failed because I dont have hardware config!")
-

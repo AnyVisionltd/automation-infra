@@ -6,9 +6,7 @@ import yaml
 from munch import *
 
 from infra.model.host import Host
-from runner import hardware_initializer, helpers
-
-# TODO: use anylogger
+from pytest_automation_infra import hardware_initializer, helpers
 
 
 def get_local_config():
@@ -17,6 +15,7 @@ def get_local_config():
         raise Exception("""local hardware_config yaml not found""")
     with open(local_config_path, 'r') as f:
         local_config = yaml.full_load(f)
+    logging.info(f"local_config: {local_config}")
     return local_config
 
 
@@ -46,12 +45,14 @@ def pytest_generate_tests(metafunc):
     # I only have access to module here (so I cant init 'session' or 'function' scoped hardware):
     if fixture_scope == 'module':
         if provisioned:
+            logging.info("initializing module hardware config to provisioned")
             if hasattr(metafunc.module, 'hardware') and not hasattr(metafunc.module, '__initialized_hardware'):
                 hardware_config = hardware_initializer.init_hardware(metafunc.module.hardware)
                 metafunc.module.__initialized_hardware = hardware_config
             else:
                 raise Exception("Module needs to have hardware_reqs set to run with scope module")
         else:
+            logging.info("initializing module hardware config to local")
             local_config = get_local_config()
             metafunc.module.__initialized_hardware = local_config
 
@@ -85,16 +86,18 @@ def pytest_collection_modifyitems(session, config, items):
 
     if provisioned:
         if fixture_scope == 'function':
+            logging.info(f"initializing '{fixture_scope}' hardware config to provisioned")
             try:
                 set_config(items)
             except AssertionError as e:
                 raise Exception("there is a test which doesnt have hardware_reqs defined.", e)
 
         else:  # scope is 'session'
+            logging.info(f"initializing '{fixture_scope}' (should be session) hardware config to provisioned")
             # This is a strange situation, bc if session scope we shouldnt be running provisioned, or module
             # scope we should have module_hardware defined... Nonetheless to handle this case I think it makes sense
             # to take the hardware_reqs of the first test which has and attach them to the session.
-            logging.warning(f"Bypassing erroneous situation where running provisioned but scope is {fixture_scope} "
+            logging.warning(f"Bypassing erroneous situation where running provisioned but scope is '{fixture_scope}' "
                             f"defaulting to take hardware req for first test which has reqs defined")
             for test in items:
                 if hasattr(test.function, '__hardware_reqs'):
@@ -107,28 +110,35 @@ def pytest_collection_modifyitems(session, config, items):
         # if running locally I will access the session.__initialized hardware even if initializing fixture per function
         local_config = get_local_config()
         if fixture_scope == 'function':
+            logging.info("initializing 'function' hardware config to local_config")
             set_config(items, local_config)
         else:  # scope is 'session'
+            logging.info("initializing 'session' hardware config to local_config")
             session.__initialized_hardware = local_config
-
-
 
 
 def determine_scope(fixture_name, config):
     received_scope = config.getoption("--fixture-scope")
     if config.getoption("--provisioned"):
-        return received_scope if received_scope != 'auto' else 'function'
+        scope = received_scope if received_scope != 'auto' else 'function'
+        logging.info(f"scope: {scope} provisioned: True")
+        return scope
     # If not provisioned it means were running locally in which case no sense re-initializing fixture each test.
     else:
-        return received_scope if received_scope != 'auto' else 'session'
+        scope = received_scope if received_scope != 'auto' else 'session'
+        logging.info(f"scope: {scope} provisioned: False")
+        return scope
 
 
 def find_provisioned_hardware(request):
     if hasattr(request.session, '__initialized_hardware'):
+        logging.info("returning 'session' initialized hardware")
         return request.session.__initialized_hardware
     if hasattr(request.module,  '__initialized_hardware'):
+        logging.info("returning 'module' initialized hardware")
         return request.module.__initialized_hardware
     if hasattr(request.function,  '__initialized_hardware'):
+        logging.info("returning 'function' initialized hardware")
         return request.function.__initialized_hardware
 
 
@@ -138,11 +148,14 @@ def base_config(request):
     base = DefaultMunch(Munch)
     base.hosts = Munch()
     for machine_name in hardware.keys():
+        logging.info(f"Constructing host {machine_name}")
         base.hosts[machine_name] = Host(Munch(hardware[machine_name]))
     helpers.init_dockers_and_connect(base.hosts.items())
     # TODO: I need to create a direct-ssh plugin on port 22 which stays open in parallel to ssh plugin on port 2222
     # for installation purposes and such.
+    logging.info("sucessfully initialized base_config fixture. Running test...")
     yield base
+    logging.info("tearing down base_config fixture")
     helpers.tear_down_dockers(base.hosts.items())
 
 
