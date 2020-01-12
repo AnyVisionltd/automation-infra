@@ -23,19 +23,19 @@ function update_received_cmd () {
     # Also there is room to add here other arg parsing we want to do with infra.
     local cmd=$1
 
-    if [[ $cmd != "python"* ]] && [[ $cmd != "pytest"* ]] ; then
+    if [[ $cmd != " python "* ]] && [[ $cmd != " pytest "* ]] ; then
       cmd="python -m pytest $cmd"
     fi
 
-    if [[ $cmd != *"-p"* ]] ; then
-      if [[ $cmd = *"-n"* ]] ; then
+    if [[ $cmd != *" -p "* ]] ; then
         cmd="$cmd -p pytest_automation_infra"
-      else
-        cmd="$cmd -p pytest_local_init"
-      fi
     fi
 
-    if [[ $cmd != *"--forked"* ]]; then
+    if [[ $cmd = *" -n "* ]] && [[ $cmd != " --provisioned "* ]] ; then
+        cmd="$cmd --provisioned"
+    fi
+
+    if [[ $cmd != *" --forked "* ]]; then
       cmd="$cmd --forked"
     fi
 
@@ -56,7 +56,7 @@ function main () {
 # If just asking for help
 if [ "$1" == "-h" ]; then
   echo "Arguments are attempted to be parsed intelligently and automatically by adding python -m pytest if not specified"
-  echo "If local or provisioned isnt specified, default is local"
+  echo "If provisioned isnt specified (--provisioned arg), will try to run locally (must have hardware.yaml file)"
   echo "--forked is added automatically to run tests in a forked subprocess"
   echo "Can specify run in parallel with -n NUM. Will use provisioner (cant run local)"
   echo "Can specify tests with regular pytest syntax: test_module.py::test_name"
