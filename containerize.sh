@@ -146,6 +146,7 @@ function run_docker () {
             "${HOME}/.gitconfig:${HOME}/.gitconfig"
             "${HOME}/.jfrog:${HOME}/.jfrog"
             "$mount_path:$mount_path"
+            "${HOME}/.local:${HOME}/.local"
 	        )
 
     mount_cmd=""
