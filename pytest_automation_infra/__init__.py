@@ -6,7 +6,7 @@ import yaml
 from munch import *
 
 from infra.model.host import Host
-from runner import hardware_initializer, helpers
+from pytest_automation_infra import hardware_initializer, helpers
 
 
 def get_local_config():

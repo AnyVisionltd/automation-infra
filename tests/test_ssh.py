@@ -4,9 +4,7 @@ import time
 
 import pytest
 
-from runner.helpers import hardware_config
-
-pytest_plugins = "pytest_automation_infra"
+from pytest_automation_infra.helpers import hardware_config
 
 
 #@pytest.mark.timeout(30)
