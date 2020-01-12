@@ -13,9 +13,3 @@ def test_base_plugin_fixture(base_config):
     print(f"inside test: successfully initialized hardware")
     time.sleep(1)
     #assert False
-
-
-@pytest.mark.xfail
-def test_should_fail():
-    print("failed because I dont have hardware config!")
-
