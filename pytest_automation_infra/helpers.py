@@ -1,6 +1,8 @@
 import logging
 
-from infra.plugins.ssh import SSHCalledProcessError
+from infra.plugins.ssh_direct import SSHCalledProcessError
+from infra.plugins.ssh import SSH
+from infra.plugins.ssh_direct import SshDirect
 
 
 def hardware_config(hardware):
@@ -38,13 +40,13 @@ def deploy_proxy_container(connected_ssh_module, auth_args=['password', 'root', 
 
 def init_docker_and_connect(host):
     logging.info(f"[{host}] connecting to ssh directly")
-    host.SSH.connect()
+    host.SshDirect.connect()
     logging.info(f"[{host}] connected successfully")
 
-    deploy_proxy_container(host.SSH)
+    deploy_proxy_container(host.SshDirect)
 
     logging.info(f"[{host}] connecting to ssh container")
-    host.SSH.docker_connect(host.SSH.TUNNEL_PORT)
+    host.SSH.connect()
     logging.info(f"[{host}] connected successfully")
 
 
@@ -68,8 +70,8 @@ def remove_proxy_container(connected_ssh_module):
 
 
 def tear_down_docker(host):
-    host.SSH.connect()
-    remove_proxy_container(host.SSH)
+    host.SshDirect.connect()
+    remove_proxy_container(host.SshDirect)
 
 
 def tear_down_dockers(hosts):
