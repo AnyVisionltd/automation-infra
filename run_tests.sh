@@ -35,9 +35,7 @@ function update_received_cmd () {
         cmd="$cmd --provisioned"
     fi
 
-    if [[ $cmd != *" --forked "* ]]; then
-      cmd="$cmd --forked"
-    fi
+    cmd="$cmd --ignore=lab --ignore=hwprovisioner"
 
     echo "$cmd"
 }
