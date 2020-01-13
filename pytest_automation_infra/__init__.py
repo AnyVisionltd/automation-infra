@@ -142,14 +142,43 @@ def find_provisioned_hardware(request):
         return request.function.__initialized_hardware
 
 
+def try_initing_hosts_intelligently(request, hardware, base):
+    """This function tries matching initialized hardware with function hardware requirements intelligently. In the
+     provisioned case the matching is trivial. In the un-provisioned, the function matches hardware keys with
+     available keys, and then assigns the rest of the keys. """
+    try:
+        for key in request.function.__hardware_reqs.keys():
+            if key in base.hosts.keys():
+                # already initialized, can happen because of the folllowing 'while' loop
+                continue
+            # This is the trivial case:
+            if key in hardware.keys():
+                details = hardware.pop(key)
+                base.hosts[key] = Host(Munch(details))
+            else:
+                # This is the 'intelligent' part, when running unprovisioned trying to match hardware.yaml to test reqs:
+                name, details = hardware.popitem()
+                while name in request.function.__hardware_reqs.keys():
+                    base.hosts[name] = Host(Munch(details))
+                    name, details = hardware.popitem()
+
+                base.hosts[key] = Host(Munch(details))
+
+    except AttributeError:
+        # This happens when running with module/session scope
+        for machine_name in hardware.keys():
+            logging.info(f"Constructing host {machine_name}")
+            base.hosts[machine_name] = Host(Munch(hardware[machine_name]))
+    except KeyError:
+        raise Exception(f"not enough hosts defined in hardware.yaml to run test {request.function}")
+
+
 @pytest.fixture(scope=determine_scope)
 def base_config(request):
     hardware = find_provisioned_hardware(request)
     base = DefaultMunch(Munch)
     base.hosts = Munch()
-    for machine_name in hardware.keys():
-        logging.info(f"Constructing host {machine_name}")
-        base.hosts[machine_name] = Host(Munch(hardware[machine_name]))
+    try_initing_hosts_intelligently(request, hardware, base)
     helpers.init_dockers_and_connect(base.hosts.items())
     # TODO: I need to create a direct-ssh plugin on port 22 which stays open in parallel to ssh plugin on port 2222
     # for installation purposes and such.
