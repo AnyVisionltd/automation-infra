@@ -151,8 +151,6 @@ def base_config(request):
         logging.info(f"Constructing host {machine_name}")
         base.hosts[machine_name] = Host(Munch(hardware[machine_name]))
     helpers.init_dockers_and_connect(base.hosts.items())
-    # TODO: I need to create a direct-ssh plugin on port 22 which stays open in parallel to ssh plugin on port 2222
-    # for installation purposes and such.
     logging.info("sucessfully initialized base_config fixture. Running test...")
     yield base
     logging.info("tearing down base_config fixture")
