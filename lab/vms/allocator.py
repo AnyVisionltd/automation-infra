@@ -84,25 +84,15 @@ class Allocator(object):
             del self.vms[vm_name]
             raise
         else:
-            self.vms[vm_name]['status'] = "on"
             logging.info("Allocated vm {vm}")
         return vm
-
-    async def poweron_vm(self, name):
-        await self.vm_manager.start_vm(self.vms[name])
-        self.vms[name]['status'] = "on"
-
-    async def poweroff_vm(self, name):
-        await self.vm_manager.stop_vm(self.vms[name])
-        self.vms[name]['status'] = "off"
 
     async def destroy_vm(self, name):
         vm = self.vms[name]
         try:
             await self.vm_manager.destroy_vm(vm)
         except:
-            logging.error("Failed to free vm %s", vm['name'])
-            vm['status'] = 'Fail'
+            logging.exception("Failed to free vm %s", vm['name'])
             raise
         else:
             del self.vms[name]
