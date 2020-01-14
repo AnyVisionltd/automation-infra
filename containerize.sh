@@ -35,8 +35,13 @@ function docker_tag () {
 }
 
 function run_ssh_agent () {
-	eval "$(ssh-agent -s | grep SSH)"
-	ssh-add "${PUBKEY_FILE}" &>/dev/null
+    if [ -e $PUBKEY_FILE ] ; then
+	    eval "$(ssh-agent -s | grep SSH)"
+	    ssh-add "${PUBKEY_FILE}" &>/dev/null
+	else
+	    >&2 echo "couldnt PUBKEY_FILE for ssh-agent"
+	    exit 1
+	fi
 }
 
 function kill_ssh_agent () {
@@ -51,9 +56,11 @@ function _docker_image() {
 
 function _docker_login() {
     local FILE=${HOME}/.gcr/docker-registry-rw.json
-    if [ -e FILE ] ; then
+    if [ -e $FILE ] ; then
         docker login -u _json_key -p "$(cat "$FILE")" https://gcr.io
-
+    else
+        >&2 echo "didnt find docker-registry-rw file! "
+        exit 1
     fi
 }
 
@@ -119,6 +126,37 @@ function _read_passed_environment() {
     echo "${env_variable_cmd}"
 }
 
+function add_subdirs_from_path () {
+    local base_path=$1
+    if [ -d $base_path ]; then
+
+        local res_path=""
+        for file in $(ls $base_path);
+        do
+            res_path+=":$base_path/$file/automation"
+        done
+
+        echo $res_path
+    else
+        >&2 echo "not valid path directory"
+        exit 1
+    fi
+}
+
+function build_python_path () {
+    local mount_path=$1
+    local python_path=""
+    for file in $(ls $mount_path);
+        do
+            python_path+=":$mount_path/$file/automation"
+            if [ $file = "protobuf-contract" ]; then
+                file="$file/build/python"
+                python_path+=":$mount_path/$file"
+            fi
+    done
+    echo $python_path
+}
+
 function run_docker () {
     local tag="$1"
     local run_cmd="$2"
@@ -135,8 +173,8 @@ function run_docker () {
     # I dont think this is necessary because docker is run with --rm but am leaving it to make sure
     # trap "kill_container ${NAME}" 0
 
-    script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-    mount_path=$(dirname "$script_dir")
+    local script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+    local mount_path=$(dirname "$script_dir")
 
     debug_print "mounting up 1 from script_dir: $mount_path"
 
@@ -157,13 +195,7 @@ function run_docker () {
     done
     mount_cmd+=" "
 
-    python_path=""
-    for file in $(ls $mount_path);
-    do
-        python_path+=":$mount_path/$file"
-    done
-
-    debug_print "final python path: $python_path"
+    python_path=$(build_python_path $mount_path)
 
     env_cmd+="-e PYTHONPATH=${python_path} -e DISPLAY=${DISPLAY} -e CONSUL_NODE_ID=local-agent-${HOSTNAME}"
 
