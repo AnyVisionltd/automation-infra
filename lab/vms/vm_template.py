@@ -17,6 +17,9 @@ template = '''
     <acpi/>
     <apic/>
      <vmport state='off'/>
+    <kvm>
+    <hidden state='on'/>
+    </kvm>
   </features>
   <cpu mode='host-model'>
     <model fallback='allow'/>
