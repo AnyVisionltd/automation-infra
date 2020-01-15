@@ -196,3 +196,5 @@ def base_config(request):
     helpers.tear_down_dockers(base.hosts.items())
 
 
+def pytest_runtest_setup(item):
+    logging.info(f"test_name: {item}")
