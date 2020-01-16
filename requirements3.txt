@@ -66,4 +66,9 @@ pytest-asyncio==0.10.0
 xmltodict==0.12.0
 defaultlist==1.0.0
 aiohttp==3.6.2
+<<<<<<< HEAD
 psycopg2==2.8.4
+=======
+psycopg2==2.8.4
+sshpass-wrapper==0.0.3
+>>>>>>> 024aace... Collate logs by pathes.

@@ -184,6 +184,9 @@ def base_config(request):
     # for installation purposes and such.
     logging.info("sucessfully initialized base_config fixture. Running test...")
     yield base
+    logging.info("Collating logs...")
+    helpers.collect_logs(base.hosts,"/tmp", "/var/log")
+    logging.info("Successfully collated logs...")
     logging.info("tearing down base_config fixture")
     helpers.tear_down_dockers(base.hosts.items())
 

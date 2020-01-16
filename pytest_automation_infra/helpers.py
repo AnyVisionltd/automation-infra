@@ -1,9 +1,10 @@
 import logging
-
+import subprocess,os
+from os import path
 from infra.plugins.ssh_direct import SSHCalledProcessError
 from infra.plugins.ssh import SSH
 from infra.plugins.ssh_direct import SshDirect
-
+from infra.utils import shell
 
 def hardware_config(hardware):
     def wrapper(func):
@@ -67,6 +68,15 @@ def remove_proxy_container(connected_ssh_module):
         if 'No such container' not in e.stderr:
             raise e
         logging.info("nothing to remove")
+
+
+def collect_logs(hosts,local_path, remote_path):
+    hosts['host'].SshDirect.execute("if [! -d '/tmp/logs' ]; then mkdir /tmp/logs/; fi")
+    hosts['host'].SshDirect.execute(f"tar cf - {remote_path} | pigz > /tmp/logs/run_logs.tar.gz")
+    hosts['host'].SshDirect.download(f"{local_path}", "/tmp/logs/run_logs.tar.gz")
+    os.system(f"sudo chmod 777 {local_path}/run_logs.tar.gz ")
+    os.chdir(f"{local_path}/")
+    os.system(f"pigz -dc {local_path}/run_logs.tar.gz |sudo  tar xf - ")
 
 
 def tear_down_docker(host):
