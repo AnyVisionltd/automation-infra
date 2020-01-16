@@ -1,6 +1,6 @@
 import socket
 import logging
-from infra.plugins import background, parallel
+from automation_infra.plugins import background, parallel
 import tempfile
 import os
 import subprocess

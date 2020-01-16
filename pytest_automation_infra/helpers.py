@@ -1,8 +1,6 @@
 import logging
 
-from infra.plugins.ssh_direct import SSHCalledProcessError
-from infra.plugins.ssh import SSH
-from infra.plugins.ssh_direct import SshDirect
+from automation_infra.plugins.ssh_direct import SSHCalledProcessError
 
 
 def hardware_config(hardware):
