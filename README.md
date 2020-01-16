@@ -1,6 +1,59 @@
 automation-infra
 ================
 
+#### Set Up:
+
+Directory Structure and pythonpath calculation:
+All repos will be parallel to automation-infra repo.
+They will have folder called automation which will be added to pythonpath automatically. Imports should be relative to that.
+Inside automation folder will be another folder with the same name as the base repo (- replaced with _), and inside that relevant folders (plugins, utils, etc).
+
+So for example the directory structure:
+```
+automation-infra
+    automation
+        automation_infra
+            plugins
+                ssh.py
+            utils
+                util1.py
+            tests
+                test_example.py
+camera_service
+    automation
+        camera_service
+            plugins
+                camera_service.py
+            utils
+                cs_util.py
+            tests
+                test_sanity.py
+pipeng
+    automation
+        pipeng
+            plugins
+                pipeng.py
+            utils
+                pipeng_util
+            tests
+...
+```
+And then the imports would be:
+```
+from automation_infra.plugins.ssh import SSH
+from pipeng.plugins.pipeng import Pipeng
+from camera_service.utils import cs_util
+```
+In addition, should be a yaml file in $HOME/.local/hardware.yaml which has similar structure to:
+```
+host:
+    ip: 0.0.0.0
+    user: user
+    password: pass
+    key_file_path: /path/to/pem # see note below: 
+```
+*key_file_path and password are mutually exclusive so use only 1 type of auth
+
 make
 ----
 
@@ -48,3 +101,4 @@ make test-lint-docker     # run only docker linter
 Flow Diagram:
 
 ![Alt](media/automation_infra_flow_design.svg)
+
