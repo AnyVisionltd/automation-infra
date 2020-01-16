@@ -2,9 +2,8 @@ import subprocess
 from subprocess import CalledProcessError
 import logging
 
-from infra import model
 from infra.model import plugins
-from infra.plugins import connection
+from automation_infra.plugins import connection
 
 
 class SshDirect(object):

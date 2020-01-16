@@ -1,4 +1,4 @@
-from infra.plugins import background
+from automation_infra.plugins import background
 
 
 class Parallel(object):

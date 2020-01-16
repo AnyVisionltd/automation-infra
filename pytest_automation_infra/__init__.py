@@ -6,6 +6,8 @@ import yaml
 from munch import *
 
 from infra.model.host import Host
+from automation_infra.plugins.ssh import SSH
+from automation_infra.plugins.ssh_direct import SshDirect
 from pytest_automation_infra import hardware_initializer, helpers
 
 

@@ -1,7 +1,7 @@
 from infra import model
 from infra.model import plugins
-from infra.plugins import connection
-from infra.plugins.ssh_direct import SshDirect
+from automation_infra.plugins import connection
+from automation_infra.plugins.ssh_direct import SshDirect
 
 
 class SSH(SshDirect):
