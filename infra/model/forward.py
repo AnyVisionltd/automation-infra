@@ -1,3 +1,4 @@
+import logging
 import select
 import threading
 
@@ -36,7 +37,7 @@ class Handler(SocketServer.BaseRequestHandler):
                 % (self.chain_host, self.chain_port)
             )
 
-        print(
+        logging.info(
             "Connected!  Tunnel open %r -> %r -> %r"
             % (
                 self.request.getpeername(),
@@ -60,7 +61,7 @@ class Handler(SocketServer.BaseRequestHandler):
         peername = self.request.getpeername()
         chan.close()
         self.request.close()
-        print("Tunnel closed from %r" % (peername,))
+        logging.info("Tunnel closed from %r" % (peername,))
 
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
