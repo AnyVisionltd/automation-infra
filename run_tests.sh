@@ -19,7 +19,6 @@ function debug_print() {
 
 function update_received_cmd () {
     # Adds -p pytest_local_init if neither infra plugin is specified, or pytest_automation_infra if -n is specified
-    # Adds --forked arg always because I want the tests to be run in separate process
     # Also there is room to add here other arg parsing we want to do with infra.
     local cmd=$1
 
