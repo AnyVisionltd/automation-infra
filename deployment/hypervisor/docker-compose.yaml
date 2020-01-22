@@ -1,0 +1,16 @@
+version: '3.7'
+services:
+  hypervisor:
+    image: hypervisor:latest
+    volumes:
+      - ${RUN_DIR}:${RUN_DIR}
+      - ${IMAGE_DIR}:${IMAGE_DIR}:ro
+      - ${SSD_DIR}:${SSD_DIR}
+      - ${HDD_DIR}:${HDD_DIR}
+      - /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock
+      - /dev:/dev
+      - ${CONFIG_FILE}:/root/config.yaml:ro
+    network_mode: host
+    privileged: true
+    command: --config=/root/config.yaml --images-dir=${IMAGE_DIR} --run-dir=${RUN_DIR} --ssd-dir=${SSD_DIR} --hdd-dir=${HDD_DIR} --log-level=${LOG_LEVEL} --max-vms=${MAX_VMS} --paravirt-net-device=${PARAVIRT_NET_DEVICE} --sol-port=${SOL_PORT} --server-name=${HOSTNAME}
+

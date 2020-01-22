@@ -1,0 +1,3 @@
+To run hypervisor edit .env file according to your system requirements
+You must cd to currect directory (so that .env file will run).
+Run: docker-compose -f docker-compose.yaml up
