@@ -5,7 +5,8 @@ RUN  apt update -y && \
      libvirt-daemon python3-libvirt python3-pip\
      sudo pciutils
 
-RUN pip3 install aiohttp munch jinja2
+
+RUN pip3 install aiohttp munch jinja2 PyYAML
 
 COPY tools/vfio-pci-bind.sh /usr/local/bin/
 COPY  * /root/
