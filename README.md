@@ -8,10 +8,20 @@ All repos will be parallel to automation-infra repo.
 They will have folder called automation which will be added to pythonpath automatically. Imports should be relative to that.
 Inside automation folder will be another folder with the same name as the base repo (- replaced with _), and inside that relevant folders (plugins, utils, etc).
 
+First clone this repo, and run ./run_tests.sh, this should pass, this means the repo and requirements are set up properly.
+
+After that, in addition you should probably clone the following repos:
+
+**devops-automation-infra**: git@github.com:AnyVisionltd/devops-automation-infra.git<br>
+**camera_service**: git@github.com:AnyVisionltd/camera-service.git<br>
+**pipeng**: git@github.com:AnyVisionltd/pipeNG.git
+
+(Make sure the repos have the subfolder automation/[repo_name]/... otherwise you need to checkout branch hab/automation_infra)
+
 So for example the directory structure:
 ```
 automation-infra
-    automation
+    automation  # <- sources root / pythonpath
         automation_infra
             plugins
                 ssh.py
@@ -19,8 +29,18 @@ automation-infra
                 util1.py
             tests
                 test_example.py
+devops-automation-infra
+    automation  # <- sources root / pythonpath
+        devops-automation_infra
+            plugins
+                memsql.py
+                seaweed.py
+            utils
+                util1.py
+            tests
+                test_example.py
 camera_service
-    automation
+    automation  # <- sources root / pythonpath
         camera_service
             plugins
                 camera_service.py
@@ -29,7 +49,7 @@ camera_service
             tests
                 test_sanity.py
 pipeng
-    automation
+    automation  # <- sources root / pythonpath
         pipeng
             plugins
                 pipeng.py
