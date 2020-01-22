@@ -1,7 +1,7 @@
 FROM ubuntu:18.10
 
 RUN  apt update -y && \
-     apt install -y python3.7\
+     DEBIAN_FRONTEND=noninteractive apt install -y python3.7\
      libvirt-daemon python3-libvirt python3-pip\
      sudo pciutils kmod
 
