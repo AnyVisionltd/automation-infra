@@ -11,6 +11,6 @@ RUN  apt update -y && \
 RUN pip3 install aiohttp munch jinja2 PyYAML
 
 COPY tools/vfio-pci-bind.sh /usr/local/bin/
-COPY  * /root/
+COPY . /root/
 
 ENTRYPOINT ["/root/hypervisor"]
