@@ -7,7 +7,7 @@ LABEL maintainer="orielh@anyvision.co"
 
 COPY ./entrypoint.sh /
 
-RUN apt-get update && apt-get install -y openssh-server vim iputils-ping
+RUN apt-get update && apt-get install -y openssh-server vim iputils-ping awscli
 RUN mkdir /var/run/sshd && mkdir /root/.ssh
 
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
