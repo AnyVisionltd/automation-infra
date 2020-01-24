@@ -14,4 +14,9 @@ case "$1" in
 
 esac
 
+aws configure set aws_access_key_id AKIAZQJT5HXO4YTJSHHL
+aws configure set aws_secret_access_key 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
+aws configure set default.region eu-central-1
+
+
 /usr/sbin/sshd -D
