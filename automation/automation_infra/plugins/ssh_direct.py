@@ -1,3 +1,4 @@
+import os
 import subprocess
 from subprocess import CalledProcessError
 import logging
@@ -45,6 +46,11 @@ class SshDirect(object):
         except CalledProcessError as ex:
             temp_ex = ex
             raise SSHCalledProcessError(temp_ex.returncode, temp_ex.cmd, temp_ex.output, temp_ex.stderr, self._host)
+
+    def download_resource(self, remote_path, local_destination):
+        full_bucket_path = f's3://anyvision-testing/{remote_path}'
+        cmd = f"aws s3 cp {full_bucket_path} {local_destination}/{os.path.basename(remote_path)}"
+        self.execute(cmd)
 
     def run_parallel(self, scripts, max_jobs=None):
         temp_ex = None
