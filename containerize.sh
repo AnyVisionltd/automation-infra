@@ -134,6 +134,10 @@ function add_subdirs_from_path () {
         for file in $(ls $base_path);
         do
             res_path+=":$base_path/$file/automation"
+            if [ $file = "protobuf-contract" ]; then
+                file="$file/build/python"
+                res_path+=":$base_path/$file"
+            fi
         done
 
         echo $res_path
