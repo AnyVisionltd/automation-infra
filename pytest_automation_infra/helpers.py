@@ -31,7 +31,10 @@ def deploy_proxy_container(connected_ssh_module, auth_args=['password', 'root', 
         logging.warning("Unexpected behavior: removed proxy container despite that I shouldn't have needed to")
 
     logging.info("initializing docker")
-    run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --rm --network=host --name=ssh_container orihab/ubuntu_ssh:2.1 {" ".join(auth_args)}'
+    run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --rm ' \
+              f'--volume=/tmp/automation_infra/ ' \
+              f'--network=host ' \
+              f'--name=ssh_container orihab/ubuntu_ssh:2.1 {" ".join(auth_args)}'
     connected_ssh_module.execute(run_cmd)
     logging.info("docker is running")
 
