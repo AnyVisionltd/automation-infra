@@ -1,5 +1,9 @@
 automation-infra
 ================
+###### DISCLOSURE
+This is an anyvision open-source project. It is written by the people for the people, if you find a bug, please fix it so everyone can benefit. And take into account that it is infrastructure, so tread softly.<br>
+In other words, pull requests are happily accepted :)
+
 
 #### Set Up:
 
