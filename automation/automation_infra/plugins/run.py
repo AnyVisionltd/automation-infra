@@ -44,6 +44,7 @@ class Run(object):
             stderr.close()
             self._logger.debug("SSH Execution output:\n\n%(output)s\n", dict(output=output))
             if status != 0:
+                self._logger.error(f'command {command} failed with errorcode {completed_process.returncode}: \nstdout: {completed_process.stdout} \nstderr: {completed_process.stderr}')
                 raise CalledProcessError(completed_process.returncode,
                                          completed_process.args,
                                          completed_process.stdout,
