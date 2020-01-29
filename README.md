@@ -12,7 +12,29 @@ All repos will be parallel to automation-infra repo.
 They will have folder called automation which will be added to pythonpath automatically. Imports should be relative to that.
 Inside automation folder will be another folder with the same name as the base repo (- replaced with _), and inside that relevant folders (plugins, utils, etc).
 
-First clone this repo, and run ./run_tests.sh, this should pass, this means the repo and requirements are set up properly.
+First clone this repo.
+In addition, put a yaml file in $HOME/.local/hardware.yaml which has similar structure to:
+```
+host:
+    ip: 0.0.0.0
+    user: user
+    password: pass
+    key_file_path: /path/to/pem # see note below: 
+```
+*key_file_path and password are mutually exclusive so use only 1 type of auth
+
+You also need ssh docker builder key. Get this from github, details here (step 9):
+https://anyvision.atlassian.net/wiki/spaces/DEV/pages/1251148648/Use+Buildkit
+
+run ./run_tests.sh, this should pass, this means the repo and requirements are set up properly.
+In addition, any pytest params can be used to along with the `run_tests.sh` script. A couple useful examples; 
+* -h shows a help
+* --pdb will drop out to pdb debugger when a test fails
+* -sv will print some more logging
+* pytest.ini file can be copied to test directory for realtime cli (and file) logging
+
+Instead of using `run_tests.sh` it is also possible to use `containerize.sh` which will take you into a container with all 
+settings configured and you can run whichever commands you would like inside the container.
 
 After that, in addition you should probably clone the following repos:
 
@@ -20,7 +42,7 @@ After that, in addition you should probably clone the following repos:
 **camera_service**: git@github.com:AnyVisionltd/camera-service.git<br>
 **pipeng**: git@github.com:AnyVisionltd/pipeNG.git
 
-(Make sure the repos have the subfolder automation/[repo_name]/... otherwise you need to checkout branch hab/automation_infra)
+(Make sure the repos have the subfolder automation/[repo_name]/...)
 
 So for example the directory structure:
 ```
@@ -68,15 +90,7 @@ from automation_infra.plugins.ssh import SSH
 from pipeng.plugins.pipeng import Pipeng
 from camera_service.utils import cs_util
 ```
-In addition, should be a yaml file in $HOME/.local/hardware.yaml which has similar structure to:
-```
-host:
-    ip: 0.0.0.0
-    user: user
-    password: pass
-    key_file_path: /path/to/pem # see note below: 
-```
-*key_file_path and password are mutually exclusive so use only 1 type of auth
+
 
 make
 ----
