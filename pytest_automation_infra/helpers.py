@@ -19,7 +19,7 @@ def use_gravity_exec(connected_ssh_module):
 
 def is_k8s(connected_ssh_module):
     try:
-        connected_ssh_module.execute("sudo kubectl get po")
+        connected_ssh_module.execute("kubectl get po")
         return True
     except SSHCalledProcessError:
         return False

@@ -69,13 +69,14 @@ class ForwardServer(SocketServer.ThreadingTCPServer):
     allow_reuse_address = True
 
 
-def start_tunnel(remote_host, remote_port, transport):
+def start_tunnel(remote_host, remote_port, transport, local_port=None):
     class SubHander(Handler):
         chain_host = remote_host
         chain_port = remote_port
         ssh_transport = transport
 
-    local_port = get_open_port()
+    if local_port is None:
+        local_port = get_open_port()
     forward_server = ForwardServer(("", local_port), SubHander)
     server_thread = threading.Thread(target=forward_server.serve_forever, daemon=True)
     server_thread.start()
