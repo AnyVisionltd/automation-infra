@@ -43,14 +43,19 @@ class Allocator(object):
         self.gpus_list.extend(gpus)
         self.mac_addresses.extend(macs)
 
+    @staticmethod
+    def _validate_networks_params(networks):
+        for net in networks:
+            if net not in ('bridge', 'isolated'):
+                raise ValueError(f"Invalid network parameter {networks}")
+
     async def allocate_vm(self, base_image, memory_gb, networks, num_gpus=0, num_cpus=4, disks=None):
         ''' 
         @networks - list of networks that we want to allocate, possible 
-        values are "isolated, bridged"
+        values are "isolated, bridge"
         @num_gpus - number of GPU`s to allocate 
         @num_cpus - number of CPU`s to allocate
         @memory_gb - memory in GB for vm
-        @networks - list of networks types to allocate, possible values are 'bridge', 'NAT'
         @disks   - dict of {"size" : X, 'type' : [ssd or hdd]} to allocate disks
         '''
         disks = disks or []
@@ -64,6 +69,8 @@ class Allocator(object):
         # Check that i have enough gpus 
         if num_gpus > len(self.gpus_list):
             raise NotEnoughResourceException(f"Not enough gpus requested : {num_gpus} has {self.gpus_list}")
+
+        Allocator._validate_networks_params(networks)
 
         if self.max_vms == len(self.vms):
             raise NotEnoughResourceException(f"Cannot allocate more vms currently {self.vms}")
