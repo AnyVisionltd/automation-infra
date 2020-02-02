@@ -43,6 +43,8 @@ class HyperVisor(object):
         vm_name = request.match_info['name']
         try:
             await self.allocator.destroy_vm(vm_name)
+        except KeyError:
+            return web.json_response(status=404)
         except:
             logging.exception("Failed to destroy VM")
             return web.json_response({'status' : 'Failed'}, status=500)
@@ -65,10 +67,15 @@ class HyperVisor(object):
             return web.json_response(status=404)
 
         power_status = data['power']
-        if power_status == "on":
-            await self.allocator.vm_manager.start_vm(vm)
-        elif power_status == "off":
-            await self.allocator.vm_manager.stop_vm(vm)
+
+        async with vm.lock:
+            # double check after lock
+            if vm_name not in self.allocator.vms:
+                return web.json_response(status=404)
+            if power_status == "on":
+                await self.allocator.vm_manager.start_vm(vm)
+            elif power_status == "off":
+                await self.allocator.vm_manager.stop_vm(vm)
         return web.json_response({'status' : 'Success'}, status=200)
 
     async def handle_vm_status(self, request):
@@ -77,5 +84,9 @@ class HyperVisor(object):
         vm = self.allocator.vms.get(vm_name)
         if vm is None:
             return web.json_response(status=404)
-        info = await self.allocator.vm_manager.network_info(vm)
+        async with vm.lock:
+            # double check after lock
+            if vm_name not in self.allocator.vms:
+                return web.json_response(status=404)
+            info = await self.allocator.vm_manager.network_info(vm)
         return web.json_response({'info' : info}, status=200)
