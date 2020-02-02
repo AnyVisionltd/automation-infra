@@ -13,8 +13,12 @@ class TunneledPlugin(object):
         self._forward_server = None
         self.local_bind_port = None
         
-    def start_tunnel(self, remote, port):
-        self._forward_server, self.local_bind_port = forward.start_tunnel(remote, port, self._host.SSH.get_transport())
+    def start_tunnel(self, remote, port, force_same_port=False):
+        if not force_same_port:
+            self._forward_server, self.local_bind_port = forward.start_tunnel(remote, port, self._host.SSH.get_transport())
+        else:
+            self._forward_server, self.local_bind_port = forward.start_tunnel(
+                remote, port, self._host.SSH.get_transport(), port)
 
     def stop_tunnel(self):
         self._forward_server.shutdown()
