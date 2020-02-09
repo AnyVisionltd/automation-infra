@@ -16,7 +16,7 @@ class SshDirect(object):
     def connect(self, port=22, timeout=10):
         self._connection = connection.Connection(self._host, port)
         self._connection.connect(timeout)
-        
+
     def get_transport(self):
         return self._connection._ssh_client.get_transport()
 
@@ -26,7 +26,8 @@ class SshDirect(object):
             return self._connection.run.script(script, output_timeout=timeout)
         except CalledProcessError as ex:
             temp_ex = ex
-            logging.debug("Failed ssh cmd %(cmd)s %(output)s %(stderr)s", dict(cmd=script, output=temp_ex.output, stderr=temp_ex.stderr))
+            logging.debug("Failed ssh cmd %(cmd)s %(output)s %(stderr)s",
+                          dict(cmd=script, output=temp_ex.output, stderr=temp_ex.stderr))
             raise SSHCalledProcessError(temp_ex.returncode, temp_ex.cmd, temp_ex.output, temp_ex.stderr, self._host)
 
     def run_script_v2(self, script, timeout=20 * 60):
@@ -72,7 +73,7 @@ class SshDirect(object):
         return self._connection.run.background_script(command)
 
     def put(self, filenames, remotedir):
-        filenames = filenames if isinstance(filenames, (list, tuple)) else (filenames, )
+        filenames = filenames if isinstance(filenames, (list, tuple)) else (filenames,)
         return self._connection.put(filenames, remotedir)
 
     def put_contents(self, contents, remote_path):
@@ -154,7 +155,22 @@ class SshDirect(object):
                                       hostname=self._host.ip,
                                       remotepath=dest_path,
                                       localpath=localdir)
-            subprocess.check_call(cmd, shell=True)
+            try:
+                subprocess.check_call(cmd, shell=True, stderr=True, stdout=True)
+            except CalledProcessError as ex:
+                raise SSHCalledProcessError(ex.returncode, ex.cmd, ex.output, ex.stderr, self._host)
+
+    def remote_directory_exists(self, path):
+        if eval(self._host.SshDirect.execute(
+                f"if [ ! -d {path} ]; then echo True; else echo False;  fi")):
+            logging.info(f"Error, please check that directory ---> {path} exist")
+            raise Exception(f"Error, please check that directory ---> {path} exist")
+
+    def remote_file_exists(self, path):
+        if eval(self._host.SshDirect.execute(
+                f"if [ ! -f {path} ]; then echo True; else echo False;  fi")):
+            logging.info(f"Error, please check that directory ---> {path} exist")
+            raise Exception(f"Error, please check that directory ---> {path} exist")
 
 
 class SSHCalledProcessError(CalledProcessError):
