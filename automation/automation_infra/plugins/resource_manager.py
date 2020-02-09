@@ -42,6 +42,7 @@ class ResourceManager(TunneledPlugin):
             self.client.download_fileobj("anyvision-testing", resource_path, file_obj)
             file_obj.seek(0)
             self._host.Seaweed.upload_fileobj(file_obj, "automation_infra", s3_path)
+            return f"s3:///automation_infra/{s3_path}"
 
 
 plugins.register('ResourceManager', ResourceManager)
