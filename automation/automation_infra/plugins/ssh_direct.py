@@ -47,6 +47,9 @@ class SshDirect(object):
             temp_ex = ex
             raise SSHCalledProcessError(temp_ex.returncode, temp_ex.cmd, temp_ex.output, temp_ex.stderr, self._host)
 
+    def remote_hostname(self):
+        return self.execute("echo $HOSTNAME").strip()
+
     def download_resource(self, remote_path, local_destination):
         full_bucket_path = f's3://anyvision-testing/{remote_path}'
         cmd = f"aws s3 cp {full_bucket_path} {local_destination}"
