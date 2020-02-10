@@ -204,7 +204,7 @@ function run_docker () {
     env_cmd+="-e PYTHONPATH=${python_path} -e DISPLAY=${DISPLAY} -e CONSUL_NODE_ID=local-agent-${HOSTNAME}"
 
     # mount source code in same location as in host
-    cmd="docker run --name ${NAME} --net=host --privileged  --rm $mount_cmd $env_cmd"
+    cmd="docker run --name ${NAME} --privileged  --rm $mount_cmd $env_cmd"
 
     cmd+=" $(_read_passed_environment)"
 
