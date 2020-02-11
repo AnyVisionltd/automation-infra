@@ -4,29 +4,31 @@ automation-infra
 This is an anyvision open-source project. It is written by the people for the people, if you find a bug, please fix it so everyone can benefit. And take into account that it is infrastructure, so tread softly.<br>
 In other words, pull requests are happily accepted :)
 
-
-#### Set Up:
-
+##Background
 Directory Structure and pythonpath calculation:
 All repos will be parallel to automation-infra repo.
 They will have folder called automation which will be added to pythonpath automatically. Imports should be relative to that.
 Inside automation folder will be another folder with the same name as the base repo (- replaced with _), and inside that relevant folders (plugins, utils, etc).
 
-First clone this repo.
-In addition, put a yaml file in $HOME/.local/hardware.yaml which has similar structure to:
+#### Set Up:
++ sudo apt-get install repo -y
++ repo init -u git@github.com:/AnyVisionltd/core-manifest.git -b hab/automation
++ repo sync -j 4
++ Put a yaml file in $HOME/.local/hardware.yaml which has similar structure to:
 ```
 host:
-    ip: 0.0.0.0
+    ip: 192.168.xx.xxx
     user: user
     password: pass
     key_file_path: /path/to/pem # see note below: 
 ```
 *key_file_path and password are mutually exclusive so use only 1 type of auth
 
-You also need ssh docker builder key. Get this from github, details here (step 9):
++ Get ssh docker builder key. Get this from github, details here (step 9):
 https://anyvision.atlassian.net/wiki/spaces/DEV/pages/1251148648/Use+Buildkit
 
-run ./run_tests.sh, this should pass, this means the repo and requirements are set up properly.
++ run ./run_tests.sh, this should pass, this means the repo and requirements are set up properly.
+
 In addition, any pytest params can be used to along with the `run_tests.sh` script. A couple useful examples; 
 * -h shows a help
 * --pdb will drop out to pdb debugger when a test fails
