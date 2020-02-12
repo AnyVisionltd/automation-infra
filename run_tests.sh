@@ -26,7 +26,7 @@ function update_received_cmd () {
       cmd="python -m pytest $cmd"
     fi
 
-    if [[ $cmd != *" -p "* ]] ; then
+    if [[ $cmd != *" -p pytest_automation_infra "* ]] ; then
         cmd="$cmd -p pytest_automation_infra"
     fi
 
