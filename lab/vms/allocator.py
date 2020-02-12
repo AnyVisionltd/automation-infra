@@ -1,6 +1,7 @@
 import logging
 from lab import NotEnoughResourceException
 import munch
+import asyncio
 
 
 class Allocator(object):
@@ -81,26 +82,34 @@ class Allocator(object):
         vm = munch.Munch(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
                          net_ifaces=networks, sol_port=self._sol_port(),
                          pcis=gpus, base_image=base_image,
-                         disks=disks)
+                         disks=disks,
+                         lock=asyncio.Lock())
         self.vms[vm_name] = vm
 
-        try:
-            await self.vm_manager.allocate_vm(vm)
-        except:
-            self._free_vm_resources(gpus, networks)
-            del self.vms[vm_name]
-            raise
-        else:
-            logging.info("Allocated vm {vm}")
+        async with vm.lock:
+            try:
+                await self.vm_manager.allocate_vm(vm)
+            except:
+                self._free_vm_resources(gpus, networks)
+                del self.vms[vm_name]
+                raise
+            else:
+                logging.info(f"Allocated vm {vm}")
         return vm
 
     async def destroy_vm(self, name):
-        vm = self.vms[name]
-        try:
-            await self.vm_manager.destroy_vm(vm)
-        except:
-            logging.exception("Failed to free vm %s", vm['name'])
-            raise
-        else:
-            del self.vms[name]
-            self._free_vm_resources(vm.pcis, vm.net_ifaces)
+        vm = self.vms.get(name, None)
+        if not vm:
+            raise KeyError()
+        async with vm.lock:
+            # double check that vm is not yet deleted
+            if not name in self.vms:
+                raise KeyError()
+            try:
+                await self.vm_manager.destroy_vm(vm)
+            except:
+                logging.exception("Failed to free vm %s", vm['name'])
+                raise
+            else:
+                del self.vms[name]
+                self._free_vm_resources(vm.pcis, vm.net_ifaces)
