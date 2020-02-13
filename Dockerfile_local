@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && apt-get clean && apt-get autoremove && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install -r /tmp/requirements3.txt \
-  && rm /tmp/requirements3.txt
+  && rm /tmp/requirements3.txt && \
+  pip3 install setuptools=="45.2.0" wheel=="0.34.2" twine=="3.1.1"
 
 COPY ./entrypoint.sh environ /
 RUN chmod ugo+x /entrypoint.sh
