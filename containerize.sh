@@ -33,6 +33,7 @@ function docker_tag () {
     local total_sum="$(md5sum <<< "$files_sum" | awk '{print substr($1,1,12)}')"
     echo "$total_sum"
 }
+IMAGE_NAME="${IMAGE_NAME:-gcr.io/anyvision-training/containerize:$(docker_tag)}"
 
 function run_ssh_agent () {
     if [ -e $PUBKEY_FILE ] ; then
@@ -48,62 +49,17 @@ function kill_ssh_agent () {
 	eval "$(ssh-agent -k &>/dev/null)"
 }
 
-
-function _docker_image() {
-    local tag=$1
-    echo "gcr.io/anyvision-training/containerize:${tag}"
-}
-
-function _docker_login() {
-    local FILE=${HOME}/.gcr/docker-registry-rw.json
-    if [ -e $FILE ] ; then
-        docker login -u _json_key -p "$(cat "$FILE")" https://gcr.io
-    else
-        >&2 echo "didnt find docker-registry-rw file! "
-        exit 1
-    fi
-}
-
 function build_docker_image () {
-    local tag=$1
-    local image_name=$(_docker_image "${tag}")
-
-    local docker_build_cache=""
-
-    if [ "${DOCKERIZE_FORCE_BUILD}" == "0" ];
-    then
-        if docker inspect --type=image "${image_name}" &>/dev/null;
-        then
-           debug_print "image found locally ${image_name}"
-           return
-        fi
-        debug_print "image not found locally, try to pull image from registry"
-        _docker_login
-        if docker pull "$image_name";
-        then
-           debug_print "image pulled ${image_name}"
-           return
-        fi
-    else
-        docker_build_cache="--no-cache"
-    fi
-
     run_ssh_agent
     # Try to build
     local build_dir=$(dirname "${BASH_SOURCE[0]}")
-    echo "Building docker image ${image_name}"
+    echo "Building docker image ${IMAGE_NAME}"
     DOCKER_BUILDKIT=1 \
-        docker build ${docker_build_cache} -t gcr.io/anyvision-training/containerize:"${tag}" \
+        docker build -t $IMAGE_NAME \
         --ssh default="${SSH_AUTH_SOCK}" \
         --secret id=jfrog-cfg,src="${HOME}"/.jfrog/jfrog-cli.conf \
-        --label "branch_name=development" \
-        --label "service_name=pipeng_devenv-${tag}" \
         -f "$build_dir"/Dockerfile_local  "$build_dir"
     kill_ssh_agent
-}
-
-function kill_container() {
-    docker kill "$1" || debug_print "could not kill container $1"
 }
 
 function _add_mount() {
@@ -116,6 +72,7 @@ function _read_passed_environment() {
     local current_dir=$(dirname "$current_file")
 
     env_variable_cmd=""
+    set +u
     while IFS='=' read -r key value; do
         local value=$(eval echo "${value}")
         if [ -n "$value" ];
@@ -123,6 +80,7 @@ function _read_passed_environment() {
            env_variable_cmd+=" -e ${key}=$(eval echo "${value}")"
         fi
     done < "${current_dir}"/pass_environment
+    set -u
     echo "${env_variable_cmd}"
 }
 
@@ -147,23 +105,8 @@ function add_subdirs_from_path () {
     fi
 }
 
-function build_python_path () {
-    local mount_path=$1
-    local python_path=""
-    for file in $(ls $mount_path);
-        do
-            python_path+=":$mount_path/$file/automation"
-            if [ $file = "protobuf-contract" ]; then
-                file="$file/build/python"
-                python_path+=":$mount_path/$file"
-            fi
-    done
-    echo $python_path
-}
-
 function run_docker () {
-    local tag="$1"
-    local run_cmd="$2"
+    local run_cmd="$1"
 
     ps -o stat= -p $$ | grep -q + || INTERACTIVE=false
     # if we do not have terminal - no need to allocate one
@@ -171,24 +114,13 @@ function run_docker () {
     [ -t 1 ] || INTERACTIVE=false
     INTERACTIVE=${INTERACTIVE:-true}
 
-    # We generate a unique name in order to be able to kill the container when the terminal is closed.
-    NAME=$(uuidgen)
-
-    # I dont think this is necessary because docker is run with --rm but am leaving it to make sure
-    # trap "kill_container ${NAME}" 0
-
-    local script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-    local mount_path=$(dirname "$script_dir")
-
-    debug_print "mounting up 1 from script_dir: $mount_path"
-
     MOUNTS=("/dev:/dev"
-            "${HOME}/.ssh:/${HOME}/.ssh"
-            "/${HOME}/.netrc:/${HOME}/.netrc"
+            "${HOME}/.ssh:${HOME}/.ssh"
+            "/${HOME}/.netrc:${HOME}/.netrc"
             "/var/run/docker.sock:/var/run/docker.sock"
             "${HOME}/.gitconfig:${HOME}/.gitconfig"
             "${HOME}/.jfrog:${HOME}/.jfrog"
-            "$mount_path:$mount_path"
+            "${PWD}:${PWD}"
             "${HOME}/.local:${HOME}/.local"
 	        )
 
@@ -199,12 +131,8 @@ function run_docker () {
     done
     mount_cmd+=" "
 
-    python_path=$(build_python_path $mount_path)
-
-    env_cmd+="-e PYTHONPATH=${python_path} -e DISPLAY=${DISPLAY} -e CONSUL_NODE_ID=local-agent-${HOSTNAME}"
-
     # mount source code in same location as in host
-    cmd="docker run --name ${NAME} --privileged  --rm $mount_cmd $env_cmd"
+    cmd="docker run --rm --privileged $mount_cmd"
 
     cmd+=" $(_read_passed_environment)"
 
@@ -215,7 +143,7 @@ function run_docker () {
     # set workdir as current dir
     cmd+=" --workdir=${PWD}"
 
-    cmd+=" $(_docker_image "${tag}")"
+    cmd+=" $IMAGE_NAME"
 
     if [ -n "$run_cmd" ] ; then
         cmd+=" $run_cmd"
@@ -229,9 +157,8 @@ function run_docker () {
 function main () {
     local cmd="$1"
     debug_print "running script with command args: $cmd"
-    local tag=$(docker_tag)
-    build_docker_image "$tag"
-    run_docker "$tag" "$cmd"
+    build_docker_image
+    run_docker "$cmd"
 }
 
 cmd=${1:-"bash"}
