@@ -46,6 +46,10 @@ class Host(object):
             self.port = host_config.pop('port')
         except KeyError:
             self.port = 22
+        try:
+            self.tunnelport = host_config.pop('tunnelport')
+        except KeyError:
+            self.tunnelport = 2222
         self.password = _pass
         self.keyfile = _pem
         self.extra_config = host_config
