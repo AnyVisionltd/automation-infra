@@ -30,6 +30,9 @@ pipeline {
       }
     }
     stage("deploy") {
+      when {
+        branch 'master'
+      }
       parallel {
         stage("publish to artifactory") {
           steps {
