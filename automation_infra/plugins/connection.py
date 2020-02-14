@@ -8,13 +8,13 @@ import glob
 
 class Connection(object):
 
-    def __init__(self, host, port=22, **kwargs):
+    def __init__(self, host, **kwargs):
         assert (host.keyfile or host.password) and not (host.keyfile and host.password)
         self._ip = host.ip
         self._username = host.user
         self._password = host.password
         self._keyfile = host.keyfile
-        self._port = port
+        self._port = host.port
         self._ssh_client = None
 
     @property
