@@ -5,13 +5,13 @@ from automation_infra.plugins.ssh_direct import SshDirect
 
 
 class SSH(SshDirect):
-    TUNNEL_PORT = 2222
-
-    def connect(self, port=TUNNEL_PORT, timeout=10):
+    def connect(self, port=2222, timeout=10):
         # TODO: have handle security here
-        host = model.host.create_host(self._host.ip, 'root', 'pass', None)
-        self._connection = connection.Connection(host, port)
+        host = model.host.create_host(
+            self._host.ip, "root", "pass", None, port=port
+        )
+        self._connection = connection.Connection(host)
         self._connection.connect(timeout)
 
 
-plugins.register('SSH', SSH)
+plugins.register("SSH", SSH)

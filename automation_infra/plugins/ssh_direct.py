@@ -13,8 +13,8 @@ class SshDirect(object):
         self._host = host
         self._connection = None
 
-    def connect(self, port=22, timeout=10):
-        self._connection = connection.Connection(self._host, port)
+    def connect(self, timeout=10):
+        self._connection = connection.Connection(self._host)
         self._connection.connect(timeout)
         
     def get_transport(self):
