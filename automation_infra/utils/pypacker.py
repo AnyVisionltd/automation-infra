@@ -1,9 +1,7 @@
 import os
+import zipfile
+import modulefinder
 import distutils.sysconfig as sysconfig
-
-from modulefinder import ModuleFinder
-from zipfile import ZipFile
-
 try:
     from StringIO import StringIO
 except ImportError:
@@ -20,48 +18,51 @@ class PythonPacker(object):
     def from_file(cls, filepath, outfile=None):
         packer = cls()
         with open(filepath, 'r') as fp:
-            cls._pack(packer, fp, fp.read(), outfile)
+            packer._pack(fp, fp.read(), outfile)
         return packer
 
     @classmethod
     def from_script(cls, script, outfile):
         packer = cls()
-        cls._pack(packer, StringIO(script), script, outfile)
+        packer._pack(StringIO(script), script, outfile)
         return packer
 
-    def _pack(self, buf, script, outfile=None):
-        self._set_outfile(buf, outfile)
-        with ZipFile(self.outfile, 'w') as zp:
+    def _pack(self, buf, script, outfile):
+        self._set_outfile_path(buf, outfile)
+        with zipfile.ZipFile(self.outfile, 'w') as zp:
             zp.writestr('__main__.py', script)
-            for module in self._iter_script_modules(buf):
+            for module in self._modules_from_buffer(buf):
                 zp.write(module.__file__, self._get_archive_path(module))
+                self.dependencies.append(module.__name__)
 
-    def _set_outfile(self, buf, outfile):
+    def _set_outfile_path(self, buf, outfile):
         if not outfile:
             outfile = buf.name
         name, suffix = os.path.splitext(outfile)
         if suffix != '.egg':
-            outfile = outfile[:len(name)] + '.egg'
+            outfile = name + '.egg'
         self.outfile = outfile
 
-    def _iter_script_modules(self, buf):
+    def _modules_from_buffer(self, buf):
+        finder = modulefinder.ModuleFinder()
+        finder.load_module('__main__.py', buf, '__main__', ('', 'r', 1))
         stdlib = sysconfig.get_python_lib(standard_lib=True)
-        finder = ModuleFinder()
-        finder.load_module('__main__', buf, '__main__.py', ('', 'r', 1))
         for module in finder.modules.values():
-            if module.__name__ in self.dependencies:
+            if module.__file__ is None:
                 continue
-            elif module.__file__ in (None, '__main__.py'):
+            elif module.__file__ == '__main__.py':
                 continue
-            self.dependencies.append(module.__name__)
-            if module.__file__.startswith(stdlib):
+            elif module.__name__ in self.dependencies:
+                continue
+            elif module.__file__.startswith(stdlib):
+                self.dependencies.append(module.__name__)
                 continue
             yield module
 
     @staticmethod
     def _get_archive_path(module):
-        relative_path = module.__name__.replace('.', os.sep)
-        return module.__file__[module.__file__.find(relative_path):]
+        relative_name = module.__name__.replace('.', os.sep)
+        return module.__file__[module.__file__.find(relative_name):]
 
 
 if __name__ == '__main__':
