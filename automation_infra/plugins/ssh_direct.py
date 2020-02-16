@@ -5,6 +5,7 @@ import logging
 
 from infra.model import plugins
 from automation_infra.plugins import connection
+from automation_infra.utils import snippet
 
 
 class SshDirect(object):
@@ -91,16 +92,16 @@ class SshDirect(object):
         self._connection.close()
 
     def run_snippet(self, code_snippet, *args, **kwargs):
-        code = snippet.Snippet(code_snippet, *args, **kwargs)
+        code = snippet.Snippet(code_snippet)
         code.prepare()
         instance = code.create_instance(self._host)
-        return instance.run()
+        return instance.run(*args, **kwargs)
 
     def run_background_snippet(self, code_snippet, *args, **kwargs):
-        code = snippet.Snippet(code_snippet, *args, **kwargs)
+        code = snippet.Snippet(code_snippet)
         code.prepare()
         instance = code.create_instance(self._host)
-        return instance.run_background()
+        return instance.run_background(*args, **kwargs)
 
     def _install_private_key(self, keyfile, install_to_host):
         filepath = install_to_host.mktemp(suffix=".pem")
