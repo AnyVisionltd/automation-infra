@@ -31,3 +31,7 @@ test-lint-docker: _test-lint-docker ## run only docker linter
 build-hypervisor:
 	docker build -f Dockerfile.hypervisor -t hypervisor:latest .
 	@echo "Built hypervisor:latest" 
+
+.PHONY: test-hypervisor
+test-hypervisor:
+	@(cd lab/vms && pytest .)
