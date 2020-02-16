@@ -45,7 +45,7 @@ class PythonPacker(object):
 
     def _modules_from_buffer(self, buf):
         finder = modulefinder.ModuleFinder()
-        finder.load_module('__main__.py', buf, '__main__', ('', 'r', 1))
+        finder.load_module('__main__', buf, '__main__.py', ('', 'r', 1))
         stdlib = sysconfig.get_python_lib(standard_lib=True)
         for module in finder.modules.values():
             if module.__file__ is None:
