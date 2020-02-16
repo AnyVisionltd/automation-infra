@@ -8,17 +8,27 @@ from botocore.exceptions import ClientError
 import sys
 import threading
 
-from automation_infra.plugins.base_plugin import TunneledPlugin
+try:
+    from devops_automation_infra.plugins.seaweed import Seaweed as BaseObject
+except ImportError:
+    from automation_infra.plugins.base_plugin import TunneledPlugin as BaseObject
 from infra.model import plugins
 
 
-class ResourceManager(TunneledPlugin):
-    def __init__(self, host):
-        super().__init__(host)
-        self.client = boto3.client('s3', aws_access_key_id='AKIAZQJT5HXO4YTJSHHL',
-                                   aws_secret_access_key='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' #,
-                                   # TODO for tunnel?: endpoint_url=f'localhost:{self.local_bind_port}'
-                                    )
+class ResourceManager(BaseObject):
+
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = self._s3_client()
+        return self._client
+
+    def _s3_client(self):
+        self.start_tunnel(self.DNS_NAME, self.PORT)
+        s3 = boto3.client('s3',
+                          aws_access_key_id='AKIAZQJT5HXO4YTJSHHL',
+                          aws_secret_access_key='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')
+        return s3
 
     def upload_from_filesystem(self, local_path, upload_dir=""):
         if os.path.isfile(local_path):
