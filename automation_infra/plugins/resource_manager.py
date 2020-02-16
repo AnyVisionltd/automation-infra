@@ -48,10 +48,12 @@ class ResourceManager(BaseObject):
                                   os.path.join(local_dir, os.path.basename(remote_path)))
 
     def deploy_resource_to_s3(self, resource_path, s3_path):
+        bucket = "automation_infra"
         with BytesIO() as file_obj:
             self.client.download_fileobj("anyvision-testing", resource_path, file_obj)
             file_obj.seek(0)
-            self._host.Seaweed.upload_fileobj(file_obj, "automation_infra", s3_path)
+            self._host.Seaweed.upload_fileobj(file_obj, bucket, s3_path)
+        return f'{bucket}/{s3_path}'
 
 
 plugins.register('ResourceManager', ResourceManager)
