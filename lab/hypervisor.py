@@ -11,6 +11,7 @@ import asyncio
 from aiohttp import web
 import argparse
 import yaml
+from lab.utils import net
 
 
 def _verify_gpu_drivers_not_loaded():
@@ -42,6 +43,22 @@ def load_config(file_name):
     return config
 
 
+MACVLAN_DEV_NAME = "vm-macvlan"
+
+
+def _setup_macvlan_device(paravirt_device):
+    # delete macvlan device if it exists and recreate
+    if net.device_exists(MACVLAN_DEV_NAME):
+        logging.info("Delete existing macvlan device")
+        net.delete_routes(MACVLAN_DEV_NAME)
+        net.delete_net_device(MACVLAN_DEV_NAME)
+    ip_info = net.network_info(paravirt_device)
+    logging.info("Device %s info %s", paravirt_device, ip_info)
+    # in case we have several ip addresses .. lets take the first one
+    net.setup_macvlan_device(paravirt_device, ip_info[0], MACVLAN_DEV_NAME)
+    logging.info("Macvlan device %s is setup", MACVLAN_DEV_NAME)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", help="Config file containing pci addresses and mac addressses", required=True)
@@ -65,6 +82,7 @@ if __name__ == '__main__':
     anylogging.configure_logging(root_level=log_level, console_level=log_level)
     loop = asyncio.get_event_loop()
     _check_kvm_ok()
+    _setup_macvlan_device(args.paravirt_net_device)
     vmm = libvirt_wrapper.LibvirtWrapper(args.qemu_uri)
     storage = image_store.ImageStore(loop, base_qcow_path=args.images_dir,
                                      run_qcow_path=args.run_dir,ssd_path=args.ssd_dir, hdd_path=args.hdd_dir)
