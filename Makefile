@@ -34,4 +34,4 @@ build-hypervisor:
 
 .PHONY: test-hypervisor
 test-hypervisor:
-	@(cd lab/vms && pytest .)
+	cd lab/vms && pytest .
