@@ -11,10 +11,12 @@ pytest = "==5.3.1"
 pytest-aiohttp = "==0.3.0"
 pytest-cov = "==2.8.1"
 pylint = "==2.4.4"
+argh = "==0.26.2"
+watchdog = "==0.10.0"
 
 [packages]
 connexion = {extras = ["swagger-ui"],version = "*"}
 aiohttp-jinja2 = "==1.2.0"
 
 [requires]
-python_version = "3.6.9"
+python_version = "3.6"
