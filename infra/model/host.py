@@ -42,6 +42,14 @@ class Host(object):
             "password and key are mutually exclusive (password=%s, key=%s)" % (_pass, _pem)
         self.ip = host_config.pop('ip')
         self.user = host_config.pop('user')
+        try:
+            self.port = host_config.pop('port')
+        except KeyError:
+            self.port = 22
+        try:
+            self.tunnelport = host_config.pop('tunnelport')
+        except KeyError:
+            self.tunnelport = 2222
         self.password = _pass
         self.keyfile = _pem
         self.extra_config = host_config
@@ -76,9 +84,10 @@ class Host(object):
 plugins.register('Host', Host)
 
 
-def create_host(ip, u, p=None, pem_path=None):
+def create_host(ip, u, p=None, pem_path=None, port=22):
     host_config = {
         "ip": ip,
+        "port": port,
         "user": u,
         "password": p,
         "key_file_path": pem_path

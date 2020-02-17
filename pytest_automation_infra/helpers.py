@@ -48,7 +48,7 @@ def init_docker_and_connect(host):
     deploy_proxy_container(host.SshDirect)
 
     logging.info(f"[{host}] connecting to ssh container")
-    host.SSH.connect()
+    host.SSH.connect(port=host.tunnelport)
     logging.info(f"[{host}] connected successfully")
 
 
