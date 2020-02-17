@@ -48,8 +48,27 @@ def default_gateway(device_name):
 
 
 def network_info(device_name):
-    ip_infos = netifaces.ifaddresses(device_name)[netifaces.AF_INET]
+    inet_infos = netifaces.ifaddresses(device_name)
+    if netifaces.AF_INET not in inet_infos:
+        raise Exception("Not AF_INET info in %s" % inet_infos)
     return [ipaddress.ip_interface("%s/%s" % (ip_info['addr'], ip_info['netmask']))
-             for ip_info in ip_infos]
+             for ip_info in inet_infos[netifaces.AF_INET]]
 
 
+def setup_macvlan_device(eth_device, ip_iface, macvlan_device_name):
+    logging.info("Going to setup macvlan device %s for device %s info %s", macvlan_device_name, eth_device, ip_iface)
+    try:
+        add_macvlan_device(eth_device, macvlan_device_name)
+        add_ip_to_device(macvlan_device_name, ip_iface.compressed)
+        start_device(macvlan_device_name)
+        delete_routes(macvlan_device_name)
+        add_route(ip_iface.network.compressed, macvlan_device_name)
+    except:
+        logging.exception("Failed to setup macvlan device %s on %s", macvlan_device_name, eth_device)
+        if not device_exists(macvlan_device_name):
+            return
+        try:
+            delete_routes(macvlan_device_name)
+            delete_net_device(macvlan_device_name)
+        except:
+            logging.exception("Failed to delete created device", macvlan_device_name)
