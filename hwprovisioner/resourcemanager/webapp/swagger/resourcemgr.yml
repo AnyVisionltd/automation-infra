@@ -1,0 +1,29 @@
+---
+openapi: '3.0.0'
+info:
+  title: AnyVision resourcemanager API
+  version: "0.1"
+  description: >-
+    A service which manages resources (servers, VMs, devices)
+paths:
+  /_health:
+    get:
+      tags: [HealthCheck]
+      operationId: webapp.healthcheck.get
+      summary: Ensures this service is functioning correctly
+      responses:
+        200:
+          description: Return health state of service
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    description: The status for the operation
+                    example: 200
+                  data:
+                    type: string
+                    description: An explanation of the status
+                    example: The service is functioning as expected
