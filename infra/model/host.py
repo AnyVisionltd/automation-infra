@@ -74,6 +74,11 @@ class Host(object):
         return '/%(basedir)s/%(prefix)s%(counter)d%(suffix)s' % dict(basedir=basedir, prefix=prefix, counter=counter,
                                                                      suffix=suffix)
 
+
+    def remove_plugin(self, name):
+        if name in self.__plugins:
+            self.__plugins.pop(name)
+        
     def unique(self):
         return next(self._temp_dir_counter)
 
