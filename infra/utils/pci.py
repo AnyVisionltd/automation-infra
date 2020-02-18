@@ -75,7 +75,7 @@ def parse_nvidia_lspci_output(lspci_output):
 
 def vfio_bind_pci_device(device):
     logging.debug("vfio bind device %s", device)
-    shell.run_cmd("/usr/local/bin/vfio-pci-bind.sh %s" % device.full_address)
+    shell.run_cmd(["/usr/local/bin/vfio-pci-bind.sh", device.full_address])
 
 
 def vfio_bind_pci_devices(devices):
