@@ -73,6 +73,7 @@ pyyaml = "*"
 psycopg2 = "*"
 defaultlist = "*"
 numpy = "*"
+pytest-timeout = "*"
 
 [requires]
 python_version = "3.7"
