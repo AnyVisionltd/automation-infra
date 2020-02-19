@@ -30,6 +30,6 @@ async def test_network_info_not_failing(event_loop, mock_libvirt, mock_image_sto
                          base_image='image',
                          disks=vm_images,
                          status="on")
-    info = await tested.network_info(vm)
+    info = await tested.info(vm)
     assert info['status'] == 'on'
 

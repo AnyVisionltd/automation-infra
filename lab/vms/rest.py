@@ -98,5 +98,5 @@ class HyperVisor(object):
             # double check after lock
             if vm_name not in self.allocator.vms:
                 return web.json_response(status=404)
-            info = await self.allocator.vm_manager.network_info(vm)
+            info = await self.allocator.vm_manager.info(vm)
         return web.json_response({'info' : info}, status=200)
