@@ -42,6 +42,21 @@ class LibvirtWrapper(object):
             vm.destroy()
         logging.info("VM %s destroyed", name)
 
+    def status(self, name):
+        libvirt_state_to_state = {libvirt.VIR_DOMAIN_NOSTATE  : "unknown",
+                                  libvirt.VIR_DOMAIN_RUNNING  : "on",
+                                  libvirt.VIR_DOMAIN_BLOCKED  : "fail",
+                                  libvirt.VIR_DOMAIN_PAUSED   : "on",
+                                  libvirt.VIR_DOMAIN_SHUTDOWN : "off",
+                                  libvirt.VIR_DOMAIN_SHUTOFF  : "off",
+                                  libvirt.VIR_DOMAIN_CRASHED  : "fail",
+                                  libvirt.VIR_DOMAIN_PMSUSPENDED : "on"}
+        with self._libvirt_connection() as connection:
+            vm = connection.lookupByName(name)
+            state = vm.state()[0]
+            logging.info("VM state is %s - %s", state, libvirt_state_to_state[state])
+            return libvirt_state_to_state[state]
+
     def kill_by_name(self, name):
         logging.debug("killimg vm %s", name)
         with self._libvirt_connection() as connection:

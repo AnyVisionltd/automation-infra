@@ -58,11 +58,20 @@ class HyperVisor(object):
                  'net' : vm['net_ifaces'],
                  'pcis' : vm['pcis'],
                  'image' : vm['image'],
-                 'disks' : vm['disks'],
-                 'status' : vm['status']} for vm in vms.values()]
+                 'disks' : vm['disks']} for vm in vms.values()]
 
     async def handle_list_vms(self, _):
-        return web.json_response({'vms' : self._jsonify_vms(self.allocator.vms)}, status=200)
+        vms_info = self._jsonify_vms(self.allocator.vms)
+        result = []
+        for vm_info in vms_info:
+            vm = self.allocator.vms.get(vm_info['name'])
+            if vm is None:
+                continue
+            status = await self.allocator.vm_manager.vm_status(vm)
+            vm_info.update({"status" : status})
+            result.append(vm_info)
+
+        return web.json_response({'vms' : result}, status=200)
 
     async def handle_list_images(self, _):
         images = await self.image_store.list_images()
