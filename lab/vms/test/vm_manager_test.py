@@ -19,6 +19,7 @@ def mock_image_store():
 async def test_network_info_not_failing(event_loop, mock_libvirt, mock_image_store):
     tested = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
     mock_libvirt.dhcp_lease_info.side_effect = Exception("exception")
+    mock_libvirt.status.return_value = "on"
 
     vm_images = [{"serial": "s1",
                   "device_name": "dev1",

@@ -2,6 +2,7 @@ import concurrent.futures
 import logging
 import string
 import uuid
+import asyncio
 
 
 class VMManager(object):
@@ -60,13 +61,11 @@ class VMManager(object):
         logging.debug("Starting vm %s", vm['name'])
         await self.loop.run_in_executor(self.thread_pool,
                                                lambda: self.libvirt_api.start_vm(vm))
-        vm['status'] = 'on'
 
     async def stop_vm(self, vm):
         logging.debug("Stopping vm %s", vm['name'])
         await self.loop.run_in_executor(self.thread_pool,
                                                lambda: self.libvirt_api.poweroff_vm(vm))
-        vm['status'] = 'off'
 
     async def destroy_vm(self, vm):
         try:
@@ -74,7 +73,6 @@ class VMManager(object):
                                             lambda: self.libvirt_api.kill_by_name(vm["name"]))
             await self._delete_storage(vm)
         except:
-            vm['status'] = 'Fail'
             raise
 
     async def _result_or_default(self, func, default):
@@ -84,10 +82,17 @@ class VMManager(object):
             return default
 
     async def info(self, vm):
-        net_info = await self._result_or_default(lambda: self.libvirt_api.dhcp_lease_info(vm["name"]), {})
+        net_info, status = await asyncio.gather(
+                            self._result_or_default(lambda: self.libvirt_api.dhcp_lease_info(vm["name"]), {}),
+                            self._result_or_default(lambda: self.libvirt_api.status(vm["name"]), "Fail"))
         return {'name': vm['name'],
                 'disks': [{'type': disk['type'],
                            'size': disk['size'],
                            'serial': disk['serial']} for disk in vm['disks']],
-                'status': vm['status'],
+                'status': status,
                 'dhcp': net_info}
+
+    async def vm_status(self, vm):
+        status = await self._result_or_default(lambda: self.libvirt_api.status(vm["name"]), "Fail")
+        logging.info("vm info %s", status)
+        return status

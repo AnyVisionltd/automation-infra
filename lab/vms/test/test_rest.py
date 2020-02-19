@@ -37,12 +37,12 @@ async def test_vm_list(mock_libvirt, mock_image_store, aiohttp_client, loop):
     gpu1 = _generate_device(1)
     macs = _generate_macs(1)
     mock_image_store.clone_qcow = asyncmock.AsyncMock(return_value="/home/sasha_king.qcow")
+    mock_libvirt.status.return_value = 'on'
     manager = vm_manager.VMManager(loop, mock_libvirt, mock_image_store)
     alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
     await alloc.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
     assert len(alloc.vms) == 1
-    vm = alloc.vms['sasha-vm-0']
-    assert vm['status'] == 'on'
+    assert 'sasha-vm-0' in alloc.vms
 
     app = web.Application()
     rest.HyperVisor(alloc, image_store, app)
@@ -63,12 +63,12 @@ async def test_vm_info(mock_libvirt, mock_image_store, aiohttp_client, loop):
     mock_image_store.clone_qcow = asyncmock.AsyncMock(return_value="/home/sasha_king.qcow")
     mock_libvirt.dhcp_lease_info.return_value = {'52:54:00:8d:c0:07': ['192.168.122.186', '192.168.122.187'],
                                                  '52:54:00:8d:c0:08': ['192.168.122.188']}
+    mock_libvirt.status.return_value = 'on'
     manager = vm_manager.VMManager(loop, mock_libvirt, mock_image_store)
     alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
     await alloc.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
     assert len(alloc.vms) == 1
-    vm = alloc.vms['sasha-vm-0']
-    assert vm['status'] == 'on'
+    assert 'sasha-vm-0' in alloc.vms
 
     app = web.Application()
     rest.HyperVisor(alloc, image_store, app)
@@ -101,5 +101,4 @@ async def test_vm_allocate(mock_libvirt, mock_image_store, aiohttp_client, loop)
                                             "disks" : []})
     assert resp.status == 200
     assert len(alloc.vms) == 1
-    vm = alloc.vms['sasha-vm-0']
-    assert vm['status'] == 'on'
+    assert 'sasha-vm-0' in alloc.vms
