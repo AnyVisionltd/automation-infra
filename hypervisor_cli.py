@@ -2,6 +2,7 @@
 import requests
 import argparse
 import functools
+import json
 
 
 def _do_create(args):
@@ -80,6 +81,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     result = commands[args.command](args)
     if result.ok:
-        print(result.json())
+        print(json.dumps(result.json()))
     else:
         print("Command failed status: %s" %result.status_code)
