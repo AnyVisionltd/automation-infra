@@ -77,12 +77,14 @@ class VMManager(object):
             vm['status'] = 'Fail'
             raise
 
-    async def network_info(self, vm):
+    async def _result_or_default(self, func, default):
         try:
-            net_info = await self.loop.run_in_executor(self.thread_pool,
-                                                lambda: self.libvirt_api.dhcp_lease_info(vm["name"]))
+            return await self.loop.run_in_executor(self.thread_pool, func)
         except:
-            net_info = {}
+            return default
+
+    async def network_info(self, vm):
+        net_info = await self._result_or_default(lambda: self.libvirt_api.dhcp_lease_info(vm["name"]), {})
         return {'name': vm['name'],
                 'disks': [{'type': disk['type'],
                            'size': disk['size'],
