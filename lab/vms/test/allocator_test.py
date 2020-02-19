@@ -278,7 +278,7 @@ async def test_machine_info(event_loop, mock_libvirt, mock_image_store):
                                     {"type" : "hdd", "size" : 5}])
     assert len(alloc.vms) == 1
     assert 'sasha-vm-0' in alloc.vms
-    vm_info = await manager.network_info(alloc.vms['sasha-vm-0'])
+    vm_info = await manager.info(alloc.vms['sasha-vm-0'])
     mock_libvirt.dhcp_lease_info.assert_called_once_with("sasha-vm-0")
     assert len(vm_info['disks']) == 2
     assert vm_info['status'] == 'on'

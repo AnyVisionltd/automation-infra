@@ -83,7 +83,7 @@ class VMManager(object):
         except:
             return default
 
-    async def network_info(self, vm):
+    async def info(self, vm):
         net_info = await self._result_or_default(lambda: self.libvirt_api.dhcp_lease_info(vm["name"]), {})
         return {'name': vm['name'],
                 'disks': [{'type': disk['type'],
