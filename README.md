@@ -93,6 +93,20 @@ from pipeng.plugins.pipeng import Pipeng
 from camera_service.utils import cs_util
 ```
 
+Anyvision Pytest plugins:
+----
+pytest plugins can be implemented to run custom setup/teardown logic over the infrastructure.
+Core has a plugin in core-product repo, in directory core-product/automation/core_product/pytest/core_compose_v2_manager.py
+It can be invoked like:  
+```
+./run_tests.sh -p core_product.pytest.core_compose_v2_manager /path/to/test
+```
+The plugin (if invoked) will copy over docker-compose-core.yaml from core-product repository (maintained by core team), 
+pull and up core compose v2... So this way it is possible to run tests on a "blank" machine, which doesnt have core 
+product running. 
+
+Anyone interested to implement test setup/teardown login in addition to what is provided can implement a pytest plugin of their own and invoke it in the same way. 
+
 
 make
 ----
