@@ -29,14 +29,14 @@ class LibvirtWrapper(object):
             connection.defineXML(xml)
 
     def start_vm(self, machine_info):
-        name = machine_info['name']
+        name = machine_info.name
         with self._libvirt_connection() as connection:
             vm = connection.lookupByName(name)
             vm.create()
         logging.info("started vm %s", name)
 
     def poweroff_vm(self, machine_info):
-        name = machine_info['name']
+        name = machine_info.name
         with self._libvirt_connection() as connection:
             vm = connection.lookupByName(name)
             vm.destroy()
