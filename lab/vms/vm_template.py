@@ -6,6 +6,9 @@ template = '''
   <memory unit='GiB'>{{ machine.memsize }}</memory>
   <currentMemory unit='GiB'>{{ machine.memsize }}</currentMemory>
   <vcpu placement='static'>{{ machine.num_cpus }}</vcpu>
+
+  <metadata>{{metadata}}</metadata>
+
   <resource>
     <partition>/machine</partition>
   </resource>
@@ -134,6 +137,5 @@ template = '''
   </devices>
 </domain>'''
 
-
-def generate_xml(machine):
-    return jinja2.Template(template).render(machine=machine)
+def generate_xml(machine, machine_metadata):
+    return jinja2.Template(template).render(machine=machine, metadata=machine_metadata)

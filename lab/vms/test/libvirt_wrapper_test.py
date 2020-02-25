@@ -48,6 +48,18 @@ def test_allocate_machine(libvirt_mock):
     assert vm_def['domain']['devices']['interface'][1]['source']['@mode'] == 'bridge'
     assert len(vm_def['domain']['devices']['hostdev']) == 2
 
+    # verify metadata
+    metadata = vm_def['domain']['metadata']['vm:instance']
+
+    assert metadata['net_ifaces'] == machine_info.net_ifaces
+    assert metadata['pcis'] == ["1:2:3:4", "a:b:ff:dd"]
+    assert metadata['name'] == machine_info.name
+    assert metadata['num_cpus'] == str(machine_info.num_cpus)
+    assert metadata['memsize'] == str(machine_info.memsize)
+    assert metadata['sol_port'] == str(machine_info.sol_port)
+    assert metadata['base_image'] == machine_info.base_image
+    assert metadata['image'] == machine_info.image
+
 
 @patch('libvirt.open', new_callable=_libvirt_mock)
 def test_destroy_machine(libvirt_mock):

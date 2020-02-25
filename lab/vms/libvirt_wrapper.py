@@ -2,6 +2,7 @@ import libvirt
 import logging
 from . import vm_template
 from contextlib import contextmanager
+import xmltodict
 
 
 class LibvirtWrapper(object):
@@ -22,9 +23,16 @@ class LibvirtWrapper(object):
             if connection is not None:
                 connection.close()
 
+    def _machine_metadata_xml(self, vm):
+        data = vm.json
+        data.update({'@xmlns:vm' : 'anyvision'})
+        # wrap with namespace
+        vm_instance = {'vm:instance' : data}
+        return xmltodict.unparse(vm_instance, full_document=False)
+
     def define_vm(self, machine_info):
         with self._libvirt_connection() as connection:
-            xml = vm_template.generate_xml(machine_info)
+            xml = vm_template.generate_xml(machine_info, self._machine_metadata_xml(machine_info))
             logging.info("Defined vm %(name)s, xml: \n %(xml)s", dict(name=machine_info.name, xml=xml))
             connection.defineXML(xml)
 
