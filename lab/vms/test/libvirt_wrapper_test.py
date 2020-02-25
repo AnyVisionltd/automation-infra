@@ -1,9 +1,12 @@
 from lab.vms import libvirt_wrapper
 import mock
 from mock import patch
-import munch
 import libvirt
 import xmltodict
+from lab.vms import vm
+from infra.utils import pci
+import munch
+
 
 def _libvirt_mock():
     return mock.MagicMock(return_value=mock.MagicMock(spec=libvirt.virConnect))
@@ -12,10 +15,15 @@ def _libvirt_mock():
 @patch('libvirt.open', new_callable=_libvirt_mock)
 def test_allocate_machine(libvirt_mock):
     tested = libvirt_wrapper.LibvirtWrapper("test_uri")
-    machine_info = munch.Munch(name="sasha",
+    gpu1 = mock.Mock(spec=pci.Device)
+    gpu1.full_address = "1:2:3:4"
+    gpu2 = mock.Mock(spec=pci.Device)
+    gpu2.full_address = "a:b:ff:dd"
+    machine_info = vm.VM(name="sasha",
                                memsize=100,
                                num_cpus=10,
                                image="image.qcow",
+                               base_image="base",
                                net_ifaces=[{"macaddress":"1:1:1:1:1",
                                            "source" : "eth0",
                                            "mode" : "isolated"},
@@ -23,14 +31,8 @@ def test_allocate_machine(libvirt_mock):
                                            "source" : "eth1",
                                            "mode" : "bridge"}],
                                sol_port=1000,
-                               pcis=[{"domain" : '1',
-                                      "bus" : '2',
-                                      "slot" : '3',
-                                      "function" : '4'},
-                                    {"domain" : 'a',
-                                      "bus" : 'b',
-                                      "slot" : 'ff',
-                                      "function" : 'dd'}])
+                               pcis=[gpu1, gpu2])
+
     tested.define_vm(machine_info)
     libvirt_mock.assert_called_once_with("test_uri")
     assert libvirt_mock.return_value.defineXML.call_count == 1

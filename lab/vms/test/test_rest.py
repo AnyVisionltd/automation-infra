@@ -50,11 +50,9 @@ async def test_vm_list(mock_libvirt, mock_image_store, aiohttp_client, loop):
     client = await aiohttp_client(app)
     resp = await client.get("/vms")
     vms = await resp.json()
-
-    assert vms == {'vms' : [{'name': 'sasha-vm-0', 'cpus': 2, 'memory': 1, 'net': [{'macaddress': '00:00:00:00:00:00', 'mode': 'bridge', 'source': 'eth0'}],
-                    'pcis': [{'domain': 0, 'bus': 0, 'slot': 0, 'function': 0,
-                              'info': {'current_link_speed': 1, 'max_link_speed': 1, 'max_link_width': 1, 'current_link_width': '1', 'local_cpulist': '1,2,3'}}],
-                    'image': '/home/sasha_king.qcow', 'disks': [], 'status': 'on'}]}
+    assert vms == {'vms' : [{'name': 'sasha-vm-0', 'num_cpus': 2, 'memsize': 1, 'net_ifaces': [{'macaddress': '00:00:00:00:00:00', 'mode': 'bridge', 'source': 'eth0'}],
+                    'pcis': ["0:0:0.0"], "api_version" : "v1", "base_image" : "sasha_image1",
+                    'image': '/home/sasha_king.qcow', 'disks': [], 'status': 'on', "sol_port" : 1000}]}
 
 
 async def test_vm_info(mock_libvirt, mock_image_store, aiohttp_client, loop):
