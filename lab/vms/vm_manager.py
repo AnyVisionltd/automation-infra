@@ -26,6 +26,17 @@ class VMManager(object):
             disk['device_name'] = self.vol_names[i]
             disk['image'] = await self.image_store.create_qcow(vm.name, disk['type'], disk['size'], disk['serial'])
 
+    async def verify_storage_valid(self, vm):
+        try:
+            await self.image_store.qcow_info(vm.image)
+            for disk in vm.disks:
+                await self.image_store.qcow_info(disk['image'])
+        except:
+            logging.warning("Failed to verify storate validity for vm %s", vm, exc_info=True)
+            return False
+        else:
+            return True
+
     async def _delete_qcow_no_exception(self, image_path):
         try:
             await self.image_store.delete_qcow(image_path)
@@ -96,3 +107,8 @@ class VMManager(object):
         status = await self._result_or_default(lambda: self.libvirt_api.status(vm.name), "Fail")
         logging.info("vm info %s", status)
         return status
+
+    async def load_vms_data(self):
+        logging.info("Loading vms from libvirt")
+        return await self._result_or_default(lambda: self.libvirt_api.load_lab_vms(), [])
+
