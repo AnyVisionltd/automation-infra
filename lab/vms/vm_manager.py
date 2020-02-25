@@ -3,6 +3,8 @@ import logging
 import string
 import uuid
 import asyncio
+from . import vm as libvm
+from infra.utils import pci
 
 
 class VMManager(object):
@@ -33,12 +35,10 @@ class VMManager(object):
     async def _delete_storage(self, vm):
         if vm.image is not None:
             await self._delete_qcow_no_exception(vm.image)
-            del vm.image
 
         for disk in vm.disks:
             if 'image' in disk:
                 await self._delete_qcow_no_exception(disk['image'])
-                del disk['image']
 
     async def allocate_vm(self, vm):
         try:

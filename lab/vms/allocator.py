@@ -1,6 +1,6 @@
 import logging
 from lab import NotEnoughResourceException
-import munch
+from . import vm
 import asyncio
 
 
@@ -79,23 +79,22 @@ class Allocator(object):
         gpus = self._reserve_gpus(num_gpus)
         networks = self._reserve_networks(networks)
         vm_name = "%s-vm-%d" % (self.server_name, len(self.vms))
-        vm = munch.Munch(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
+        machine = vm.VM(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
                          net_ifaces=networks, sol_port=self._sol_port(),
                          pcis=gpus, base_image=base_image,
-                         disks=disks,
-                         lock=asyncio.Lock())
-        self.vms[vm_name] = vm
+                         disks=disks)
+        self.vms[vm_name] = machine
 
-        async with vm.lock:
+        async with machine.lock:
             try:
-                await self.vm_manager.allocate_vm(vm)
+                await self.vm_manager.allocate_vm(machine)
             except:
                 self._free_vm_resources(gpus, networks)
                 del self.vms[vm_name]
                 raise
             else:
                 logging.info(f"Allocated vm {vm}")
-        return vm
+        return machine
 
     async def destroy_vm(self, name):
         vm = self.vms.get(name, None)
