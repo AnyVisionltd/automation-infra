@@ -45,7 +45,7 @@ def _verify_vm_valid(allocator, vm, expected_vm_name, expected_base_image, expec
         assert net['mode'] == expected_networks[i]['type']
         assert net['source'] == expected_networks[i]['source']
 
-    for i, gpu in enumerate(vm['pcis']):
+    for i, gpu in enumerate(vm.pcis):
         assert gpu.full_address == expected_gpus[i].full_address
 
     assert vm.num_cpus == num_cpus
