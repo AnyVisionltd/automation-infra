@@ -74,6 +74,9 @@ if __name__ == '__main__':
     parser.add_argument("--sol-port", help="Base port for Serial over lan", required=True, type=int)
     parser.add_argument("--server-name", help="Name of the server, this will be used in name of VM`s", required=True)
     parser.add_argument("--port", help="HTTP port of hypervisor server", default=8080, type=int)
+    parser.add_argument("--restore-vms", dest='vms_restore', help="Restore VM`s previosly allocated", action="store_true", required=False)
+    parser.add_argument("--delete-vms", dest='vms_restore', help="Delete VM`s previosly allocated", action="store_false", required=False)
+    parser.set_defaults(vms_restore=True)
 
     args = parser.parse_args()
     log_level = logging.getLevelName(args.log_level)
@@ -92,6 +95,10 @@ if __name__ == '__main__':
     allocator = allocator.Allocator(mac_addresses=config['macs'], gpus_list=gpu_pci_devices, vm_manager=manager,
                                     server_name=args.server_name, max_vms=args.max_vms, private_network=args.private_net,
                                     paravirt_device=args.paravirt_net_device, sol_base_port=args.sol_port)
+    if args.vms_restore:
+        loop.run_until_complete(allocator.restore_vms())
+    else:
+        loop.run_until_complete(allocator.delete_all_dangling_vms())
     app = web.Application()
     rest.HyperVisor(allocator, storage, app)
     web.run_app(app, port=args.port)

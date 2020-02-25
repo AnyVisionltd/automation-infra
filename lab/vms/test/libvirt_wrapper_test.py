@@ -97,3 +97,47 @@ def test_dhcp_leases(libvirt_mock):
     libvirt_mock.return_value.lookupByName.assert_called_once_with("sasha2")
     assert vm.interfaceAddresses.call_count == 1
 
+@patch('libvirt.open', new_callable=_libvirt_mock)
+def test_load_vm_domains(libvirt_mock):
+    tested = libvirt_wrapper.LibvirtWrapper("test_uri")
+    vm_lab_domain = mock.MagicMock(spec=libvirt.virDomain)
+    vm_lab_domain.metadata.return_value = """
+     <instance>
+   <name>name</name>
+   <num_cpus>1</num_cpus>
+   <memsize>1</memsize>
+   <net_ifaces>
+      <macaddress>52:54:00:8d:c0:07</macaddress>
+      <mode>isolated</mode>
+      <source>default</source>
+   </net_ifaces>
+   <net_ifaces>
+      <macaddress>11:22:33:44:55:55</macaddress>
+      <mode>bridge</mode>
+      <source>eth0</source>
+   </net_ifaces>
+   <sol_port>2</sol_port>
+   <base_image>image</base_image>
+   <disks>
+      <serial>s1</serial>
+      <device_name>dev1</device_name>
+      <image>image</image>
+      <type>hdd</type>
+      <size>10</size>
+   </disks>
+   <_api_version>v1</_api_version>
+</instance>
+    """
+    vm_non_lab_domain = mock.MagicMock(spec=libvirt.virDomain)
+    vm_non_lab_domain.metadata.side_effect = libvirt.libvirtError("exception")
+    libvirt_mock.return_value.listAllDomains.return_value = [vm_lab_domain, vm_non_lab_domain]
+    vms_data = tested.load_lab_vms()
+    assert len(vms_data) == 1
+    assert vms_data[0] == munch.Munch({'name': 'name', 'num_cpus': '1', 'memsize': '1',
+                           'net_ifaces': [{'macaddress': '52:54:00:8d:c0:07', 'mode': 'isolated', 'source': 'default'},
+                                          {'macaddress': '11:22:33:44:55:55', 'mode': 'bridge', 'source': 'eth0'}],
+                           'sol_port': '2',
+                           'base_image': 'image',
+                           'disks': [{'serial': 's1', 'device_name': 'dev1', 'image': 'image', 'type': 'hdd', 'size': '10'}],
+                           '_api_version': 'v1'})
+
