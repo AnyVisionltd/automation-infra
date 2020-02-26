@@ -1,7 +1,15 @@
 import logging
 from lab import NotEnoughResourceException
-import munch
+from . import vm
 import asyncio
+import copy
+
+
+class VMRestoreException(Exception):
+
+    def __init__(self, vm_data, reason):
+        msg = f"Failed to restore vm {vm_data} reason: {reason}"
+        super().__init__(msg)
 
 
 class Allocator(object):
@@ -17,6 +25,63 @@ class Allocator(object):
         self.paravirt_net_device = paravirt_device
         self.private_network = private_network
         self.sol_base_port = sol_base_port
+
+    async def _try_restore_vm(self, vm_data):
+        pcis_info = vm_data.get('pcis', [])
+        macs_to_reserve = []
+        gpus_to_reserve = []
+
+        # First check if storage is valid
+        if not await self.vm_manager.verify_storage_valid(vm_data):
+            raise VMRestoreException(vm_data, "Storage is not valid")
+
+        vm_nets = vm_data.get('net_ifaces', None)
+        for net_iface in vm_nets:
+            # check if net device is still valid, i.e. was not changed
+            if net_iface['source'] not in [self.paravirt_net_device, self.private_network]:
+                raise Exception("Network device %s for vm %s no longer exists", net_iface, vm_data)
+            if net_iface['macaddress'] not in self.mac_addresses:
+                raise VMRestoreException(vm_data, "Mac address %s for is no longer available pool %s",
+                                net_iface['macaddress'], self.mac_addresses)
+            macs_to_reserve.append(net_iface['macaddress'])
+
+        for pci in pcis_info:
+            matchind_gpu = [gpu for gpu in self.gpus_list if gpu.full_address == pci]
+            if len(matchind_gpu) == 0:
+                raise VMRestoreException(vm_data, "VM PCI address is not available in pci list %s", self.gpus_list)
+            gpus_to_reserve.append(matchind_gpu[0])
+
+        # We got here .. all good lets take gpu and mac addresses from the list
+        vm_data['pcis'] = gpus_to_reserve
+        # Lets take mac addresses from the list
+        for mac in macs_to_reserve:
+            self.mac_addresses.remove(mac)
+        machine = vm.VM(**vm_data)
+        self.vms[machine.name] = machine
+        logging.info("Restored vm %s", machine)
+
+    async def restore_vms(self):
+        vms = await self.vm_manager.load_vms_data()
+        restored = 0
+        failed = 0
+        for vm in vms:
+            try:
+                await self._try_restore_vm(vm)
+                restored = restored + 1
+            except:
+                failed = failed + 1
+                logging.exception("Failed to restore vm %s .. deleting it", vm)
+                await self.vm_manager.destroy_vm(vm)
+        logging.info("Restored %d out of %d vms vms: %s", restored, failed, self.vms)
+
+    async def delete_all_dangling_vms(self):
+        logging.info("Deleting all leftover vm resources")
+        vms_data = await self.vm_manager.load_vms_data()
+        for vm_data in vms_data:
+            # We dont need pci info, and we dont want to load old stored one .. so just remove it
+            vm_data.pop('pci', None)
+            machine = vm.VM(**vm_data)
+            await self.vm_manager.destroy_vm(machine)
 
     def _sol_port(self):
         return self.sol_base_port + len(self.vms)
@@ -79,23 +144,22 @@ class Allocator(object):
         gpus = self._reserve_gpus(num_gpus)
         networks = self._reserve_networks(networks)
         vm_name = "%s-vm-%d" % (self.server_name, len(self.vms))
-        vm = munch.Munch(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
+        machine = vm.VM(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
                          net_ifaces=networks, sol_port=self._sol_port(),
                          pcis=gpus, base_image=base_image,
-                         disks=disks,
-                         lock=asyncio.Lock())
-        self.vms[vm_name] = vm
+                         disks=disks)
+        self.vms[vm_name] = machine
 
-        async with vm.lock:
+        async with machine.lock:
             try:
-                await self.vm_manager.allocate_vm(vm)
+                await self.vm_manager.allocate_vm(machine)
             except:
                 self._free_vm_resources(gpus, networks)
                 del self.vms[vm_name]
                 raise
             else:
                 logging.info(f"Allocated vm {vm}")
-        return vm
+        return machine
 
     async def destroy_vm(self, name):
         vm = self.vms.get(name, None)
@@ -108,7 +172,7 @@ class Allocator(object):
             try:
                 await self.vm_manager.destroy_vm(vm)
             except:
-                logging.exception("Failed to free vm %s", vm['name'])
+                logging.exception("Failed to free vm %s", vm.name)
                 raise
             else:
                 del self.vms[name]

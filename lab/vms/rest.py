@@ -51,17 +51,8 @@ class HyperVisor(object):
         else:
             return web.json_response({'status' : 'Success'}, status=200)
 
-    def _jsonify_vms(self, vms):
-        return [{'name' : vm['name'],
-                 'cpus' : vm['num_cpus'],
-                 'memory' : vm['memsize'],
-                 'net' : vm['net_ifaces'],
-                 'pcis' : vm['pcis'],
-                 'image' : vm['image'],
-                 'disks' : vm['disks']} for vm in vms.values()]
-
     async def handle_list_vms(self, _):
-        vms_info = self._jsonify_vms(self.allocator.vms)
+        vms_info = [vm.json for vm in self.allocator.vms.values()]
         result = []
         for vm_info in vms_info:
             vm = self.allocator.vms.get(vm_info['name'])
