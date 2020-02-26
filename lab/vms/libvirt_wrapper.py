@@ -2,6 +2,9 @@ import libvirt
 import logging
 from . import vm_template
 from contextlib import contextmanager
+from libvirt import libvirtError
+import xmltodict
+import munch
 
 
 class LibvirtWrapper(object):
@@ -22,21 +25,32 @@ class LibvirtWrapper(object):
             if connection is not None:
                 connection.close()
 
+    def _machine_metadata_xml(self, vm):
+        data = vm.json
+        data.update({'@xmlns:vm' : 'anyvision'})
+        # wrap with namespace
+        vm_instance = {'vm:instance' : data}
+        return xmltodict.unparse(vm_instance, full_document=False)
+
+    def _machine_metadata_xml_to_metadata(self, xml):
+        vm_data = xmltodict.parse(xml, dict_constructor=dict, force_list=('net_ifaces', 'pcis', 'disks'))
+        return munch.Munch(vm_data['instance'])
+
     def define_vm(self, machine_info):
         with self._libvirt_connection() as connection:
-            xml = vm_template.generate_xml(machine_info)
+            xml = vm_template.generate_xml(machine_info, self._machine_metadata_xml(machine_info))
             logging.info("Defined vm %(name)s, xml: \n %(xml)s", dict(name=machine_info.name, xml=xml))
             connection.defineXML(xml)
 
     def start_vm(self, machine_info):
-        name = machine_info['name']
+        name = machine_info.name
         with self._libvirt_connection() as connection:
             vm = connection.lookupByName(name)
             vm.create()
         logging.info("started vm %s", name)
 
     def poweroff_vm(self, machine_info):
-        name = machine_info['name']
+        name = machine_info.name
         with self._libvirt_connection() as connection:
             vm = connection.lookupByName(name)
             vm.destroy()
@@ -84,3 +98,19 @@ class LibvirtWrapper(object):
         for net_info in nets.values():
             result[net_info['hwaddr']] = [net['addr'] for net in net_info['addrs']]
         return result
+
+    def load_lab_vms(self):
+        vms = []
+        with self._libvirt_connection() as connection:
+            domains = connection.listAllDomains()
+            for domain in domains:
+                try:
+                    vm_xml = domain.metadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, "anyvision")
+                except libvirtError:
+                    logging.info("Domain %s is not anyvision vm..skipping", domain.name())
+                else:
+                    data = self._machine_metadata_xml_to_metadata(vm_xml)
+                    logging.debug("Loaded json %s for vm %s", data, domain.name())
+                    vms.append(data)
+        logging.info("Loaded %s", vms)
+        return vms

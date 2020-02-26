@@ -7,6 +7,9 @@ from lab.vms import image_store
 import asyncmock
 from lab import NotEnoughResourceException
 import mock
+from lab.vms import vm
+import copy
+import munch
 
 
 @pytest.fixture
@@ -45,7 +48,7 @@ def _verify_vm_valid(allocator, vm, expected_vm_name, expected_base_image, expec
         assert net['mode'] == expected_networks[i]['type']
         assert net['source'] == expected_networks[i]['source']
 
-    for i, gpu in enumerate(vm['pcis']):
+    for i, gpu in enumerate(vm.pcis):
         assert gpu.full_address == expected_gpus[i].full_address
 
     assert vm.num_cpus == num_cpus
@@ -282,3 +285,51 @@ async def test_machine_info(event_loop, mock_libvirt, mock_image_store):
     assert vm_info['status'] == 'on'
     assert vm_info['dhcp'] == {'52:54:00:8d:c0:07': ['192.168.122.186'],
                                '52:54:00:8d:c0:08': ['192.168.122.187']}
+
+
+@pytest.mark.asyncio
+async def test_delete_machines_on_start(event_loop, mock_libvirt, mock_image_store):
+    gpu1 = _generate_device(1)
+    macs = _generate_macs(2)
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+
+    existing_vms = [vm.VM(name="name1", num_cpus=1, memsize=1,
+                         net_ifaces=[], sol_port=2,
+                         base_image='image').json,
+                    vm.VM(name="name2", num_cpus=11, memsize=11,
+                         net_ifaces=[], sol_port=22,
+                         base_image='image').json]
+    mock_libvirt.load_lab_vms.return_value = existing_vms
+    await alloc.delete_all_dangling_vms()
+
+    # Now lets make sure libvirt was called to destory vms
+    mock_libvirt.kill_by_name.assert_has_calls([mock.call("name1"), mock.call("name2")])
+
+
+
+@pytest.mark.asyncio
+async def test_create_machine_and_restore_machine(event_loop, mock_libvirt, mock_image_store):
+    gpu1 = _generate_device(2)
+    macs = _generate_macs(2)
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    mock_image_store.clone_qcow.return_value = "/tmp/image.qcow"
+    old_allocator = allocator.Allocator(copy.copy(macs), copy.copy(gpu1), manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    await old_allocator.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
+    assert len(old_allocator.vms) == 1
+    assert 'sasha-vm-0' in old_allocator.vms
+    old_vm_info = await manager.info(old_allocator.vms['sasha-vm-0'])
+
+    # Get json with which machine was created
+    vm_def = mock_libvirt.define_vm.call_args.args[0].json
+    # Now set load to return same json
+    mock_libvirt.load_lab_vms.return_value = [munch.Munch(vm_def)]
+
+    # Now recreate the allocator
+    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    await tested.restore_vms()
+    assert len(tested.vms) == 1
+    assert 'sasha-vm-0' in tested.vms
+    restored_vm_info = await manager.info(old_allocator.vms['sasha-vm-0'])
+
+    assert restored_vm_info == old_vm_info
