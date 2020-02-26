@@ -79,6 +79,7 @@ class VMManager(object):
                                                lambda: self.libvirt_api.poweroff_vm(vm))
 
     async def destroy_vm(self, vm):
+        logging.info("Deleting vm %s", vm)
         try:
             await self.loop.run_in_executor(self.thread_pool,
                                             lambda: self.libvirt_api.kill_by_name(vm.name))
