@@ -7,6 +7,7 @@ from lab.vms import allocator
 from lab.vms import vm_manager
 from lab.vms import libvirt_wrapper
 from lab.vms import image_store
+from lab.vms import storage as libstorage
 import asyncio
 from aiohttp import web
 import argparse
@@ -91,7 +92,9 @@ if __name__ == '__main__':
                                      run_qcow_path=args.run_dir,ssd_path=args.ssd_dir, hdd_path=args.hdd_dir)
     gpu_pci_devices = config['pci']
     pci.vfio_bind_pci_devices(config['pci'])
-    manager = vm_manager.VMManager(loop, vmm, storage)
+    ndb_driver = libstorage.NBDProvisioner()
+    ndb_driver.initialize()
+    manager = vm_manager.VMManager(loop, vmm, storage, ndb_driver)
     allocator = allocator.Allocator(mac_addresses=config['macs'], gpus_list=gpu_pci_devices, vm_manager=manager,
                                     server_name=args.server_name, max_vms=args.max_vms, private_network=args.private_net,
                                     paravirt_device=args.paravirt_net_device, sol_base_port=args.sol_port)

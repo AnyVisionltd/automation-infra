@@ -3,19 +3,21 @@ import logging
 import string
 import uuid
 import asyncio
-from . import vm as libvm
-from infra.utils import pci
 
 
 class VMManager(object):
 
-    def __init__(self, loop, libvirt_api, image_store):
+    def __init__(self, loop, libvirt_api, image_store, disk_privisoner):
         self.loop = loop 
         self.libvirt_api = libvirt_api
         self.image_store = image_store
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+        self.disk_privisoner = disk_privisoner
         # "sda" is taken for boot drive
         self.vol_names = ["sd%s" % letter for letter in  string.ascii_lowercase[1:]]
+
+    async def _create_vm_boot_disk(self, vm):
+        vm.image = await self.image_store.clone_qcow(vm.base_image, vm.name)
 
     async def _create_storage(self, vm):
         image_path = await self.image_store.clone_qcow(vm.base_image, vm.name)
@@ -25,6 +27,8 @@ class VMManager(object):
             disk['serial'] = str(uuid.uuid4())
             disk['device_name'] = self.vol_names[i]
             disk['image'] = await self.image_store.create_qcow(vm.name, disk['type'], disk['size'], disk['serial'])
+            await self.loop.run_in_executor(self.thread_pool,
+                                            lambda: self.disk_privisoner.provision_disk(disk['image'], disk['fs'], disk['serial']))
 
     async def verify_storage_valid(self, vm):
         try:
