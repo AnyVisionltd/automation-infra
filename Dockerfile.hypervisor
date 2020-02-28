@@ -2,7 +2,7 @@ FROM ubuntu:18.10
 
 RUN  apt update -y && \
      DEBIAN_FRONTEND=noninteractive apt install -y python3.7\
-     libvirt-daemon python3-libvirt python3-pip iproute2\
+     libvirt-daemon python3-libvirt python3-pip iproute2 xfsprogs\
      sudo pciutils kmod &&\
      apt-get -y autoclean && \
      apt-get -y autoremove
