@@ -94,8 +94,11 @@ if __name__ == '__main__':
     commands.required = True
 
     create = commands.add_parser('create', help="Create QCOW image with given base image")
-    create.add_argument('--backing')
     create.add_argument('--image')
+    create.add_argument('--backing')
+    create.add_argument('--size')
+    create.add_argument('--type')
+    create.add_argument('--name')
 
     delete = commands.add_parser('delete', help="Delete QCOW image")
     delete.add_argument('--image')
@@ -105,9 +108,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.command == 'create':
-        backing_path = os.path.abspath(args.backing)
-        backing_dir = os.path.dirname(backing_path)
-        backing_file = os.path.basename(backing_path)
+        backing_path = os.path.abspath(args.backing) if args.backing else None
+        backing_dir = os.path.dirname(backing_path) if backing_path else None
+        backing_file = os.path.basename(backing_path) if backing_path else None
     else:
         backing_dir = None
     run_abs_path = os.path.abspath(args.image)
@@ -117,7 +120,10 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     store = ImageStore(loop, backing_dir, run_qcow_dir, run_qcow_dir, run_qcow_dir)
     if args.command == 'create':
-        loop.run_until_complete(store.clone_qcow(backing_file, run_qcow_name))
+        if args.backing is None:
+            loop.run_until_complete(store.create_qcow(args.name, args.type, args.size, "1234"))
+        else:
+            loop.run_until_complete(store.clone_qcow(backing_file, run_qcow_name))
     elif args.command == 'delete':
         loop.run_until_complete(store.delete_qcow(backing_file, args.image))
     else:
