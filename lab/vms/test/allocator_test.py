@@ -111,20 +111,20 @@ async def test_allocate_machine_with_disks(event_loop, mock_libvirt, mock_image_
                                     {"type" : "hdd", "size" : 5, "fs": "ext4"}])
     assert len(tested.vms) == 1
     vm = tested.vms['sasha-vm-0']
+    ssd = _find_disks_by_type(vm, "ssd")[0]
+    hdd = _find_disks_by_type(vm, "hdd")[0]
+
     _verify_vm_valid(tested, vm, expected_vm_name="sasha-vm-0",
                      expected_base_image="/home/sasha_king.qcow",
                      expected_gpus=gpu1,
                      expected_mem=1,
                      expected_networks=[{"mac" : macs[0], "type" : "bridge", "source" : "eth0"}],
                      num_cpus=2,
-                     disks=[{"type" : "ssd", "size" : 10, "image": "/home/disk1.qcow", "fs" : "xfs"},
-                            {"type" : "hdd", "size" : 5, "image": "/home/disk2.qcow", "fs" : "ext4"}])
+                     disks=[ssd, hdd])
 
-    ssd_serial = _find_disks_by_type(vm, "ssd")[0]['serial']
-    hdd_serial = _find_disks_by_type(vm, "hdd")[0]['serial']
-    provision_calls = [call('/home/disk1.qcow', 'xfs', ssd_serial),
-                       call('/home/disk2.qcow', 'ext4', hdd_serial)]
-    assert mock_nbd_provisioner.provision_disk.call_args_list == provision_calls
+    provision_calls = [call(ssd['image'], 'xfs', ssd['serial']),
+                       call(hdd['image'], 'ext4', hdd['serial'])]
+    mock_nbd_provisioner.provision_disk.assert_has_calls(provision_calls, any_order=True)
     mock_image_store.clone_qcow.assert_called_with("sasha_image1", "sasha-vm-0")
     mock_libvirt.define_vm.assert_called()
 
