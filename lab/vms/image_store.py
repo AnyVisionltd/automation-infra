@@ -60,7 +60,7 @@ class ImageStore(object):
 
     async def create_qcow(self, vm_name, storage_type, size_gb, serial_num):
         path = self._storage_path(storage_type, vm_name, serial_num)
-        size = "%dG" % size_gb
+        size = "%dG" % int(size_gb)
         args = ['qemu-img', 'create', '-f', 'qcow2', path, size]
         logging.debug("Running command %s", args)
         proc = await asyncio.create_subprocess_exec(*args, close_fds=True,
