@@ -24,10 +24,12 @@ class HyperVisor(object):
         num_cpus = int(data.get('num_cpus', 1))
         num_gpus = int(data.get('num_gpus', 0))
         base_image = data['base_image']
+        base_image_size = data.get('base_image_size', None)
         memory_gb = int(data['ram'])
         disks = data['disks']
         try:
             vm = await self.allocator.allocate_vm(base_image=base_image,
+                                       base_image_size=base_image_size,
                                        memory_gb=memory_gb,
                                        networks=networks,
                                        num_gpus=num_gpus,

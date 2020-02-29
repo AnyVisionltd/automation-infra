@@ -24,7 +24,7 @@ class VMManager(object):
                                     lambda: self.disk_privisoner.provision_disk(disk['image'], disk['fs'], disk['serial']))
 
     async def _create_vm_boot_disk(self, vm):
-        vm.image = await self.image_store.clone_qcow(vm.base_image, vm.name)
+        vm.image = await self.image_store.clone_qcow(vm.base_image, vm.name, vm.base_image_size)
 
     async def _generate_cloud_init_iso(self, vm):
         vm.cloud_init_iso = await self.loop.run_in_executor(self.thread_pool, lambda: self.cloud_init.generate_iso(vm))
