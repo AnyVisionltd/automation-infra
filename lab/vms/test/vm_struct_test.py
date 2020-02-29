@@ -16,7 +16,8 @@ async def test_vm_json():
                     'base_image': 'image',
                     'api_version': 'v1',
                     'image' : 'image1',
-                    'uuid' : "1234"}
+                    'uuid' : "1234",
+                    'cloud_init_iso' : None}
 
     machine = vm.VM(name="name", num_cpus=1, memsize=1,
           net_ifaces=net_ifaces,

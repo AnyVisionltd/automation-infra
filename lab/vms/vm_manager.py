@@ -3,16 +3,18 @@ import logging
 import string
 import uuid
 import asyncio
+from lab.vms import cloud_init
 
 
 class VMManager(object):
 
-    def __init__(self, loop, libvirt_api, image_store, disk_privisoner):
+    def __init__(self, loop, libvirt_api, image_store, disk_privisoner, cloud_init):
         self.loop = loop 
         self.libvirt_api = libvirt_api
         self.image_store = image_store
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
         self.disk_privisoner = disk_privisoner
+        self.cloud_init = cloud_init
         # "sda" is taken for boot drive
         self.vol_names = ["sd%s" % letter for letter in  string.ascii_lowercase[1:]]
 
@@ -24,8 +26,17 @@ class VMManager(object):
     async def _create_vm_boot_disk(self, vm):
         vm.image = await self.image_store.clone_qcow(vm.base_image, vm.name)
 
+    async def _generate_cloud_init_iso(self, vm):
+        vm.cloud_init_iso = await self.loop.run_in_executor(self.thread_pool, lambda: self.cloud_init.generate_iso(vm))
+
+    async def _remove_cloud_init_iso(self, vm):
+        try:
+            await self.loop.run_in_executor(self.thread_pool, lambda: self.cloud_init.delete_iso(vm))
+        except:
+            logging.warn(f"Failed to remove iso for vm {vm.name}", exc_info=True)
+
     async def _create_storage(self, vm):
-        tasks = [self._create_vm_boot_disk(vm)]
+        tasks = [self._create_vm_boot_disk(vm), self._generate_cloud_init_iso(vm)]
 
         for i, disk in enumerate(vm.disks):
             disk['serial'] = str(uuid.uuid4())
@@ -58,6 +69,8 @@ class VMManager(object):
         for disk in vm.disks:
             if 'image' in disk:
                 await self._delete_qcow_no_exception(disk['image'])
+
+        await self._remove_cloud_init_iso(vm)
 
     async def allocate_vm(self, vm):
         try:

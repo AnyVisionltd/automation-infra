@@ -61,6 +61,15 @@ template = '''
     </disk>
     {% endfor %}
 
+    {% if machine.cloud_init_iso %}
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='{{machine.cloud_init_iso}}'/>
+      <target dev='hda' bus='ide'/>
+      <readonly/>
+    </disk>
+    {% endif %}
+
     <controller type='pci' index='0' model='pci-root'>
       <alias name='pci.0'/>
     </controller>

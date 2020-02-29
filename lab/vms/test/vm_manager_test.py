@@ -1,5 +1,6 @@
 import pytest
-from lab.vms import image_store, libvirt_wrapper, vm_manager, storage
+from lab.vms import image_store, libvirt_wrapper, vm_manager, storage,\
+    cloud_init
 import asyncmock
 import mock
 from lab.vms import vm
@@ -18,10 +19,13 @@ def mock_image_store():
 def mock_nbd_provisioner():
     return mock.Mock(spec=storage.NBDProvisioner)
 
+@pytest.fixture
+def mock_cloud_init():
+    return mock.Mock(spec=cloud_init.CloudInit)
 
 @pytest.mark.asyncio
-async def test_network_info_not_failing(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner):
-    tested = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner)
+async def test_network_info_not_failing(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init):
+    tested = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init)
     mock_libvirt.dhcp_lease_info.side_effect = Exception("exception")
     mock_libvirt.status.return_value = "on"
 
@@ -39,8 +43,8 @@ async def test_network_info_not_failing(event_loop, mock_libvirt, mock_image_sto
 
 
 @pytest.mark.asyncio
-async def test_load_vm_info(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner):
-    tested = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner)
+async def test_load_vm_info(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init):
+    tested = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init)
     vm_images = [{"serial": "s1",
                   "device_name": "dev1",
                   "image" : "image",
