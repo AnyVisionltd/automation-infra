@@ -53,7 +53,7 @@ async def test_vm_list(mock_libvirt, mock_image_store, aiohttp_client, loop, moc
     alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
     with mock.patch("uuid.uuid4") as uuid4:
         uuid4.return_value = "uuid"
-        await alloc.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
+        await alloc.allocate_vm("sasha_image1", base_image_size=20, memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
     assert len(alloc.vms) == 1
     assert 'sasha-vm-0' in alloc.vms
 
@@ -65,6 +65,7 @@ async def test_vm_list(mock_libvirt, mock_image_store, aiohttp_client, loop, moc
     vms = await resp.json()
     assert vms == {'vms' : [{'name': 'sasha-vm-0', "uuid" : "uuid", 'num_cpus': 2, 'memsize': 1, 'net_ifaces': [{'macaddress': '00:00:00:00:00:00', 'mode': 'bridge', 'source': 'eth0'}],
                     'pcis': ["0:0:0.0"], "api_version" : "v1", "base_image" : "sasha_image1",
+                    'base_image_size': 20,
                     'image': '/home/sasha_king.qcow', 'disks': [], 'status': 'on', "sol_port" : 1000,
                     'cloud_init_iso': '/tmp/iso_path'}]}
 
@@ -79,7 +80,7 @@ async def test_vm_info(mock_libvirt, mock_image_store, aiohttp_client, loop, moc
     mock_libvirt.status.return_value = 'on'
     manager = vm_manager.VMManager(loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init)
     alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
-    await alloc.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
+    await alloc.allocate_vm("sasha_image1", memory_gb=1, base_image_size=20, networks=["bridge"], num_cpus=2, num_gpus=1)
     assert len(alloc.vms) == 1
     assert 'sasha-vm-0' in alloc.vms
 
