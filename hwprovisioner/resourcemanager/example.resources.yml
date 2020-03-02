@@ -1,0 +1,43 @@
+---
+resources:
+  dynamic:
+    hypervisor:
+      limits:
+        cpu: 10
+        mem: 20
+  static:
+    refa:
+      cpu: 16
+      mem: 16
+      access:
+        ip: 1.2.3.5
+        username: myuser2
+        password: mypass2
+        sshport: 23
+        sshcontainerport: 2223
+      gpus:
+        - brand: amd
+          model: hd8490
+          memory: 4
+      os:
+        distro: ubuntu
+        version: 16.04
+    refb:
+      cpu: 8
+      mem: 8
+      access:
+        ip: 192.168.1.10
+        user: myuser
+        password: mypass
+        sshport: 22
+        sshcontainerport: 2222
+      gpu:
+        - brand: nvidia
+          model: rtx4000
+          memory: 8
+      os:
+        distro: ubuntu
+        version: 18.04
+      labels:
+        - benchmark_machine
+        - belfast
