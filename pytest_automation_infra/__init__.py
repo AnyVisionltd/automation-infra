@@ -24,7 +24,7 @@ def get_local_config():
 def pytest_addoption(parser):
     parser.addoption("--fixture-scope", type=str, default='auto', choices={"function", "module", "session", "auto"},
                      help="every how often to setup/tear down fixtures, one of [function, module, session]")
-    parser.addoption("--provisioned", action="store_true", help="use provisioning service to get hardware to run tests on")
+    parser.addoption("--provisioner", type=str, help="use provisioning service to get hardware to run tests on")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -32,7 +32,7 @@ def pytest_generate_tests(metafunc):
     """This runs for each test in a row at the beginning but has access only to module.
     At the end of this function I know that if scope is module, initialized_hardware is set.
     The function pytest_collection_modifyitems will handle session/function scope.
-    If running unprovisioned: should be a yaml file in $HOME/.local/hardware.yaml which has similar structure to:
+    If running unprovisioner: should be a yaml file in $HOME/.local/hardware.yaml which has similar structure to:
     host_name:
         ip: 0.0.0.0
         user: user
@@ -42,12 +42,12 @@ def pytest_generate_tests(metafunc):
     """
 
     fixture_scope = determine_scope(None, metafunc.config)
-    provisioned = metafunc.config.getoption("--provisioned")
+    provisioner = metafunc.config.getoption("--provisioner")
 
     # I only have access to module here (so I cant init 'session' or 'function' scoped hardware):
     if fixture_scope == 'module':
-        if provisioned:
-            logging.info("initializing module hardware config to provisioned")
+        if provisioner:
+            logging.info("initializing module hardware config to provisioner")
             if hasattr(metafunc.module, 'hardware') and not hasattr(metafunc.module, '__initialized_hardware'):
                 hardware_config = hardware_initializer.init_hardware(metafunc.module.hardware)
                 metafunc.module.__initialized_hardware = hardware_config
@@ -59,13 +59,13 @@ def pytest_generate_tests(metafunc):
             metafunc.module.__initialized_hardware = local_config
 
 
-def set_config(tests, config=None):
+def set_config(tests, config=None, provisioner=None):
     for test in tests:
         if config:
             test.function.__initialized_hardware = config
         else:
             assert hasattr(test.function, '__hardware_reqs')
-            initialized_hardware = hardware_initializer.init_hardware(test.function.__hardware_reqs)
+            initialized_hardware = hardware_initializer.init_hardware(test.function.__hardware_reqs, provisioner)
             test.function.__initialized_hardware = initialized_hardware
 
 
@@ -79,36 +79,36 @@ def pytest_collection_modifyitems(session, config, items):
     """
 
     fixture_scope = determine_scope(None, config)
-    provisioned = config.getoption("--provisioned")
+    provisioner = config.getoption("--provisioner")
 
     if fixture_scope == 'module':
         # This was handled in previous function.
         # In future we may need to init other session params (streaming server, s3, etc) but for now we dont have any.
         return
 
-    if provisioned:
+    if provisioner:
         if fixture_scope == 'function':
-            logging.info(f"initializing '{fixture_scope}' hardware config to provisioned")
+            logging.info(f"initializing '{fixture_scope}' hardware config to provisioner")
             try:
-                set_config(items)
+                set_config(items, provisioner=provisioner)
             except AssertionError as e:
                 raise Exception("there is a test which doesnt have hardware_reqs defined.", e)
 
         else:  # scope is 'session'
-            logging.info(f"initializing '{fixture_scope}' (should be session) hardware config to provisioned")
-            # This is a strange situation, bc if session scope we shouldnt be running provisioned, or module
+            logging.info(f"initializing '{fixture_scope}' (should be session) hardware config to provisioner")
+            # This is a strange situation, bc if session scope we shouldnt be running provisioner, or module
             # scope we should have module_hardware defined... Nonetheless to handle this case I think it makes sense
             # to take the hardware_reqs of the first test which has and attach them to the session.
-            logging.warning(f"Bypassing erroneous situation where running provisioned but scope is '{fixture_scope}' "
+            logging.warning(f"Bypassing erroneous situation where running provisioner but scope is '{fixture_scope}' "
                             f"defaulting to take hardware req for first test which has reqs defined")
             for test in items:
                 if hasattr(test.function, '__hardware_reqs'):
-                    hardware_config = hardware_initializer.init_hardware(test.function.__hardware_reqs)
+                    hardware_config = hardware_initializer.init_hardware(test.function.__hardware_reqs, provisioner)
                     session.__initialized_hardware = hardware_config
                     return
-            raise Exception("Tried to run provisioned but no collected tests have hardware reqs defined")
+            raise Exception("Tried to run provisioner but no collected tests have hardware reqs defined")
 
-    else:  # not provisioned:
+    else:  # not provisioner:
         # if running locally I will access the session.__initialized hardware even if initializing fixture per function
         local_config = get_local_config()
         if fixture_scope == 'function':
@@ -121,18 +121,18 @@ def pytest_collection_modifyitems(session, config, items):
 
 def determine_scope(fixture_name, config):
     received_scope = config.getoption("--fixture-scope")
-    if config.getoption("--provisioned"):
+    if config.getoption("--provisioner"):
         scope = received_scope if received_scope != 'auto' else 'function'
-        logging.info(f"scope: {scope} provisioned: True")
+        logging.info(f"scope: {scope} provisioner: True")
         return scope
-    # If not provisioned it means were running locally in which case no sense re-initializing fixture each test.
+    # If not provisioner it means were running locally in which case no sense re-initializing fixture each test.
     else:
         scope = received_scope if received_scope != 'auto' else 'session'
-        logging.info(f"scope: {scope} provisioned: False")
+        logging.info(f"scope: {scope} provisioner: False")
         return scope
 
 
-def find_provisioned_hardware(request):
+def find_provisioner_hardware(request):
     if hasattr(request.session, '__initialized_hardware'):
         logging.info("returning 'session' initialized hardware")
         return request.session.__initialized_hardware
@@ -146,12 +146,12 @@ def find_provisioned_hardware(request):
 
 def try_initing_hosts_intelligently(request, hardware, base):
     """This function tries matching initialized hardware with function hardware requirements intelligently. In the
-     provisioned case the matching is trivial. In the un-provisioned, the function matches hardware keys with
+     provisioner case the matching is trivial. In the un-provisioner, the function matches hardware keys with
      available keys, and then assigns the rest of the keys.
      More detailed explanation:
-     If provisioned, hardware will hold each and every key in function hardware requirements, and therefore never enter
+     If provisioner, hardware will hold each and every key in function hardware requirements, and therefore never enter
      the first else (trivial case).
-     If running un-provisioned, hardware will hold the contents of the hardware.yaml file, which will have none/some/all
+     If running un-provisioner, hardware will hold the contents of the hardware.yaml file, which will have none/some/all
      of the tests requirements (in terms of alias). So what the else does if the function key (required hardware)
      isnt in hardware keys, takes a random key, if it isnt required by the test, matches it to the alias which the
      function requires.
@@ -181,13 +181,13 @@ def try_initing_hosts_intelligently(request, hardware, base):
         for machine_name in hardware.keys():
             logging.info(f"Constructing host {machine_name}")
             base.hosts[machine_name] = Host(Munch(hardware[machine_name]))
-    except KeyError:
+    except KeyError as err:
         raise Exception(f"not enough hosts defined in hardware.yaml to run test {request.function}")
 
 
 @pytest.fixture(scope=determine_scope)
 def base_config(request):
-    hardware = find_provisioned_hardware(request)
+    hardware = find_provisioner_hardware(request)
     base = DefaultMunch(Munch)
     base.hosts = Munch()
     try_initing_hosts_intelligently(request, hardware, base)
