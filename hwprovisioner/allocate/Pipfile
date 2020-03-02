@@ -17,6 +17,8 @@ watchdog = "==0.10.0"
 [packages]
 connexion = {extras = ["swagger-ui"],version = "*"}
 aiohttp-jinja2 = "==1.2.0"
+redis = "==3.4.1"
+asyncio_redis = "==0.15.1"
 
 [requires]
 python_version = "3.6"
