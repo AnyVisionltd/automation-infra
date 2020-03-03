@@ -44,8 +44,11 @@ class ResourceManager(BaseObject):
     def download_to_filesystem(self, remote_path, local_dir="."):
         if not os.path.exists(local_dir):
             os.makedirs(local_dir)
-        self.client.download_file("anyvision-testing", remote_path,
-                                  os.path.join(local_dir, os.path.basename(remote_path)))
+
+        local_file_path = os.path.join(local_dir, os.path.basename(remote_path))
+        self.client.download_file("anyvision-testing", remote_path, local_file_path)
+
+        return local_file_path
 
     def deploy_resource_to_s3(self, resource_path, s3_path):
         bucket = "automation_infra"
