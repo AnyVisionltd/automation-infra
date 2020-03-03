@@ -14,8 +14,31 @@ services:
       - REDIS_USER=guest
       - REDIS_PASSWORD=pAssw0Rd!
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
     depends_on:
       - redis
+    command: watchmedo auto-restart --patterns="*.py;*.yaml;*.yml" --recursive -- python -m 'webapp.app' serve
+  resourcemanager:
+    image: anyvision-hwprovisioner-resourcemanager
+    build:
+      context: ./hwprovisioner/resourcemanager
+      dockerfile: Dockerfile
+    volumes:
+      - ./hwprovisioner/resourcemanager:/src
+    ports:
+      - 9080:9080
+    environment:
+      - REDIS_USER=guest
+      - REDIS_PASSWORD=pAssw0Rd!
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - ALLOCATE_API=http://allocate:8080/api/
+      - CONFIG_FILE=./example.resources.yml
+    depends_on:
+      - redis
+      - allocate
     command: watchmedo auto-restart --patterns="*.py;*.yaml;*.yml" --recursive -- python -m 'webapp.app' serve
   redis:
     image: redis:5.0.7
