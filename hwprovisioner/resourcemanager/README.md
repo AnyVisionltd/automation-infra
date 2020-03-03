@@ -21,6 +21,17 @@ test-lint-shellcheck           run only shell/bash linter
 clean                          clean up environment
 ```
 
+## environment variables
+
+`ALLOCATE_API` - where to find the allocate api. default: http://localhost:8080/api
+`CONFIG_FILE` - where to find the resources config. default: resources.yml
+
+## config file
+
+This service expects a config file (default: `resources.yml`) which details the
+various resources that this service is responsible for. An example of this file
+can be found at `./example.resources.yml`.
+
 ## api
 
 ```json

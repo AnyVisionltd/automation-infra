@@ -6,54 +6,36 @@ info:
   description: >-
     A service which allocates resources (servers, VMs, devices) for developers
 paths:
-  /allocate:
-    get:
-      tags: [Allocate]
-      operationId: webapp.allocate.ws_allocate
-      summary: Get all items from the inventory
-      responses:
-        200:
-          description: Return all items from the inventory
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  host:
-                    type: string
-  /inventory:
-    get:
-      tags: [Inventory]
-      operationId: webapp.inventory.get_all
-      summary: Get all items from the inventory
-      responses:
-        200:
-          description: Return all items from the inventory
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: integer
-                    description: The status for the operation
-                    example: 200
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Inventory'
+  # rm.listener.get_jobs jobs / GET
+  # rm.listener.volunteer resourcemanager/$rm/ref POST
+  # rm.listener.sub jobsws/ / GET (sub)
+  # rm.processor.still_free jobs/allocation_id GET
+  # rm.processor.processprospect/$rm/ref GET (sub)
+  # rm.processor.processprospect/$rm/ref DELETE
+  # rm.processor.claim jobqueue/allocation_id POST
+  # tester.done jobs/ POST
+  # tester.done jobs/allocation_id DELETE
+
+  /claim:
     post:
-      tags: [Inventory]
-      operationId: webapp.inventory.post
-      summary: Saves an item to the inventory
+      tags: [Jobs]
+      operationId: webapp.claim.claim
+      summary: Adds a job to the queue
       requestBody:
-        description: item to add to the inventory
+        description: job info
         content:
           application/json:
             schema:
               properties:
-                data:
-                  $ref: '#/components/schemas/InventoryWithoutId'
+                resourcemanager_id:
+                  type: string
+                  example: "1234"
+                inventory_id:
+                  type: string
+                  example: "1234"
+                allocation_id:
+                  type: string
+                  example: "1234"
       responses:
         200:
           description: Return all items from the inventory
@@ -65,74 +47,177 @@ paths:
                     type: integer
                     description: The status for the operation
                     example: 200
-                  data:
-                    $ref: '#/components/schemas/Inventory'
-  /inventory/{inventory_id}:
+  /jobs:
     get:
-      tags: [Inventory]
-      operationId: webapp.inventory.get_one
-      summary: Get a single item from the inventory
+      tags: [Jobs]
+      operationId: webapp.jobs.alljobs
+      summary: Get all jobs from the inventory
+      responses:
+        200:
+          description: Return all jobs from the inventory
+          content:
+            application/json:
+              schema:
+                type: array
+                description: A list of labels associated with this item
+                items:
+                  type: object
+                  properties:
+                    allocation_id:
+                      type: string
+                    data:
+                      type: string
+    post:
+      tags: [Jobs]
+      operationId: webapp.jobs.post
+      summary: Adds a job to the queue
+      requestBody:
+        description: job info
+        content:
+          application/json:
+            schema:
+              properties:
+                demands:
+                  type: object
+      responses:
+        200:
+          description: Return all items from the inventory
+          content:
+            application/json:
+              schema:
+                properties:
+                  status:
+                    type: integer
+                    description: The status for the operation
+                    example: 200
+  /ws/jobs:
+    get:
+      tags: [Jobs, WebSocket]
+      operationId: webapp.jobs.sub
+      summary: Get all jobs from the inventory
+      responses:
+        200:
+          description: Return all jobs from the inventory
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allocation_id:
+                    type: string
+                  demands:
+                    type: string
+  /ws/resourcemanager/{resourcemanager_id}/{inventory_id}:
+    get:
+      tags: [Prospector]
+      operationId: webapp.resourcemanager.volunteer_sub
+      summary: >-
+        websocket for listening to an inventory queue
       parameters:
-        - name: inventory_id
+        - name: resourcemanager_id
           in: path
-          description: the inventory id
+          description: the rm id
           required: true
           schema:
-            type: integer
+            type: string
+            format: uuid
+        - name: inventory_id
+          in: path
+          description: the inv id
+          required: true
+          schema:
+            type: string
             format: uuid
       responses:
         200:
-          description: Return all items from the inventory
+          description: Operation success indicator
           content:
             application/json:
               schema:
+                type: object
                 properties:
-                  status:
-                    type: integer
-                    description: The status for the operation
-                    example: 200
-                  data:
-                    $ref: '#/components/schemas/Inventory'
-components:
-  schemas:
-    Inventory:
-      allOf:
-        - $ref: '#/components/schemas/InventoryWithoutId'
-        - type: object
-          properties:
-            inventory_id:
-              type: string
-              description: The unique ID for this item
-              example: 8a526e72-bcde-45e6-8a5f-f598b350f093
-    InventoryWithoutId:
-      type: object
-      properties:
-        labels:
-          type: array
-          description: A list of labels associated with this item
-          items:
+                  allocation_id:
+                    type: string
+                  demands:
+                    type: string
+  /resourcemanager/{resourcemanager_id}/{inventory_id}:
+    post:
+      tags: [Prospector]
+      operationId: webapp.resourcemanager.volunteer
+      summary: >-
+        Allows a resource manager to volunteer one of its resources for a job
+      parameters:
+        - name: resourcemanager_id
+          in: path
+          description: the rm id
+          required: true
+          schema:
             type: string
-            description: A label
-          example:
-            - belfast
-            - nvidia
-        cpu_count:
-          type: integer
-          description: The number of CPUs on this item
-          example: 12
-        memory_count:
-          type: integer
-          description: The amount of memory on this item
-          example: 32
-        gpus:
-          type: array
-          description: A list of available GPUs on this item
-          items:
+            format: uuid
+        - name: inventory_id
+          in: path
+          description: the inv id
+          required: true
+          schema:
             type: string
-            description: the name of the gpu
-          example:
-            - nvidia
-        type:
-          type: string
-          description: The type of item that this is
-          example: vm
+            format: uuid
+      requestBody:
+        description: job info
+        content:
+          application/json:
+            schema:
+              properties:
+                match:
+                  type: object
+      responses:
+        200:
+          description: Operation success indicator
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allocation_id:
+                    type: string
+                  demands:
+                    type: string
+  /resourcemanager/{resourcemanager_id}/{inventory_id}/{allocation_id}:
+    delete:
+      tags: [Prospector]
+      operationId: webapp.resourcemanager.volunteer
+      summary: >-
+        Removes a specific job from the resource list
+      parameters:
+        - name: resourcemanager_id
+          in: path
+          description: the rm id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: inventory_id
+          in: path
+          description: the inv id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: allocation_id
+          in: path
+          description: the allocation id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Operation success indicator
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allocation_id:
+                    type: string
+                  demands:
+                    type: string
