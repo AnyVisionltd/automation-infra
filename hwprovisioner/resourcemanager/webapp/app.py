@@ -39,22 +39,24 @@ async def start_daemons(app):
     background tasks
     """
     # a single listener runs to volunteer
-    app['listen'] = app.loop.create_task(LISTENER.listen(app))
+    app["listen"] = app.loop.create_task(LISTENER.listen(app))
 
     # we want a dedicated processor for each inventory item
-    app['process'] = []
-    for rtype in ["static", "dynamic"]:
+    app["process"] = []
+    for rtype in CONFIG["resources"]:
         for rref in CONFIG["resources"][rtype]:
-            app['process'].append(app.loop.create_task(PROCESSOR.process(rtype, rref)))
+            app["process"].append(
+                app.loop.create_task(PROCESSOR.process(rtype, rref))
+            )
 
 
 async def cleanup_daemons(app):
     """
     application tidy ups
     """
-    for proc in app['process']:
+    for proc in app["process"]:
         proc.cancel()
-    app['listen'].cancel()
+    app["listen"].cancel()
 
 
 if __name__ == "__main__":
