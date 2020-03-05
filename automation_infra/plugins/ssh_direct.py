@@ -50,6 +50,10 @@ class SshDirect(object):
             logging.error(temp_ex.stderr)
             raise SSHCalledProcessError(temp_ex.returncode, temp_ex.cmd, temp_ex.output, temp_ex.stderr, self._host)
 
+    def gpu_count(self):
+        res = int(self.execute("nvidia-smi --list-gpus | wc -l"))
+        return res
+
     def remote_hostname(self):
         return self.execute("echo $HOSTNAME").strip()
 
