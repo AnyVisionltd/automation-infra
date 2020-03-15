@@ -5,29 +5,32 @@ import functools
 import json
 
 CLOUD_PROVIDER = "Google"
-OS_NAME = "ubunut1804"
-RAM_SIZE = 32
+OS_NAME = "ubuntu-1804-lts"
+INSTANCE_TYPE = "n1-standard-8"
 SSD_SIZE = 100
 STORAGE_SIZE = 500
-CPU_COUNT = 8
 GPU_COUNT = 1
-GPU_TYPE = "k80"
+GPU_TYPE = "nvidia-tesla-k80"
+REGION_NAME = "us-west1-b"
 
 
 def _do_provision(args):
-    data = {"base_image": args.os,
-            "ram" : args.ram,
-            "num_cpus": args.cpus,
-            "num_gpus" : args.gpus,
-            "ssd" : args.ssd,
+    data = {"os_type": args.os,
+            "provider": args.provider,
+            "region": args.region,
+            "instance_type": args.instance_type,
+            "owner_name": args.owner_name,
+            "num_gpus": args.gpus,
+            "ssd": args.ssd,
             "storage": args.storage,
-            "gputype": args.gpu_type}
+            "gpu_type": args.gpu_type}
 
     return requests.post("http://%s/provision" % args.allocator, json=data)
 
 
 def _do_destroy(args):
-    return requests.delete("http://%s/vms/%s" % (args.allocator, args.name))
+    data = {"region_name": args.region, "owner_name": args.owner_name}
+    return requests.post("http://%s/destroy" % args.allocator, json=data)
 
 
 def _do_list_images(args):
@@ -37,8 +40,10 @@ def _do_list_images(args):
 def _do_list_vms(args):
     return requests.get("http://%s/vms" % (args.allocator))
 
+
 def _do_update_vm(args, status):
     return requests.post("http://%s/vms/%s/status" % (args.allocator, args.name), json=status)
+
 
 def _do_vm_info(args):
     return requests.get("http://%s/vms/%s" % (args.allocator, args.name))
@@ -52,40 +57,34 @@ if __name__ == "__main__":
 
     create = commands.add_parser("provision", help="Provision VM Instance")
     create.add_argument("--provider", help="Cloud Provider: %s" % CLOUD_PROVIDER, default=CLOUD_PROVIDER)
-    create.add_argument("--os", help="VM Operating System: %s" % OS_NAME, default=OS_NAME)
-    create.add_argument("--ram", help="Ram in GBytes: %i" % RAM_SIZE, type=int, default=RAM_SIZE)
+    create.add_argument("--owner_name", help="Cloud Provider: ", default=CLOUD_PROVIDER, required=True)
+    create.add_argument("--os_type", help="VM Operating System: %s" % OS_NAME, default=OS_NAME)
+    create.add_argument("--region", help="Instance Region: %s" % REGION_NAME, default=REGION_NAME)
+    create.add_argument("--instance_type", help="Instance Type: %s" % INSTANCE_TYPE, default=INSTANCE_TYPE)
     create.add_argument("--ssd", help="SSD disk in Gbytes %i" % SSD_SIZE, type=int, default=SSD_SIZE)
-    create.add_argument("--storage", help="Storage HDD disk in Gbytes %i" % STORAGE_SIZE, type=int, default=STORAGE_SIZE)
-    create.add_argument("--cpus", help="Instance CPU`s Number %i" % CPU_COUNT, type=int, default=CPU_COUNT)
+    create.add_argument("--storage", help="Storage HDD disk in Gbytes %i" % STORAGE_SIZE, type=int,
+                        default=STORAGE_SIZE)
     create.add_argument("--gpus", help="Instance GPU`s number %i" % GPU_COUNT, type=int, default=GPU_COUNT)
     create.add_argument("--gpu_type", help="Instance GPU Type %s" % GPU_TYPE, default=GPU_TYPE)
 
-    create = commands.add_parser("destroy", help="Destroy VM Instance")
-    create.add_argument("--name", help="Name of the VM Instance to delete", required=True)
-
-    create = commands.add_parser("images", help="List images")
-    create = commands.add_parser("list", help="List vms")
-
-    # create = commands.add_parser('poweroff', help="Poweroff VM")
-    # create.add_argument('--name', help="Name of the VM to poweoff", required=True)
-
-    # create = commands.add_parser('poweron', help="Poweron VM")
-    # create.add_argument('--name', help="Name of the VM to poweron", required=True)
+    create = commands.add_parser("destroy", help="Destroy Instance")
+    create.add_argument("--owner_name", help="Instance Owner name", required=True)
+    create.add_argument("--region", help="Instance Region", required=True)
 
     create = commands.add_parser('info', help="Get VM Instance information")
     create.add_argument('--name', help="Name of the VM", required=True)
 
-    commands = {"provision" : _do_provision,
-                "destroy" : _do_destroy,
-                "images" : _do_list_images,
-                "list"   : _do_list_vms,
-                "poweroff" : functools.partial(_do_update_vm, status = {"power" : "off"}),
-                "poweron" : functools.partial(_do_update_vm, status = {"power" : "on"}),
-                "info" : _do_vm_info}
+    commands = {"provision": _do_provision,
+                "destroy": _do_destroy,
+                "images": _do_list_images,
+                "list": _do_list_vms,
+                "poweroff": functools.partial(_do_update_vm, status={"power": "off"}),
+                "poweron": functools.partial(_do_update_vm, status={"power": "on"}),
+                "info": _do_vm_info}
 
     args = parser.parse_args()
     result = commands[args.command](args)
     if result.ok:
         print(json.dumps(result.json()))
     else:
-        print("Command failed status: %s" %result.status_code)
+        print("Command failed status: %s" % result.status_code)
