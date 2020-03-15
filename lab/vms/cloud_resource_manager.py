@@ -2,37 +2,41 @@ from aiohttp import web
 import logging
 # web.View
 
-# from aiohttp import web
+from aiohttp import web
 
 
-class HyperVisor(object):
+class CloudResourceManager(object):
 
-    def __init__(self, allocator, image_store, webapp):
-        self.allocator = allocator
-        self.image_store = image_store
-        webapp.router.add_routes([web.post('/vms', self.handle_allocate_vm),
+    def __init__(self):
+        # self.allocator = allocator
+        # self.image_store = image_store
+        webapp = web.Application()
+        webapp.router.add_routes([web.post('/provision', self.provision_vm),
                                   web.delete('/vms/{name}', self.handle_destroy_vm),
                                   web.get('/vms', self.handle_list_vms),
                                   web.get('/images', self.handle_list_images),
                                   web.post('/vms/{name}/status', self.handle_vm_update),
                                   web.get('/vms/{name}', self.handle_vm_status)])
+        web.run_app(webapp)
 
-    async def handle_allocate_vm(self, request):
+    async def provision_vm(self, request):
         data = await request.json()
 
-        networks = data['networks']
+        provider = data.get("provider")
+        image_os = data.get("os")
+        memory_gb = int(data['ram'])
         num_cpus = int(data.get('num_cpus', 1))
         num_gpus = int(data.get('num_gpus', 0))
         base_image = data['base_image']
-        memory_gb = int(data['ram'])
         disks = data['disks']
         try:
-            vm = await self.allocator.allocate_vm(base_image=base_image,
-                                       memory_gb=memory_gb,
-                                       networks=networks,
-                                       num_gpus=num_gpus,
-                                       num_cpus=num_cpus,
-                                       disks=disks)
+            # vm = await self.allocator.allocate_vm(base_image=base_image,
+            #                            memory_gb=memory_gb,
+            #                            networks=networks,
+            #                            num_gpus=num_gpus,
+            #                            num_cpus=num_cpus,
+            #                            disks=disks)
+            logging.info("Prevision VM")
         except:
             logging.exception("Failed to create VM")
             return web.json_response({'status' : 'Failed'}, status=500)
@@ -100,3 +104,5 @@ class HyperVisor(object):
                 return web.json_response(status=404)
             info = await self.allocator.vm_manager.info(vm)
         return web.json_response({'info' : info}, status=200)
+
+c = CloudResourceManager()
