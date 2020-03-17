@@ -15,7 +15,7 @@ REGION_NAME = "us-west1-b"
 
 
 def _do_provision(args):
-    data = {"os_type": args.os,
+    data = {"os_type": args.os_type,
             "provider": args.provider,
             "region": args.region,
             "instance_type": args.instance_type,

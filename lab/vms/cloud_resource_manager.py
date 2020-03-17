@@ -1,11 +1,12 @@
 from aiohttp import web
 from python_terraform import *
 
+GCE_PROJECT = "/root/terraform/projects/setup-single-instance-gcp-terraform"
+
 
 class CloudResourceManager(object):
 
     def __init__(self):
-        gce_project = "/terraform/projects/setup-single-instance-gcp-terraform"
         webapp = web.Application()
         webapp.router.add_routes([web.post('/provision', self.provision_vm),
                                   web.post('/destroy', self.destroy_vm),
@@ -35,8 +36,7 @@ class CloudResourceManager(object):
             "gce_accelerator_count": 1
         }
 
-
-        tf = Terraform(working_dir=self.gce_project, variables=terraform_vars)
+        tf = Terraform(working_dir=GCE_PROJECT, variables=terraform_vars)
         tf.plan(no_color=IsFlagged, refresh=False, capture_output=False)
         approve = {"auto_approve": True, "capture_output": False}
         print(tf.plan())
@@ -54,7 +54,7 @@ class CloudResourceManager(object):
             "prefix": "terraform/%s/automation/%s" % (data["region_name"], owner_name)
 
         }
-        tf = Terraform(working_dir=self.gce_project)
+        tf = Terraform(working_dir=GCE_PROJECT)
         return_code, stdout, stderr = tf.init(
             backend_config={"prefix": terraform_vars.get("prefix"), "backend": "gcs", "bucket": "tf-state-anyvision"})
         approve = {"auto_approve": True, "capture_output": False}
