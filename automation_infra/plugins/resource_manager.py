@@ -58,6 +58,15 @@ class ResourceManager(BaseObject):
             self._host.Seaweed.upload_fileobj(file_obj, bucket, s3_path)
         return f'{bucket}/{s3_path}'
 
+    def get_s3_files(self, bucket, prefix):
+
+        """Get a list of files in an S3 bucket."""
+        files = []
+        resp = self.client.list_objects_v2(Bucket=bucket, Prefix=prefix)
+        for obj in resp['Contents']:
+            files.append(obj['Key'])
+        return files
+
 
 plugins.register('ResourceManager', ResourceManager)
 
