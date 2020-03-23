@@ -2,7 +2,7 @@ from aiohttp import web
 from python_terraform import *
 
 GCE_PROJECT = "/root/terraform/projects/setup-single-instance-gcp-terraform"
-AWS_PROJECT = "root/terraform/projects/setup-multiple-empty-instances-aws-terraform"
+AWS_PROJECT = "/root/terraform/projects/setup-multiple-empty-instances-aws-terraform"
 
 
 class CloudResourceManager(object):
@@ -28,14 +28,16 @@ class CloudResourceManager(object):
         }
 
         tf = Terraform(working_dir=AWS_PROJECT)
-        print(terraform_vars)
-        return_code, stdout, stderr = tf.apply(dir_or_plan=AWS_PROJECT, auto_approve=True,
-                                               capture_output=False, var=terraform_vars)
+        return_code, stdout, stderr = tf.apply(dir_or_plan=AWS_PROJECT, capture_output=True, auto_approve=True,
+                                               input=False,
+                                               skip_plan=True, var=terraform_vars)
+        ip_address = tf.output()["instances_public_ips"]["value"][0]
         if return_code != 0:
             logging.exception("Failed to provision VM")
-            return web.json_response({'status': 'Provision Failed with exit %i' % return_code}, status=500)
+            return web.json_response({'status': f'Provision Failed with msg {stderr}'}, status=500)
         else:
-            return web.json_response({'status': 'Success', 'name': data["owner_name"]}, status=200)
+            return web.json_response(
+                {'status': 'Success', 'name': "ec2-{}.".format(data["owner_name"]), "ip": ip_address}, status=200)
 
     async def destroy_instance(self, request):
         data = await request.json()
