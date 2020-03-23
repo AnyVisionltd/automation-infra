@@ -18,7 +18,9 @@ class PythonPacker(object):
     def from_file(cls, filepath, outfile=None):
         packer = cls()
         with open(filepath, 'r') as fp:
-            packer._pack(fp, fp.read(), outfile)
+            script = fp.read()
+            fp.seek(0)
+            packer._pack(fp, script, outfile)
         return packer
 
     @classmethod
