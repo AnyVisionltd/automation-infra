@@ -4,14 +4,12 @@ import argparse
 import functools
 import json
 
-CLOUD_PROVIDER = "Google"
+CLOUD_PROVIDER = "AWS"
 OS_NAME = "ubuntu-1804-lts"
-INSTANCE_TYPE = "n1-standard-8"
+INSTANCE_TYPE = "g3s.xlarge"
 SSD_SIZE = 100
 STORAGE_SIZE = 500
-GPU_COUNT = 1
-GPU_TYPE = "nvidia-tesla-k80"
-REGION_NAME = "us-west1-b"
+REGION_NAME = "us-west-2"
 
 
 def _do_provision(args):
@@ -20,10 +18,8 @@ def _do_provision(args):
             "region": args.region,
             "instance_type": args.instance_type,
             "owner_name": args.owner_name,
-            "num_gpus": args.gpus,
-            "ssd": args.ssd,
-            "storage": args.storage,
-            "gpu_type": args.gpu_type}
+            "ssd_ebs_size": args.ssd,
+            "storage_ebs_size": args.storage}
 
     return requests.post("http://%s/provision" % args.allocator, json=data)
 
@@ -64,8 +60,6 @@ if __name__ == "__main__":
     create.add_argument("--ssd", help="SSD disk in Gbytes %i" % SSD_SIZE, type=int, default=SSD_SIZE)
     create.add_argument("--storage", help="Storage HDD disk in Gbytes %i" % STORAGE_SIZE, type=int,
                         default=STORAGE_SIZE)
-    create.add_argument("--gpus", help="Instance GPU`s number %i" % GPU_COUNT, type=int, default=GPU_COUNT)
-    create.add_argument("--gpu_type", help="Instance GPU Type %s" % GPU_TYPE, default=GPU_TYPE)
 
     create = commands.add_parser("destroy", help="Destroy Instance")
     create.add_argument("--owner_name", help="Instance Owner name", required=True)

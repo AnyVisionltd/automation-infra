@@ -42,7 +42,7 @@ class HyperVisor(object):
     async def handle_destroy_vm(self, request):
         vm_name = request.match_info['name']
         try:
-            await self.allocator.destroy_vm(vm_name)
+            await self.allocator.destroy_instance(vm_name)
         except KeyError:
             return web.json_response(status=404)
         except:
