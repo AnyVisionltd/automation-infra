@@ -15,7 +15,7 @@ RUN pip3 install aiohttp python-terraform
 
 COPY . /root/cloud-provisioner
 
-RUN git clone https://username@github.com/AnyVisionltd/terraform.git
+RUN git clone https://github.com/AnyVisionltd/terraform.git
 RUN wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
 RUN unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/
 RUN chmod +x /usr/local/bin/terraform
