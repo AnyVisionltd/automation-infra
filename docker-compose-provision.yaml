@@ -14,9 +14,9 @@ services:
     ports:
       - 8080:8080
 
-    volumes:
-      - .:/root/cloud-provisioner
-      - /home/aharon/PycharmProjects/terraform:/root/terraform
+#    volumes:
+#      - .:/root/cloud-provisioner
+#      - /home/aharon/PycharmProjects/terraform:/root/terraform
 
     logging:
       options:

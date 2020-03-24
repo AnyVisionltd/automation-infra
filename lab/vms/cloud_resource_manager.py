@@ -42,13 +42,13 @@ class CloudResourceManager(object):
         tf = Terraform(working_dir=AWS_PROJECT)
         state_file_path = 'automation/{}/{}'.format(data.get('region'), data.get('owner_name'))
         logger.info(f'Initiating state file to bucket tf-state-anyvision/{state_file_path}')
-        return_code, stdout, stderr = tf.init(backend_config={'key': state_file_path })
+        return_code, stdout, stderr = tf.init(backend_config={'key': state_file_path})
         if return_code !=0:
             logger.error(f"Error: {stderr}")
             logger.debug("Init Terraform failed")
             return web.json_response({'status': f'Provision Failed with msg {stderr}'}, status=500)
         logger.info("Applying config")
-        return_code, stdout, stderr = tf.apply(dir_or_plan=AWS_PROJECT, capture_output=False, auto_approve=True, input=False,
+        return_code, stdout, stderr = tf.apply(dir_or_plan=AWS_PROJECT, capture_output=True, input=False,
                                                skip_plan=True, var=terraform_vars)
         if return_code != 0:
             logging.exception("Failed to provision VM")
@@ -61,7 +61,7 @@ class CloudResourceManager(object):
         data = await request.json()
         tf = Terraform(working_dir=AWS_PROJECT)
         state_file_path = 'automation/{}/{}'.format(data.get('region'), data.get('owner_name'))
-        return_code, stdout, stderr = tf.init(backend_config={'key': state_file_path})
+        return_code, stdout, stderr = tf.init(backend_config={'key': state_file_path, 'bucket': 'tf-state-anyvision'})
         if return_code != 0:
             return web.json_response({'status': 'Failed to Initiate Destroy '}, status=500)
         return_code, stdout, stderr = tf.destroy(auto_approve=True)
