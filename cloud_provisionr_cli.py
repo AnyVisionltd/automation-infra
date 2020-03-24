@@ -6,10 +6,10 @@ import json
 
 CLOUD_PROVIDER = "AWS"
 OS_NAME = "ubuntu-1804-lts"
-INSTANCE_TYPE = "g3s.xlarge"
-SSD_SIZE = 100
+INSTANCE_TYPE = "g4dn.xlarge"
+SSD_SIZE = 200
 STORAGE_SIZE = 500
-REGION_NAME = "us-west-2"
+REGION_NAME = "eu-west-3"
 
 
 def _do_provision(args):
@@ -25,7 +25,7 @@ def _do_provision(args):
 
 
 def _do_destroy(args):
-    data = {"region_name": args.region, "owner_name": args.owner_name}
+    data = {"region": args.region, "owner_name": args.owner_name}
     return requests.post("http://%s/destroy" % args.allocator, json=data)
 
 
@@ -69,12 +69,7 @@ if __name__ == "__main__":
     create.add_argument('--name', help="Name of the VM", required=True)
 
     commands = {"provision": _do_provision,
-                "destroy": _do_destroy,
-                "images": _do_list_images,
-                "list": _do_list_vms,
-                "poweroff": functools.partial(_do_update_vm, status={"power": "off"}),
-                "poweron": functools.partial(_do_update_vm, status={"power": "on"}),
-                "info": _do_vm_info}
+                "destroy": _do_destroy }
 
     args = parser.parse_args()
     result = commands[args.command](args)
