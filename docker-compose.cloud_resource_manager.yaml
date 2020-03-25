@@ -20,8 +20,8 @@ services:
     volumes:
       # credentials for aws mounted from local dir
       - /home/aharon/.aws/credentials:/root/.aws/credentials
-      - .:/root/cloud-provisioner
-      - /home/aharon/PycharmProjects/terraform:/root/terraform
+#      - .:/root/cloud-provisioner
+#      - /home/aharon/PycharmProjects/terraform:/root/terraform
 
     logging:
       options:
