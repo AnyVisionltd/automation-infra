@@ -71,7 +71,7 @@ class Allocator(object):
             except:
                 failed = failed + 1
                 logging.exception("Failed to restore vm %s .. deleting it", vm)
-                await self.vm_manager.destroy_instance(vm)
+                await self.vm_manager.destroy_vm(vm)
         logging.info("Restored %d out of %d vms vms: %s", restored, failed, self.vms)
 
     async def delete_all_dangling_vms(self):
@@ -81,7 +81,7 @@ class Allocator(object):
             # We dont need pci info, and we dont want to load old stored one .. so just remove it
             vm_data.pop('pci', None)
             machine = vm.VM(**vm_data)
-            await self.vm_manager.destroy_instance(machine)
+            await self.vm_manager.destroy_vm(machine)
 
     def _sol_port(self):
         return self.sol_base_port + len(self.vms)
@@ -170,7 +170,7 @@ class Allocator(object):
             if not name in self.vms:
                 raise KeyError()
             try:
-                await self.vm_manager.destroy_instance(vm)
+                await self.vm_manager.destroy_vm(vm)
             except:
                 logging.exception("Failed to free vm %s", vm.name)
                 raise
