@@ -7,17 +7,17 @@ import json
 CLOUD_PROVIDER = "AWS"
 OS_NAME = "ubuntu-1804-lts"
 INSTANCE_TYPE = "g4dn.xlarge"
-SSD_SIZE = 200
+SSD_SIZE = 100
 STORAGE_SIZE = 500
 REGION_NAME = "eu-west-3"
 
 
 def _do_provision(args):
     data = {"os_type": args.os_type,
+            "customer_name": args.customer_name,
             "provider": args.provider,
             "region": args.region,
             "instance_type": args.instance_type,
-            "owner_name": args.owner_name,
             "ssd_ebs_size": args.ssd,
             "storage_ebs_size": args.storage}
 
@@ -25,7 +25,7 @@ def _do_provision(args):
 
 
 def _do_destroy(args):
-    data = {"region": args.region, "owner_name": args.owner_name}
+    data = {"region": args.region, "customer_name": args.customer_name}
     return requests.post("http://%s/destroy" % args.allocator, json=data)
 
 
@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     create = commands.add_parser("provision", help="Provision VM Instance")
     create.add_argument("--provider", help="Cloud Provider: %s" % CLOUD_PROVIDER, default=CLOUD_PROVIDER)
-    create.add_argument("--owner_name", help="Cloud Provider: ", default=CLOUD_PROVIDER, required=True)
+    create.add_argument("--customer_name", help="Customer Name", required=True)
     create.add_argument("--os_type", help="VM Operating System: %s" % OS_NAME, default=OS_NAME)
     create.add_argument("--region", help="Instance Region: %s" % REGION_NAME, default=REGION_NAME)
     create.add_argument("--instance_type", help="Instance Type: %s" % INSTANCE_TYPE, default=INSTANCE_TYPE)
@@ -62,8 +62,8 @@ if __name__ == "__main__":
                         default=STORAGE_SIZE)
 
     create = commands.add_parser("destroy", help="Destroy Instance")
-    create.add_argument("--owner_name", help="Instance Owner name", required=True)
     create.add_argument("--region", help="Instance Region", required=True)
+    create.add_argument("--customer_name", help="Customer Name", required=True)
 
     create = commands.add_parser('info', help="Get VM Instance information")
     create.add_argument('--name', help="Name of the VM", required=True)

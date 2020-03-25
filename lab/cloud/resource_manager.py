@@ -1,5 +1,7 @@
 import logging
 import sys
+import time
+
 from aiohttp import web
 from python_terraform import *
 
@@ -16,6 +18,8 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+OWNER_NAME = os.environ.get("OWNER_NAME", "il_cloud_resource_manager")
+
 
 class CloudResourceManager(object):
 
@@ -28,20 +32,22 @@ class CloudResourceManager(object):
     async def provision_instance(self, request):
         data = await request.json()
 
+        customer_name, region = data.get("customer_name"), data.get("region")
         terraform_vars = {
-            "customer_name": data["owner_name"],
-            "owner_name": data["owner_name"],
-            "keypair": data.get("keypair", "devops-aws"),
+            "customer_name": customer_name,
+            "owner_name": OWNER_NAME,
+            "keypair": data.get("keypair", "anyvision-devops"),
             "environment_type": "automation",
-            "region": data["region"],
+            "region": region,
             "instance_type": data["instance_type"],
-            "ssd_ebs_size": 200,
-            "storage_ebs_size": 500
+            "ssd_ebs_size": data["ssd_ebs_size"],
+            "storage_ebs_size": data["storage_ebs_size"]
         }
         logger.info(f"Provision {data}")
         tf = Terraform(working_dir=AWS_PROJECT)
-        state_file_path = 'automation/{}/{}'.format(data.get('region'), data.get('owner_name'))
+        state_file_path = 'automation/{}/{}/{}'.format(OWNER_NAME, customer_name, region)
         logger.info(f'Initiating state file to bucket tf-state-anyvision/{state_file_path}')
+        start = time.time()
         return_code, stdout, stderr = tf.init(backend_config={'key': state_file_path})
         if return_code !=0:
             logger.error(f"Error: {stderr}")
@@ -55,21 +61,26 @@ class CloudResourceManager(object):
             return web.json_response({'status': f'Provision Failed with msg {stderr}'}, status=500)
         else:
             ip_address = tf.output()["instances_public_ips"]["value"][0]
-            return web.json_response({'status': 'Success', 'name': "ec2-{}.".format(data["owner_name"]), "ip": ip_address}, status=200)
+            return web.json_response({'status': 'Success', 'name': f"{customer_name}-{OWNER_NAME}", "ip": ip_address,
+                                      "time": time.time() - start}, status=200)
 
     async def destroy_instance(self, request):
         data = await request.json()
         tf = Terraform(working_dir=AWS_PROJECT)
-        state_file_path = 'automation/{}/{}'.format(data.get('region'), data.get('owner_name'))
+        customer_name, region = data.get("customer_name"), data.get("region")
+        terraform_vars = {"customer_name": customer_name, "owner_name": OWNER_NAME, "region": region}
+        state_file_path = 'automation/{}/{}/{}'.format(OWNER_NAME, customer_name, region)
+        start = time.time()
         return_code, stdout, stderr = tf.init(backend_config={'key': state_file_path, 'bucket': 'tf-state-anyvision'})
         if return_code != 0:
-            return web.json_response({'status': 'Failed to Initiate Destroy '}, status=500)
-        return_code, stdout, stderr = tf.destroy(auto_approve=True)
+            return web.json_response({'status': 'Failed', 'msg': 'Failed to Initiate Destroy'}, status=500)
+        return_code, stdout, stderr = tf.destroy(auto_approve=True, var=terraform_vars)
         if return_code != 0:
             logging.exception("Failed to destroy VM")
             return web.json_response({'status': 'Failed to Destroy Instance'}, status=500)
         else:
-            return web.json_response({'status': 'Success', 'msg': "ec2-{} Destroyed".format(data["owner_name"])}, status=200)
+            return web.json_response({'status': 'Success', 'msg': f"{customer_name}-{OWNER_NAME} Destroyed",
+                                      "time": time.time() - start}, status=200)
 
 
 if __name__ == '__main__':
