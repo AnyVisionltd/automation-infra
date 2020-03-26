@@ -234,3 +234,5 @@ pip-selfcheck.json
 local.yaml
 output.log
 .my-uuid
+
+.vscode/
