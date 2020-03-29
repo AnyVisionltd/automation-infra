@@ -73,4 +73,5 @@ numpy==1.18.1
 pytest-timeout==1.3.4
 Faker==4.0.1
 python-socketio==4.4.0
+pyyaml==3.12
 git+https://github.com/tomoncle/prometheus-http-client@master#prometheus-http-client
