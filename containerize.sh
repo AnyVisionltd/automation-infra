@@ -190,6 +190,8 @@ function run_docker () {
             "${HOME}/.jfrog:${HOME}/.jfrog"
             "$mount_path:$mount_path"
             "${HOME}/.local:${HOME}/.local"
+            "${HOME}/.docker:${HOME}/.docker"
+            "${HOME}/.aws:${HOME}/.aws"
 	        )
 
     mount_cmd=""
