@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 import requests
 import argparse
 import functools
@@ -29,20 +29,9 @@ def _do_destroy(args):
     return requests.post("http://%s/destroy" % args.allocator, json=data)
 
 
-def _do_list_images(args):
-    return requests.get("http://%s/images" % (args.allocator))
-
-
-def _do_list_vms(args):
-    return requests.get("http://%s/vms" % (args.allocator))
-
-
-def _do_update_vm(args, status):
-    return requests.post("http://%s/vms/%s/status" % (args.allocator, args.name), json=status)
-
-
-def _do_vm_info(args):
-    return requests.get("http://%s/vms/%s" % (args.allocator, args.name))
+def _do_list_instances(args):
+    data = {"region": args.region, "customer_name": args.customer_name}
+    return requests.get("http://%s/instances" % (args.allocator), json=data)
 
 
 if __name__ == "__main__":
@@ -65,11 +54,13 @@ if __name__ == "__main__":
     create.add_argument("--region", help="Instance Region", required=True)
     create.add_argument("--customer_name", help="Customer Name", required=True)
 
-    create = commands.add_parser('info', help="Get VM Instance information")
-    create.add_argument('--name', help="Name of the VM", required=True)
+    create = commands.add_parser('list', help="Get Instances information")
+    create.add_argument('--customer-name', help="Name of the VM", required=True)
+    create.add_argument('--region', help="Name of the VM", required=True)
 
     commands = {"provision": _do_provision,
-                "destroy": _do_destroy }
+                "destroy": _do_destroy,
+                "list": _do_list_instances}
 
     args = parser.parse_args()
     result = commands[args.command](args)

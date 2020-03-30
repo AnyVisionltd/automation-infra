@@ -4,6 +4,7 @@ import time
 
 from aiohttp import web
 from python_terraform import *
+import boto3
 
 GCE_PROJECT = "/root/terraform/projects/setup-single-instance-gcp-terraform"
 AWS_PROJECT = "/root/terraform/projects/setup-multiple-empty-instances-aws-terraform"
@@ -26,8 +27,35 @@ class CloudResourceManager(object):
     def __init__(self):
         webapp = web.Application()
         webapp.router.add_routes([web.post('/provision', self.provision_instance),
+                                  web.get('/instances', self.handle_list_instances),
                                   web.post('/destroy', self.destroy_instance)])
         web.run_app(webapp)
+
+    async def handle_list_instances(self, request):
+        data = await request.json()
+        customer_name, region = data.get("customer_name"), data.get("region")
+        client = boto3.client('ec2', region_name=region)
+        response = client.describe_instances(
+            Filters=[
+                {'Name': 'tag:customer_name', 'Values': [customer_name]},
+                {'Name': 'tag:owner_name', 'Values': [OWNER_NAME]}
+            ],
+            DryRun=False,
+            MaxResults=500
+        )
+        print(response)
+        result = []
+        if response["Reservations"] and response["Reservations"][0]:
+            for instance in response["Reservations"]:
+                instance_detailes = instance.get("Instances")[0]
+                instance_type = instance_detailes.get("InstanceType")
+                image_ami = instance_detailes.get("ImageId")
+                public_ip = instance_detailes.get("PublicIpAddress")
+                result.append({"instance_type": instance_type, "image_ami": image_ami, "public_ip": public_ip})
+                print(instance_type, image_ami, public_ip)
+            return web.json_response({'instances': result}, status=200)
+        else:
+            return web.json_response({'msg': f"Instance {customer_name}-{OWNER_NAME} NOT found in {region}"}, status=200)
 
     async def provision_instance(self, request):
         data = await request.json()
@@ -85,4 +113,3 @@ class CloudResourceManager(object):
 
 if __name__ == '__main__':
     CloudResourceManager()
-
