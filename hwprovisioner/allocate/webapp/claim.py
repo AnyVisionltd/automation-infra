@@ -8,7 +8,7 @@ from aiohttp import web
 from .settings import log
 
 
-def claim(request, body):
+async def claim(request, body):
     """
     claims a job for a resource manager
     """
