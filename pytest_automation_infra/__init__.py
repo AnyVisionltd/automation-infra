@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
+import asyncio
 import os
 import logging
+import threading
+import time
+
+import aiohttp
 import pytest
 import yaml
 from munch import *
@@ -49,7 +54,7 @@ def pytest_generate_tests(metafunc):
         if provisioner:
             logging.info("initializing module hardware config to provisioner")
             if hasattr(metafunc.module, 'hardware') and not hasattr(metafunc.module, '__initialized_hardware'):
-                hardware_config = hardware_initializer.init_hardware(metafunc.module.hardware)
+                hardware_config = hardware_initializer.init_hardware(metafunc.module.hardware, provisioner)
                 metafunc.module.__initialized_hardware = hardware_config
             else:
                 raise Exception("Module needs to have hardware_reqs set to run with scope module")
@@ -67,6 +72,47 @@ def set_config(tests, config=None, provisioner=None):
             assert hasattr(test.function, '__hardware_reqs')
             initialized_hardware = hardware_initializer.init_hardware(test.function.__hardware_reqs, provisioner)
             test.function.__initialized_hardware = initialized_hardware
+
+
+def send_async_hb(provisioned_hw, stop):
+    logging.info("start send_async_hb")
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(send_heartbeat(provisioned_hw, stop))
+    logging.info("end send_async_hb")
+
+
+async def send_heartbeat(provisioned_hw, stop):
+    while True:
+        logging.info(f"Starting heartbeat to provisioned hardware: {provisioned_hw}")
+        for host in provisioned_hw.values():
+            logging.info(f"host: {host}")
+            allocation_id = host['allocation_id']
+            logging.info(f"allocation_id: {allocation_id}")
+            async with aiohttp.ClientSession() as client:
+                payload = {"allocation_id": allocation_id}
+                logging.info(f"sending post hb request payload: {payload}")
+                response = await client.post(
+                    "%s/api/heartbeat" % os.getenv('HEARTBEAT_SERVER', default='http://192.168.14.14:7080'), json=payload)
+                logging.info(f"post response {response}")
+
+                assert response.status == 200
+
+        if stop():
+            logging.info(f"Killing heartbeat to hw {provisioned_hw}")
+            break
+        await asyncio.sleep(3)
+    logging.info(f"Heartbeat to hardware {provisioned_hw} stopped")
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_sessionstart(session):
+    pass
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_sessionfinish(session, exitstatus):
+    logging.info("Sending kill heartbeat")
+    session.kill_heartbeat = True
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -185,9 +231,24 @@ def try_initing_hosts_intelligently(request, hardware, base):
         raise Exception(f"not enough hosts defined in hardware.yaml to run test {request.function}")
 
 
+def start_heartbeat_thread(hardware, request):
+    request.session.kill_heartbeat = False
+    hb_thread = threading.Thread(target=send_async_hb,
+                                 args=(hardware, lambda: request.session.kill_heartbeat),
+                                 daemon=True)
+    hb_thread.start()
+
+
+def kill_heartbeat_thread(hardware, request):
+    logging.info(f"Setting kill_heartbeat on hw {hardware} to True")
+    request.session.kill_heartbeat = True
+
+
 @pytest.fixture(scope=determine_scope)
 def base_config(request):
     hardware = find_provisioner_hardware(request)
+    # TODO: check if not running provisioned the hb is unnecessary.
+    start_heartbeat_thread(hardware, request)
     base = DefaultMunch(Munch)
     base.hosts = Munch()
     try_initing_hosts_intelligently(request, hardware, base)
@@ -196,6 +257,7 @@ def base_config(request):
     yield base
     logging.info("tearing down base_config fixture")
     helpers.tear_down_dockers(base.hosts.items())
+    kill_heartbeat_thread(hardware, request)
 
 
 def pytest_runtest_setup(item):

@@ -60,7 +60,8 @@ async def fetcher(hardware_req, provisioner):
                     reply = await websocket.receive_json()
                     # listen for progress
                     if "inventory_data" in reply:
-                        logging.debug("done!")
+                        logging.debug("received hardware device!")
+                        reply["inventory_data"]["access"]['allocation_id'] = reply['allocation_id']
                         return {"candidate": reply["inventory_data"]["access"]}
                     time.sleep(0.3)
         else:
@@ -76,9 +77,11 @@ def init_hardware(hardware_req, provisioner=None):
     """
     hardware = {}
     if provisioner:  # provisioned mode
+        logging.info(f"initing hardware with provisioner {provisioner}")
         loop = asyncio.get_event_loop()
         reply = loop.run_until_complete(fetcher(hardware_req, provisioner))
         if "candidate" in reply:
+            logging.info(f'received hardware allocation: {reply}')
             hostname = list(hardware_req.keys())[0]
             hardware[hostname] = reply["candidate"]
             hardware[hostname]["alias"] = hostname
