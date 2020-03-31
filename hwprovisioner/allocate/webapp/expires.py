@@ -37,5 +37,5 @@ async def expire(redis):
             log.error("%s not found in jobs data", err)
         except Exception as err:
             log.error(err)
-    await asyncio.sleep(1)
+    await asyncio.sleep(10)
     await expire(redis)
