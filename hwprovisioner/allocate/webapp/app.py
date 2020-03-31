@@ -11,6 +11,7 @@ import connexion
 
 from .redisclient import REDIS
 from .settings import log
+from .expires import expire
 
 
 random.seed(1)
@@ -53,6 +54,7 @@ def run_app(run=True, port=8080):
     allocate.subapp["websockets"] = weakref.WeakSet()
     allocate.subapp["redis"] = REDIS
 
+    cxapp.app.on_startup.append(startup_daemons)
     cxapp.app.on_cleanup.append(cleanup_daemons)
 
     if run:
@@ -60,10 +62,18 @@ def run_app(run=True, port=8080):
     return cxapp.app
 
 
+async def startup_daemons(app):
+    """
+    background tasks
+    """
+    app["expired_jobs"] = app.loop.create_task(expire(REDIS))
+
+
 async def cleanup_daemons(app):
     """
-    application tidyups
+    task tidyups
     """
+    app["expired_jobs"].cancel()
 
 
 if __name__ == "__main__":
