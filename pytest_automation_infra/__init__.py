@@ -252,11 +252,11 @@ def base_config(request):
     base = DefaultMunch(Munch)
     base.hosts = Munch()
     try_initing_hosts_intelligently(request, hardware, base)
-    helpers.init_dockers_and_connect(base.hosts.items())
+    helpers.init_proxy_containers_and_connect(base.hosts.items())
     logging.info("sucessfully initialized base_config fixture. Running test...")
     yield base
     logging.info("tearing down base_config fixture")
-    helpers.tear_down_dockers(base.hosts.items())
+    helpers.tear_down_proxy_containers(base.hosts.items())
     kill_heartbeat_thread(hardware, request)
 
 

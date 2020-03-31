@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "9bf9e90a2f34f9deb34ac209900b168649bcc0f752f680654355f8fe63aaff71"
+            "sha256": "27bc724421401490b3f3aa2de60e54391585c47fb693c1329ec4cba050236ac2"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -320,6 +320,14 @@
             "index": "pypi",
             "version": "==1.7.1"
         },
+        "faker": {
+            "hashes": [
+                "sha256:440d68fe0e46c1658b1975b2497abe0c24a7f772e3892253f31e713ffcc48965",
+                "sha256:ee24608768549c2c69e593e9d7a3b53c9498ae735534243ec8390cae5d529f8b"
+            ],
+            "index": "pypi",
+            "version": "==4.0.1"
+        },
         "google": {
             "hashes": [
                 "sha256:ac0ccd778081f3e373ac5d23253ed11e79a80b11dc1f0ab0ca23833ba7c85de9"
@@ -396,6 +404,13 @@
             ],
             "index": "pypi",
             "version": "==0.23"
+        },
+        "ipdb": {
+            "hashes": [
+                "sha256:77fb1c2a6fccdfee0136078c9ed6fe547ab00db00bebff181f1e8c9e13418d49"
+            ],
+            "index": "pypi",
+            "version": "==0.13.2"
         },
         "ipython": {
             "hashes": [
@@ -577,6 +592,11 @@
             "index": "pypi",
             "version": "==0.13.0"
         },
+        "prometheus-http-clint": {
+            "editable": true,
+            "git": "https://github.com/tomoncle/prometheus-http-client",
+            "ref": "c2fee38506bfaba4c4a3fd4244b87c5c2862e0bd"
+        },
         "prompt-toolkit": {
             "hashes": [
                 "sha256:46642344ce457641f28fc9d1c9ca939b63dadf8df128b86f1b9860e59c73a5e4",
@@ -745,6 +765,21 @@
             "index": "pypi",
             "version": "==2.8.0"
         },
+        "python-engineio": {
+            "hashes": [
+                "sha256:222926adb4bc6e03a8fc8e0ef2a3309f030c1c3f8e0fcc94c9ba214574565f02",
+                "sha256:2481732d93646998f7372ef0ecf003af7817b82720b881db173c3d50b4887916"
+            ],
+            "version": "==3.12.1"
+        },
+        "python-socketio": {
+            "hashes": [
+                "sha256:48cba5b827ac665dbf923a4f5ec590812aed5299a831fc43576a9af346272534",
+                "sha256:af6c23c35497960f82106e36688123ecb52ad5a77d0ca27954ff3811c4d9d562"
+            ],
+            "index": "pypi",
+            "version": "==4.4.0"
+        },
         "pyyaml": {
             "hashes": [
                 "sha256:06a0d7ba600ce0b2d2fe2e78453a470b5a6e000a985dd4a4e54e436cc36b0e97",
@@ -800,6 +835,13 @@
             ],
             "index": "pypi",
             "version": "==0.1.5"
+        },
+        "text-unidecode": {
+            "hashes": [
+                "sha256:1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8",
+                "sha256:bad6603bb14d279193107714b288be206cac565dfa49aa5b105294dd5c4aab93"
+            ],
+            "version": "==1.3"
         },
         "toml": {
             "hashes": [
