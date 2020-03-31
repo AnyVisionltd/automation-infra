@@ -41,8 +41,16 @@ class Processor:
                                 )
                                 if await self.claim(resp):
                                     log.debug("succeeded")
+                        elif "expired_job" in msg.data:
+                            await self.teardown(msg.data)
                     elif msg.type == aiohttp.WSMsgType.ERROR:
                         break
+
+    async def teardown(self, data):
+        """
+        invoked once a job has expired
+        """
+        log.debug("tearing down resource")
 
     async def still_free(self, rtype, rref, data):
         """
