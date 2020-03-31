@@ -39,16 +39,6 @@ def do_docker_login(connected_ssh_module):
     connected_ssh_module.execute("docker login https://gcr.io")
 
 
-def config_aws(connected_ssh_module):
-    remote_home = connected_ssh_module.execute("echo $HOME").strip()
-    try:
-        connected_ssh_module.execute(f"mkdir {remote_home}/.aws")
-    except:
-        logging.error("cannot create directory exception caught, it exists")
-    connected_ssh_module.put(f"{os.getenv('HOME')}/.aws/*", f"{remote_home}/.aws/")
-    connected_ssh_module.execute("aws s3 ls s3://anyvision-testing")
-
-
 def create_secret(connected_ssh_module):
     logging.debug("creating ImagePullSecret")
     do_docker_login(connected_ssh_module)  # This is necessary to put the config.json file
@@ -121,7 +111,6 @@ def init_proxy_container_and_connect(host):
         except paramiko.ssh_exception.NoValidConnectionsError:
             logging.debug(f"ssh connect attempt {i}: no valid connections to {host.ip}")
             time.sleep(1)
-    config_aws(host.SSH)
     logging.info(f"[{host}] connected successfully")
 
 
