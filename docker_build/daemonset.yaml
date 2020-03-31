@@ -1,44 +1,67 @@
-# This isnt currently active, we are running a docker pod for ssh connectivity.
-# But maybe in the future we will want to replace it with a daemonset pod.
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: automation-ssh-container
-  namespace: default
+  name: automation-proxy
   labels:
     k8s-app: ssh
 spec:
   selector:
     matchLabels:
-      name: automation-ssh-container
+      name: automation-proxy
   template:
     metadata:
       labels:
-        name: automation-ssh-container
+        name: automation-proxy         
     spec:
+      hostname: automation-proxy
+      restartPolicy: Always
+      # nodeSelector:
+      #   frontend: "true"
+      # securityContext:
+      #   runAsUser: 5000
+      #   runAsGroup: 5000
+      imagePullSecrets:
+        - name: imagepullsecret
+      # hostNetwork: true
+      # dnsPolicy: ClusterFirstWithHostNet
+      terminationGracePeriodSeconds: 2
       containers:
-      - name: automation-ssh-container
-        image: orihab/ubuntu_ssh:latest
-        args: ["password", "user", "pass"]
-        command: ["/entrypoint.sh"]
+      - name: automation-proxy
+        image: gcr.io/anyvision-training/automation-proxy:master
+        imagePullPolicy: IfNotPresent
+        # command: ["/usr/sbin/sshd"]
+        # args: ["-D","-e"]
+        # command: ["sleep"]
+        # args: ["1d"]
+        # securityContext:
+        #   capabilities:
+        #     add: ["NET_ADMIN"]
+        #   allowPrivilegeEscalation: true
+        #   privileged: true
+        ports:
+          - containerPort: 2222
+            hostPort: 2222
+          - containerPort: 18861
+            hostPort: 18861
         resources:
           limits:
-            memory: 200Mi
-          requests:
-            cpu: 100m
-            memory: 200Mi
-        volumeMounts:
-        - name: varlog
-          mountPath: /var/log
-        - name: varlibdockercontainers
-          mountPath: /var/lib/docker/containers
-          readOnly: true
-      hostNetwork: true
-      terminationGracePeriodSeconds: 30
-      volumes:
-      - name: varlog
-        hostPath:
-          path: /var/log
-      - name: varlibdockercontainers
-        hostPath:
-          path: /var/lib/docker/containers
+            memory: 2Gi
+          # requests:
+          #   cpu: 100m
+          #   memory: 200Mi
+        readinessProbe:
+          tcpSocket:
+            port: 2222
+          initialDelaySeconds: 2
+          periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 2222
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 10
+          timeoutSeconds: 5

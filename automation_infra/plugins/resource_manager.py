@@ -25,9 +25,8 @@ class ResourceManager(BaseObject):
 
     def _s3_client(self):
         self.start_tunnel(self.DNS_NAME, self.PORT)
-        s3 = boto3.client('s3',
-                          aws_access_key_id='AKIAZQJT5HXO4YTJSHHL',
-                          aws_secret_access_key='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')
+        s3 = boto3.client('s3')  # Configure locally access keys on local machine in ~/.aws, this will use them
+
         return s3
 
     def upload_from_filesystem(self, local_path, upload_dir=""):
