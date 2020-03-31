@@ -92,7 +92,7 @@ async def send_heartbeat(provisioned_hw, stop):
                 payload = {"allocation_id": allocation_id}
                 logging.info(f"sending post hb request payload: {payload}")
                 response = await client.post(
-                    "%s/api/heartbeat" % os.getenv('HEARTBEAT_SERVER', default='http://192.168.14.14:7080'), json=payload)
+                    "%s/api/heartbeat" % os.getenv('HEARTBEAT_SERVER'), json=payload)
                 logging.info(f"post response {response}")
 
                 assert response.status == 200
