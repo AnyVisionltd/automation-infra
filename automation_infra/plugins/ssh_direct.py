@@ -175,7 +175,7 @@ class SSHCalledProcessError(CalledProcessError):
 
     def __str__(self):
         return "Command '%s' on host %s returned non-zero exit status %d\nstdout: %s\nstderr: %s" % \
-               (self.cmd, self.host.alias, self.returncode, self.output, self.stderr)
+               (self.cmd, self.host.ip, self.returncode, self.output, self.stderr)
 
 
 plugins.register('SshDirect', SshDirect)

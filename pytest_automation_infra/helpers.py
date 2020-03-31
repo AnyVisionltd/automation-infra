@@ -137,8 +137,8 @@ def remove_proxy_container(connected_ssh_module):
         logging.info("trying to remove k8s proxy pod")
         try:
             connected_ssh_module.execute("kubectl delete -f /tmp/daemonset.yaml")
-        except Exception as e:
-            logging.error(f"caught exception trying to remove k8s proxy pod: {e}")
+        except SSHCalledProcessError:
+            logging.info(f"caught expected exception error when deleting /tmp/daemonset.yaml: daemonsets.apps automation-proxy not found")
     else:
         try:
             logging.info("trying to remove docker container")
