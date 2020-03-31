@@ -76,7 +76,8 @@ numpy = "*"
 pytest-timeout = "*"
 Faker = "==4.0.1"
 python-socketio = "==4.4.0"
-prometheus-http-clint = {git = "https://github.com/tomoncle/prometheus-http-client", editable = true, ref = "master"}
+prometheus-http-clint = {git = "https://github.com/tomoncle/prometheus-http-client",editable = true,ref = "master"}
+ipdb = "*"
 
 [requires]
 python_version = "3.7"
