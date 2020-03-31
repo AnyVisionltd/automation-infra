@@ -14,8 +14,7 @@ async def claim(request, body):
     """
     log.debug("got claim request %s", body)
     data = json.loads(body)
-    log.debug("publishing to j:%s", data["allocation_id"])
-    request.app["redis"].publish(
+    request.app["redis"].conn.publish(
         "j:%s" % data["allocation_id"],
         body,
     )

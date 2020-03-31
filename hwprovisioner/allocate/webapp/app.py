@@ -51,7 +51,7 @@ def run_app(run=True, port=8080):
         "allocate.yml", base_path="/api", pass_context_arg_name="request",
     )
     allocate.subapp["websockets"] = weakref.WeakSet()
-    allocate.subapp["redis"] = REDIS.conn
+    allocate.subapp["redis"] = REDIS
 
     cxapp.app.on_cleanup.append(cleanup_daemons)
 
