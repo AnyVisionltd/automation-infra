@@ -51,7 +51,7 @@ def run_app(run=True, port=8080):
         "heartbeats.yml", base_path="/api", pass_context_arg_name="request",
     )
     heartbeats.subapp["websockets"] = weakref.WeakSet()
-    heartbeats.subapp["redis"] = REDIS.conn
+    heartbeats.subapp["redis"] = REDIS
 
     cxapp.app.on_cleanup.append(cleanup_daemons)
 
