@@ -121,6 +121,7 @@ class Listener:
                                 matches.append(
                                     {
                                         "allocation_id": allocation_id,
+                                        "resourcemanager_id": CONFIG["UUID"],
                                         "inventory_ref": rref,
                                         "inventory_data": resource,
                                         "inventory_type": rtype,
