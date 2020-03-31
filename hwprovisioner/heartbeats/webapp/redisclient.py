@@ -16,6 +16,7 @@ class RedisClient:
     # pylint: disable=too-many-arguments
     def __init__(self, host, port, username, password, db=None):
         self._conn = None
+        self._asyncconn = None
         self.host = host
         self.port = int(port)
         self.db = int(db)
@@ -32,6 +33,21 @@ class RedisClient:
         if not self._conn:
             self.__create_connection()
         return self._conn
+
+    @property
+    async def asyncconn(self):
+        """
+        return an async connection
+        """
+        if not self._asyncconn:
+            await self.__create_asyncconnection()
+        return self._asyncconn
+
+    async def __create_asyncconnection(self):
+        """
+        instantiate an async connection
+        """
+        self._asyncconn = await asyncio_redis.Connection.create(host=self.host, port=self.port)
 
     def __create_connection(self):
         self._conn = redis.Redis(connection_pool=self.pool)
