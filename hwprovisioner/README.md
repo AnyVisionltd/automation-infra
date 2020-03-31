@@ -67,4 +67,10 @@ vim resources.yml  # copy this from example.resources.yml and edit as required
 docker build -t=resourcemanager .
 # note: replace $MYIP with the ip of your allocate container (your machine ip probably)
 docker run --rm -e ALLOCATE_API=http://$MYIP:8080/ -e CONFIG_FILE=./resources.yml -p 9080:8080 -v $(pwd):/src -w /src -ti resourcemanager watchmedo auto-restart --recursive -d . -p '*.py' -- python3 -m 'webapp.app' serve
+
+# build and run heartbeats service
+cd ./hwprovisioner/heartbeats
+docker build -t=heartbeats .
+# note: replace $MYIP with the ip of your allocate container (your machine ip probably)
+docker run --rm -e REDIS_HOST=${MYIP} -e REDIS_PORT=6379 -e REDIS_DB=0 -e REDIS_USER=guest -e REDIS_PASSWORD=password -v ${PWD}:/src -w /src -p 7080:8080 -ti heartbeats watchmedo auto-restart --recursive -d . -p '*.py' -- python3 -m 'webapp.app' serve
 ```
