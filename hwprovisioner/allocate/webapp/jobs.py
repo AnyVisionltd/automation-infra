@@ -4,17 +4,15 @@ allocate - jobs
 import json
 import uuid
 from aiohttp import web
-import asyncio_redis
 
-from .redisclient import REDIS
 from .settings import log
 
 
-async def alljobs():
+async def alljobs(request):
     """
     return all of the jobs in the queue
     """
-    jobs = REDIS.conn.hgetall("jobs")
+    jobs = request.app["redis"].conn.hgetall("jobs")
     results = []
     for job in jobs.items():
         try:
@@ -24,7 +22,7 @@ async def alljobs():
     return web.json_response({"status": 200, "data": results})
 
 
-async def post(body):
+async def post(request, body):
     """
     saves a job in the queue
     """
@@ -37,7 +35,7 @@ async def post(body):
         "allocation_id": allocation_id,
         "demands": requirements,
     }
-    REDIS.conn.hset("jobs", allocation_id, json.dumps(payload))
+    request.app["redis"].conn.hset("jobs", allocation_id, json.dumps(payload))
     return web.json_response(
         {"status": 200, "data": {"allocation_id": allocation_id}}
     )
@@ -48,9 +46,7 @@ async def sub(request):
     listens to redis jobs queue (subscribe)
     """
     log.debug("initiating jobs websocket")
-    connection = await asyncio_redis.Connection.create(
-        host=REDIS.host, port=REDIS.port,
-    )
+    connection = await request.app["redis"].asyncconn
     subscriber = await connection.start_subscribe()
     websocket = web.WebSocketResponse()
     await websocket.prepare(request)

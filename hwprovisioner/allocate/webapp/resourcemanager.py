@@ -18,7 +18,7 @@ async def volunteer(request, body, resourcemanager_id, inventory_id):
     """
     log.debug("got a volunteer")
     log.debug("publishing to i:%s-%s" % (resourcemanager_id, inventory_id))
-    request.app["redis"].publish(
+    request.app["redis"].conn.publish(
         "i:%s-%s" % (resourcemanager_id, inventory_id), json.dumps(body["data"])
     )
     return web.json_response(
