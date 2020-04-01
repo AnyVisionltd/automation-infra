@@ -1,0 +1,76 @@
+.PHONY: docker-install
+docker-install:
+ifeq ($(OS),ubuntu)
+
+	@echo "Installing docker on $(OS)"
+
+	sudo apt-get update
+
+	sudo apt-get install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg-agent \
+    software-properties-common
+
+	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+	sudo add-apt-repository \
+	"deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+	$$(lsb_release -cs) \
+	stable"
+
+	sudo apt-get update
+
+	sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+
+	
+else ifeq ($(OS),red)
+
+	@echo "Installing docker on $(OS)"
+	
+	sudo yum install -y yum-utils \
+	device-mapper-persistent-data \
+	lvm2
+
+	sudo yum-config-manager \
+		--add-repo \
+		https://download.docker.com/linux/centos/docker-ce.repo
+
+	sudo yum install -y docker-ce docker-ce-cli containerd.io
+
+	sudo systemctl start docker
+
+else ifeq ($(OS),centos)
+
+	@echo "Installing docker on $(OS)"
+
+	sudo yum install -y yum-utils \
+	device-mapper-persistent-data \
+	lvm2
+
+	sudo yum-config-manager \
+		--add-repo \
+		https://download.docker.com/linux/centos/docker-ce.repo
+
+	sudo yum install -y docker-ce docker-ce-cli containerd.io
+
+	sudo systemctl start docker
+
+
+endif
+
+	docker --version
+
+
+.PHONY: docker-config
+docker-config:
+
+# if DOCKER_LOGIN_JSON_PATH var not exist get user input 
+ifeq ($(DOCKER_LOGIN_JSON_PATH),)
+	$(eval DOCKER_LOGIN_JSON_PATH := $(shell bash -c 'read -e -p "Docker login json file path: " path; echo $$path'))
+endif
+
+	@echo "get docker login credentials from: $(DOCKER_LOGIN_JSON_PATH)"
+
+	cat $(DOCKER_LOGIN_JSON_PATH)  | docker login "https://gcr.io" --username "_json_key" --password-stdin

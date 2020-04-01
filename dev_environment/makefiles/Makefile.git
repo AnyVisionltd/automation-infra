@@ -1,0 +1,42 @@
+REPOS_DIR ?= $(PARENT_ROOT_DIR)
+
+.PHONY: git-install
+git-install:
+
+ifeq ($(OS),ubuntu)
+	@echo "Installing git cli on $(OS)"
+	sudo apt update
+	sudo apt install -y git
+	git --version
+
+else ifeq ($(OS),red)
+	@echo "Installing git cli on $(OS)"
+	sudo yum install -y git
+	git --version
+
+else ifeq ($(OS),centos)
+	@echo "Installing git cli on $(OS)"
+	sudo yum install -y git
+	git --version
+
+endif
+
+
+.PHONY: git-pull
+git-pull:
+
+# if PRODUCT var not exist get user input 
+ifeq ($(PRODUCT),)
+	$(eval PRODUCT := $(shell bash -c 'read -e -p "PRODUCT: " product; echo $$product'))
+endif
+	
+	while IFS="" read -r line || [ -n "$$line" ]; do \
+		case "$$line" in \#*) continue ;; esac ; \
+		REPO_NAME=$$(basename $$line | cut -d '.' -f 1) ; \
+		if [ ! -d $(REPOS_DIR)/$$REPO_NAME ]; then \
+			echo "git clone $$REPO_NAME to $(REPOS_DIR)" ; \
+			git -C $(REPOS_DIR) clone $$line ; \
+		else \
+			echo "Git Repository $$REPO_NAME Already exist under $(REPOS_DIR)" ; \
+		fi \
+	done < "$(ROOT_DIR)/dev_environment/$(PRODUCT).txt"
