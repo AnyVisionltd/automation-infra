@@ -1,10 +1,10 @@
 """
 redis singleton
 """
+import os
+
 import redis
 import asyncio_redis
-
-import os
 
 
 # pylint: disable=R0903
@@ -19,7 +19,7 @@ class RedisClient:
         self._asyncconn = None
         self.host = host
         self.port = int(port)
-        self.db = int(db)
+        self.database = int(db)
         self.pool = redis.ConnectionPool(
             host=host, port=port, username=username, password=password, db=db
         )
@@ -47,7 +47,10 @@ class RedisClient:
         """
         instantiate an async connection
         """
-        self._asyncconn = await asyncio_redis.Connection.create(host=self.host, port=self.port)
+        self._asyncconn = await asyncio_redis.Connection.create(
+            host=self.host,
+            port=self.port
+        )
 
     def __create_connection(self):
         self._conn = redis.Redis(connection_pool=self.pool)

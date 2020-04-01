@@ -17,9 +17,10 @@ async def volunteer(request, body, resourcemanager_id, inventory_id):
     once it's free
     """
     log.debug("got a volunteer")
-    log.debug("publishing to i:%s-%s" % (resourcemanager_id, inventory_id))
+    log.debug("publishing to i:%s-%s", resourcemanager_id, inventory_id)
     request.app["redis"].conn.publish(
-        "i:%s-%s" % (resourcemanager_id, inventory_id), json.dumps(body["data"])
+        "i:%s-%s" % (resourcemanager_id, inventory_id),
+        json.dumps(body["data"])
     )
     return web.json_response(
         {
@@ -36,14 +37,16 @@ async def volunteer_sub(request, resourcemanager_id, inventory_id):
     """
     log.debug("initiating inventory websocket")
     connection = await asyncio_redis.Connection.create(
-        host=REDIS.host, port=REDIS.port,
+        host=REDIS.host, port=REDIS.port
     )
     subscriber = await connection.start_subscribe()
     websocket = web.WebSocketResponse()
     await websocket.prepare(request)
     request.app["websockets"].add(websocket)
-    log.debug("subscribing to i:%s-%s" % (resourcemanager_id, inventory_id))
-    await subscriber.subscribe(["i:%s-%s" % (resourcemanager_id, inventory_id)])
+    log.debug("subscribing to i:%s-%s", resourcemanager_id, inventory_id)
+    await subscriber.subscribe(
+        ["i:%s-%s" % (resourcemanager_id, inventory_id)]
+    )
     try:
         while True:
             reply = await subscriber.next_published()
