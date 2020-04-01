@@ -16,7 +16,7 @@ def load_config(configfile):
     log.debug("loading config")
     try:
         with open(configfile, "r") as yml:
-            config = yaml.load(yml, Loader=yaml.FullLoader)
+            config = yaml.safe_load(yml)
             # allocate rest api location (separate service)
             config["ALLOCATE_API"] = os.getenv(
                 "ALLOCATE_API", "http://localhost:8080/api/"
