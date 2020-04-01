@@ -3,8 +3,10 @@ allocate - jobs
 """
 import json
 import uuid
+import asyncio_redis
 from aiohttp import web
 
+from .redisclient import REDIS
 from .settings import log
 
 
@@ -55,7 +57,9 @@ async def sub(request):
     listens to redis jobs queue (subscribe)
     """
     log.debug("initiating jobs websocket")
-    connection = await request.app["redis"].asyncconn
+    connection = await asyncio_redis.Connection.create(
+        host=REDIS.host, port=REDIS.port,
+    )
     subscriber = await connection.start_subscribe()
     websocket = web.WebSocketResponse()
     await websocket.prepare(request)
