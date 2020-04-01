@@ -37,7 +37,6 @@ class ResourceManager(BaseObject):
 
     def _s3_client(self):
         self.config_aws()
-        self.start_tunnel(self.DNS_NAME, self.PORT)
         s3 = boto3.client('s3')  # Configure locally access keys on local machine in ~/.aws, this will use them
         return s3
 
