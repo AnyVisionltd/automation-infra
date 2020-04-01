@@ -22,6 +22,15 @@ async def alljobs(request):
     return web.json_response({"status": 200, "data": results})
 
 
+async def onejob(request, allocation_id):
+    """
+    return single job
+    """
+    job = request.app["redis"].conn.hget("jobs", allocation_id)
+    data = json.loads(job)
+    return web.json_response({"status": 200, "data": data})
+
+
 async def post(request, body):
     """
     saves a job in the queue
