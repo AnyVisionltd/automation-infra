@@ -11,7 +11,7 @@ from .settings import log
 
 def load_config(configfile):
     """
-    attempt to load config 
+    attempt to load config
     """
     log.debug("loading config")
     try:

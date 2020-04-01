@@ -53,17 +53,9 @@ def run_app(run=True, port=8080):
     heartbeats.subapp["websockets"] = weakref.WeakSet()
     heartbeats.subapp["redis"] = REDIS
 
-    cxapp.app.on_cleanup.append(cleanup_daemons)
-
     if run:
         return cxapp.run()
     return cxapp.app
-
-
-async def cleanup_daemons(app):
-    """
-    application tidyups
-    """
 
 
 if __name__ == "__main__":

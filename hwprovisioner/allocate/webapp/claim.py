@@ -21,8 +21,12 @@ async def claim(request, body):
     job_data["resourcemanager_id"] = data["resourcemanager_id"]
     job_data["inventory_type"] = data["inventory_type"]
     job_data["inventory_ref"] = data["inventory_ref"]
-    request.app["redis"].conn.hset("jobs", data["allocation_id"], json.dumps(job_data))
-    # adding connection info to dedicated job queue
+    request.app["redis"].conn.hset(
+        "jobs",
+        data["allocation_id"],
+        json.dumps(job_data)
+    )
+    # adding connection info to dedicated job queue
     request.app["redis"].conn.publish(
         "j:%s" % data["allocation_id"],
         body,

@@ -38,9 +38,7 @@ class Processor:
                             if await self.still_free(rtype, rref, data):
                                 # resource is ready. tell allocate to tell
                                 # tester that the resource is ready
-                                resp = await self.ready_up(
-                                    rtype, rref, data
-                                )
+                                resp = await self.ready_up(rtype, rref, data)
                                 if await self.claim(resp):
                                     log.debug("succeeded")
                             else:
@@ -64,7 +62,8 @@ class Processor:
         log.debug("checking to see if we can still process this request")
         async with aiohttp.ClientSession() as client:
             async with client.get(
-                "%sapi/jobs/%s" % (CONFIG["ALLOCATE_API"], data["allocation_id"])
+                "%sapi/jobs/%s"
+                % (CONFIG["ALLOCATE_API"], data["allocation_id"])
             ) as resp:
                 assert resp.status == 200
                 resp = await resp.json()
@@ -98,14 +97,13 @@ class Processor:
         log.debug("claiming ...")
         async with aiohttp.ClientSession() as client:
             async with client.post(
-                "%sapi/claim" % CONFIG["ALLOCATE_API"],
-                json=json.dumps(data),
+                "%sapi/claim" % CONFIG["ALLOCATE_API"], json=json.dumps(data)
             ) as resp:
                 data = await resp.json()
                 if "status" not in data or data["status"] != 200:
                     log.error("failed to volunteer")
                 elif data["data"] == "claimed":
-                    log.debug('claim successful')
+                    log.debug("claim successful")
                     return True
         return False
 
