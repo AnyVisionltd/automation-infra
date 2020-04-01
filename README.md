@@ -4,28 +4,249 @@ automation-infra
 This is an anyvision open-source project. It is written by the people for the people, if you find a bug, please fix it so everyone can benefit. And take into account that it is infrastructure, so tread softly.<br>
 In other words, pull requests are happily accepted :)
 
-##Background
+## Table of Contents  
+* [Background](#background)
+* [Set Up you environment](#set-up-your-environment)
+    * [set connection file](#set-connection-file)
+    * [set docker](#set-docker)
+    * [set aws s3](#set-aws-s3)
+    * [set git](#set-git)
+* [Pytests](#pytests)
+* [Provisioning](#provisioning)
+
+## Background
+
 Directory Structure and pythonpath calculation:
 All repos will be parallel to automation-infra repo.
 They will have folder called automation which will be added to pythonpath automatically. Imports should be relative to that.
 Inside automation folder will be another folder with the same name as the base repo (- replaced with _), and inside that relevant folders (plugins, utils, etc).
 
-#### Set Up:
-+ sudo apt-get install repo -y
-+ repo init -u git@github.com:/AnyVisionltd/core-manifest.git -b hab/automation
-+ repo sync -j 4
-+ Put a yaml file in $HOME/.local/hardware.yaml which has similar structure to:
+# set up your environment
+
+## set Make
+
+Install make
+
+*Ubuntu*: `apt update && apt -y install make`
+
+*RHEL/CentOS*: `yum -y install make`
+
+## set connection file
+
+**Makefile**
+
+```
+make -f Makefile-env set-connection-file
+
+# OR
+
+make -f Makefile-env set-connection-file HOST_IP=<destination host ip> USERNAME=<ssh user on destination> PASS=<ssh password on destination>
+
+# OR
+
+make -f Makefile-env set-connection-file HOST_IP=<destination host ip> USERNAME=<ssh user on destination> key_file_path=<ssh pem key path>
+```
+
+**or**
+
+**Manual**
+
+Put a yaml file in your `$HOME/.local/hardware.yaml` which has similar structure to:
 ```
 host:
     ip: 192.168.xx.xxx
     user: user
     password: pass
-    key_file_path: /path/to/pem # see note below: 
+    key_file_path: /path/to/pem
 ```
-*key_file_path and password are mutually exclusive so use only 1 type of auth
+> key_file_path and password are mutually exclusive so use only 1 type of auth
 
-+ Get ssh docker builder key. Get this from github, details here (step 9):
-https://anyvision.atlassian.net/wiki/spaces/DEV/pages/1251148648/Use+Buildkit
+## set docker
+
+### install docker
+
+**Makefile**
+```
+make -f Makefile-env docker-install
+```
+**or**
+
+**Manual**
+
+*Ubuntu*: https://docs.docker.com/install/linux/docker-ce/ubuntu
+
+*RHEL/CentOS*: https://docs.docker.com/install/linux/docker-ce/centos
+
+### docker login
+
+You will need to configure **docker login credentials** in your local machine so the pytest will be able to use your **docker login credentials** in the remote host that you mentioned in the `hardware.yaml` above for docker image pull from our private docker registry (gcr)
+
+#### docker login credentials using json file
+
+Ask from you devops guy your **docker login credentials** `json` file
+
+**Makefile**
+
+```
+make -f Makefile-env docker-config
+
+# OR
+
+make -f Makefile-env docker-config DOCKER_LOGIN_JSON_PATH=<path to json file>
+```
+
+**or**
+
+**Manual**
+
+```
+docker login "https://gcr.io" -u _json_key -p "$(cat <path to the json file> | tr '\n' ' ')" 
+
+# Example:
+docker login "https://gcr.io" -u _json_key -p "$(cat ~/.gcr/docker-registry-ro.json | tr '\n' ' ')"
+```
+
+## set aws s3
+
+### install aws cli
+
+
+**Makefile**
+
+```
+make -f Makefile-env aws-install
+```
+
+**or**
+
+**Manual**
+
+*Ubuntu / RHEL / CentOS*: https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html
+
+> You will need to install `unzip` prior the `aws cli` installation
+
+
+### aws config credentials
+
+Ask from you devops guy your **aws login credentials**, you should get: `aws access key` and `aws secret key`
+
+**Makefile**
+
+```
+make -f Makefile-env aws-config
+# OR
+make -f Makefile-env aws-config S3_KEY=<access key> S3_SECRET=<secret key>
+```
+>  you can use also `S3_REGION=<region>` (default: `eu-central-1`)
+
+**or**
+
+**Manual**
+
+set you aws config by running:
+
+```
+aws configure set aws_access_key_id <aws_access_key_id>
+aws configure set aws_secret_access_key <aws_secret_access_key>
+aws configure set default.region eu-central-1
+```
+
+## set git
+
+### install git cli
+
+**Makefile**
+
+```
+make -f Makefile-env git-install
+```
+
+**or**
+
+**Manual**
+
+*Ubuntu / RHEL / CentOS*: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
+
+### configure git credentials
+
+**github**:
+
+*token*: https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
+
+or
+
+*ssh key*: https://help.github.com/en/enterprise/2.15/user/articles/adding-a-new-ssh-key-to-your-github-account 
+
+## git repositories
+
+Let's `git pull` all the relevant git repositories by product
+
+First, let's create **new** directory which will contains all the relevant git repositories for the automation tests.
+why? This Directory will be the parent directory so we will be able to use your IDE to open all those repos in same window and work with the automation libraries
+
+```
+mkdir -p $HOME/automation_repos
+cd $HOME/automation_repos
+```
+> you can choose a different parent directory as much as you want
+
+Now Let's clone the base git repo of the automation tests to the parent directory that you created above
+
+```
+git clone git@github.com:AnyVisionltd/automation-infra.git
+cd automation-infra
+```
+
+Now we can pull all the relevant git repositories by product
+
+**Makefile**
+
+```
+make -f Makefile-env git-pull
+
+# OR
+
+make -f Makefile-env git-pull PRODUCT=<product name>
+```
+
+**Manual**
+
+git clone each line in $HOME/automation_repos/dev_environment/{product name}.txt
+```
+
+cat $HOME/automation_repos/automation-infra/dev_environment/{product name}.txt
+git clone -C $HOME/automation_repos/automation-infra {line}
+
+# Example:
+cat $HOME/automation_repos/dev_environment/core.txt
+# Output:
+git@github.com:AnyVisionltd/devops-automation-infra.git
+git@github.com:AnyVisionltd/camera-service.git
+git@github.com:AnyVisionltd/pipeng.git
+git@github.com:AnyVisionltd/protobuf-contract.git
+git@github.com:AnyVisionltd/core-products.git
+
+# clone:
+git -C $HOME/automation_repos clone git@github.com:AnyVisionltd/devops-automation-infra.git
+git -C $HOME/automation_repos clone git@github.com:AnyVisionltd/camera-service.git
+git -C $HOME/automation_repos clone git@github.com:AnyVisionltd/pipeng.git
+git -C $HOME/automation_repos clone git@github.com:AnyVisionltd/protobuf-contract.git
+git -C $HOME/automation_repos clone git@github.com:AnyVisionltd/core-product.git
+```
+
+At the end you will get this directory structure for **core** product
+```
+automation_repos
+├── automation-infra
+├── camera-service
+├── core-product
+├── devops-automation-infra
+├── pipeng
+└── protobuf-contract
+```
+
+
+# Pytests
 
 + run ./run_tests.sh, this should pass, this means the repo and requirements are set up properly.
 
@@ -108,6 +329,8 @@ product running.
 Anyone interested to implement test setup/teardown login in addition to what is provided can implement a pytest plugin of their own and invoke it in the same way. 
 
 
+# Provisioning
+
 make
 ----
 
@@ -148,11 +371,6 @@ make test-lint-shellcheck # run only shell/bash linter
 make test-lint-docker     # run only docker linter
 ```
 
-### hwprovisoner architecture
+## hwprovisoner architecture
 
-![hwprovisioner architecture](./hwprovisioner/media/hw_provisioner.png)
-
-Flow Diagram:
-
-![Alt](media/automation_infra_flow_design.svg)
-
+https://anyvision.atlassian.net/wiki/spaces/PROD/pages/1558806855
