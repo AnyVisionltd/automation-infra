@@ -12,6 +12,9 @@ help: _help
 
 .PHONY: run
 run: build ## runs the application
+ifndef MYIP
+	$(error MYIP is not set. Please set this to your machine IP)
+endif
 	@docker run --rm -e ALLOCATE_API=http://${MYIP}:8080/ -e CONFIG_FILE=./resources.yml -p 9080:8080 -v ${PWD}:/src -w /src -ti resourcemanager watchmedo auto-restart --recursive -d . -p '*.py' -- python3 -m 'webapp.app' serve
 
 .PHONY: build
