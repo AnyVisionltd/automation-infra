@@ -3,6 +3,7 @@ allocate - jobs
 """
 import json
 import uuid
+import time
 import asyncio_redis
 from aiohttp import web
 
@@ -45,6 +46,7 @@ async def post(request, body):
         "state": "free",
         "allocation_id": allocation_id,
         "demands": requirements,
+        "expiration": time.time() + 10,
     }
     request.app["redis"].conn.hset("jobs", allocation_id, json.dumps(payload))
     return web.json_response(
