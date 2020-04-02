@@ -1,11 +1,9 @@
 """
 """
 import logging
-import requests
-import time
+import asyncio
 
 import aiohttp
-import asyncio
 
 
 machine_details = {
@@ -30,45 +28,37 @@ machine_details = {
 }
 
 
-async def fetcher(hardware_req, provisioner):
+async def fetcher(hardware_req, provisioner, resource_wait=None):
     """
+    send demands and listen for updates
+    - resource_wait=None or number of seconds to wait until a resource is
+      assigned
     """
-    logging.info("posting job to %sapi/jobs ", provisioner)
-    payload = hardware_req
-    logging.info("sending %s", payload)
-    resp = requests.post("%sapi/jobs" % provisioner, json={"demands": payload})
-    logging.info("got : %s", resp.text)
-    jresp = resp.json()
-    if "data" in jresp:
-        if "allocation_id" in jresp["data"]:
-            logging.info(
-                "this task has been assigned allocation_id: %s",
-                jresp["data"]["allocation_id"],
-            )
-            # have allocation id. listen to allocation queue
-            async with aiohttp.ClientSession() as client:
-                logging.debug("listening to job queue")
-                websocket = await client.ws_connect(
-                    "%sapi/ws/jobs" % provisioner,
-                    autoclose=True,
-                )
-                payload = {
-                    "data": {"allocation_id": jresp["data"]["allocation_id"]}
-                }
-                await websocket.send_json(payload)
-                while True:
-                    reply = await websocket.receive_json()
-                    # listen for progress
-                    if "inventory_data" in reply:
-                        logging.debug("done!")
-                        return {"candidate": reply["inventory_data"]["access"]}
-                    time.sleep(0.3)
-        else:
-            # no allocation_id
-            logging.info("no allocation id")
-    else:
-        logging.error("didnt get expected response")
-    return []
+    async with aiohttp.ClientSession() as client:
+        logging.debug("connecting to job queue")
+        websocket = await client.ws_connect(
+            "%sapi/ws/jobs" % provisioner,
+            autoclose=True,
+        )
+        try:
+            logging.debug("sending demands to job queue")
+            await websocket.send_json({"data": {"demands": hardware_req}})
+            reply = await websocket.receive_json(timeout=10)
+            if "allocation_id" in reply:
+                logging.debug(f"allocation_id: {reply['allocation_id']}")
+                await websocket.send_json({
+                    "data": {"allocation_id": reply["allocation_id"]}
+                })
+                reply = await websocket.receive_json(timeout=resource_wait)
+                if "inventory_data" in reply:
+                    return {"candidate": reply["inventory_data"]["access"]}
+            else:
+                logging.error("failed to set demands")
+        except TimeoutError:
+            logging.error("Error: timed out")
+        finally:
+            await websocket.close()
+    return {}
 
 
 def init_hardware(hardware_req, provisioner=None):
