@@ -5,6 +5,7 @@ import json
 import uuid
 from aiohttp import web
 import asyncio_redis
+from redis import RedisError
 
 from .redisclient import REDIS
 from .settings import log
@@ -28,19 +29,30 @@ async def post(body):
     """
     saves a job in the queue
     """
-    allocation_id = str(uuid.uuid4())
-    log.debug("got post request")
-    requirements = body["demands"]
-    log.debug("demands: %s", requirements)
-    payload = {
-        "state": "free",
-        "allocation_id": allocation_id,
-        "demands": requirements,
-    }
-    REDIS.conn.hset("jobs", allocation_id, json.dumps(payload))
-    return web.json_response(
-        {"status": 200, "data": {"allocation_id": allocation_id}}
-    )
+    if "demands" in body:
+        allocation_id = str(uuid.uuid4())
+        log.debug("got post request")
+        requirements = body["demands"]
+        log.debug("demands: %s", requirements)
+        payload = {
+            "state": "free",
+            "allocation_id": allocation_id,
+            "demands": requirements,
+        }
+        try:
+            REDIS.conn.hset("jobs", allocation_id, json.dumps(payload))
+            return web.json_response(
+                {"status": 200, "data": {"allocation_id": allocation_id}}
+            )
+        except RedisError as err:
+            return web.json_response(
+                {"status": 500, "reason": str(err)}, status=500
+            )
+    else:
+        return web.json_response(
+            {"status": 400, "reason": "'demands' missing from body"},
+            status=400
+        )
 
 
 async def sub(request):
