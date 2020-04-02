@@ -31,10 +31,14 @@ def is_k8s(connected_ssh_module):
 def do_docker_login(connected_ssh_module):
     logging.debug("doing docker login")
     remote_home = connected_ssh_module.execute("echo $HOME").strip()
-    config_exists = connected_ssh_module.execute(f"ls {remote_home}/.docker/config.json")
-    if not config_exists:
-        connected_ssh_module.execute(f"mkdir -p {remote_home}/.docker")
-        connected_ssh_module.put(f"{os.getenv('HOME')}/.docker/config.json", f"{remote_home}/.docker/")
+    try:
+        config_exists = connected_ssh_module.execute(f"ls {remote_home}/.docker/config.json")
+    except SSHCalledProcessError as e:
+        if 'No such file or directory' in e.stderr:
+            connected_ssh_module.execute(f"mkdir -p {remote_home}/.docker")
+            connected_ssh_module.put(f"{os.getenv('HOME')}/.docker/config.json", f"{remote_home}/.docker/")
+        else:
+            raise e
     connected_ssh_module.execute("docker login https://gcr.io")
 
 
