@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "27bc724421401490b3f3aa2de60e54391585c47fb693c1329ec4cba050236ac2"
+            "sha256": "f52167ff61eac35b7c2eb6c56b80001898a19a47badfbc486b27ba36a238d78f"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -537,6 +537,13 @@
             "index": "pypi",
             "version": "==0.13.0"
         },
+        "plumbum": {
+            "hashes": [
+                "sha256:16b9e19d96c80f2e9d051ef5f04927b834a6ac0ce5d2768eb8662b5cd53e43df",
+                "sha256:91418dcc66b58ab9d2e3b04b3d1e0d787dc45923154fb8b4a826bd9316dba0d6"
+            ],
+            "version": "==1.6.9"
+        },
         "prometheus-http-clint": {
             "editable": true,
             "git": "https://github.com/tomoncle/prometheus-http-client",
@@ -768,6 +775,14 @@
             ],
             "index": "pypi",
             "version": "==2.22.0"
+        },
+        "rpyc": {
+            "hashes": [
+                "sha256:71eac40d43b2fe359d67a42d0ad3b624028a7d0815f0bacf60b93c725e14cdd5",
+                "sha256:bfcc41343c541345c7a134511db7caeaa4261e637d9d6e597072321ff8ddcc78"
+            ],
+            "index": "pypi",
+            "version": "==4.1.4"
         },
         "s3transfer": {
             "hashes": [
