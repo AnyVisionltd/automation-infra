@@ -31,11 +31,10 @@ def is_k8s(connected_ssh_module):
 def do_docker_login(connected_ssh_module):
     logging.debug("doing docker login")
     remote_home = connected_ssh_module.execute("echo $HOME").strip()
-    try:
-        connected_ssh_module.execute(f"mkdir {remote_home}/.docker")
-    except:
-        logging.error("cannot create directory exception caught, it exists")
-    connected_ssh_module.put(f"{os.getenv('HOME')}/.docker/config.json", f"{remote_home}/.docker/")
+    config_exists = connected_ssh_module.execute(f"ls {remote_home}/.docker/config.json")
+    if not config_exists:
+        connected_ssh_module.execute(f"mkdir -p {remote_home}/.docker")
+        connected_ssh_module.put(f"{os.getenv('HOME')}/.docker/config.json", f"{remote_home}/.docker/")
     connected_ssh_module.execute("docker login https://gcr.io")
 
 
