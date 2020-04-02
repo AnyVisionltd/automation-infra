@@ -61,7 +61,7 @@ async def sub(request):
     """
     log.debug("initiating jobs websocket")
     connection = await asyncio_redis.Connection.create(
-        host=REDIS.host, port=REDIS.port,
+        host=REDIS.host, port=REDIS.port
     )
     subscriber = await connection.start_subscribe()
     websocket = web.WebSocketResponse()
@@ -70,20 +70,30 @@ async def sub(request):
     try:
         async for msg in websocket:
             payload = json.loads(msg.data)
-            if payload["data"] == "all":
-                log.debug("subscribing to all")
-                await subscriber.subscribe(["jobs"])
-            elif "allocation_id" in payload["data"]:
-                log.debug(
-                    "subscribing to jobqueue j:%s",
-                    payload["data"]["allocation_id"],
-                )
-                await subscriber.subscribe(
-                    ["j:%s" % payload["data"]["allocation_id"]]
-                )
-            while True:
-                reply = await subscriber.next_published()
-                await websocket.send_json(json.loads(reply.value))
+            if "data" in payload:
+                if "demands" in payload["data"]:
+                    log.debug("processing demands")
+                    resp = await post(payload["data"])
+                    jresp = json.loads(resp.text)
+                    if jresp["status"] == 200:
+                        await websocket.send_json(
+                            {"allocation_id": jresp["data"]["allocation_id"]}
+                        )
+                    continue
+                if payload["data"] == "all":
+                    log.debug("subscribing to all")
+                    await subscriber.subscribe(["jobs"])
+                elif "allocation_id" in payload["data"]:
+                    log.debug(
+                        "subscribing to jobqueue j:%s",
+                        payload["data"]["allocation_id"],
+                    )
+                    await subscriber.subscribe(
+                        ["j:%s" % payload["data"]["allocation_id"]]
+                    )
+                while True:
+                    reply = await subscriber.next_published()
+                    await websocket.send_json(json.loads(reply.value))
     finally:
         await websocket.close()
         log.debug("websocket discarded")
