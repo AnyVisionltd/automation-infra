@@ -2,6 +2,7 @@
 """
 import logging
 import asyncio
+import time
 
 import aiohttp
 
@@ -38,7 +39,6 @@ async def fetcher(hardware_req, provisioner, resource_wait=None):
         logging.debug("connecting to job queue")
         websocket = await client.ws_connect(
             "%sapi/ws/jobs" % provisioner,
-            autoclose=True,
         )
         try:
             logging.debug("sending demands to job queue")
@@ -56,8 +56,6 @@ async def fetcher(hardware_req, provisioner, resource_wait=None):
                 logging.error("failed to set demands")
         except TimeoutError:
             logging.error("Error: timed out")
-        finally:
-            await websocket.close()
     return {}
 
 
@@ -67,7 +65,9 @@ def init_hardware(hardware_req, provisioner=None):
     hardware = {}
     if provisioner:  # provisioned mode
         loop = asyncio.get_event_loop()
+        start = time.time()
         reply = loop.run_until_complete(fetcher(hardware_req, provisioner))
+        logging.debug("fetcher took %s seconds", time.time() - start)
         if "candidate" in reply:
             hostname = list(hardware_req.keys())[0]
             hardware[hostname] = reply["candidate"]
