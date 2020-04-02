@@ -6,6 +6,11 @@ PUBKEY_FILE=/${HOME}/.ssh/docker-builder-key
 DOCKERIZE_FORCE_BUILD=${DOCKERIZE_FORCE_BUILD:-0}
 V=${V:=0}
 
+# Absolute path to this script
+SCRIPT=$(readlink -f "$0")
+# Absolute path to the script directory
+script_dir=$(dirname "$SCRIPT")
+
 function _is_debug() {
    if [ "$V" == "1" ];
    then
@@ -51,23 +56,26 @@ function kill_ssh_agent () {
 
 function _docker_image() {
     local tag=$1
-    echo "gcr.io/anyvision-training/containerize:${tag}"
+    echo "gcr.io/anyvision-training/automation-infra:${tag}"
 }
 
 function _docker_login() {
+    local DOCKER_CONFIG=${HOME}/.docker/config.json
     local FILE=${HOME}/.gcr/docker-registry-rw.json
-    if [ -e $FILE ] ; then
-        docker login -u _json_key -p "$(cat "$FILE")" https://gcr.io
-    else
-        >&2 echo "didnt find docker-registry-rw file! "
-        exit 1
+    if [ ! -f $DOCKER_CONFIG ]; then
+        if [ -f $FILE ] ; then
+            docker login -u _json_key -p "$(cat "$FILE")" https://gcr.io
+        else
+            >&2 echo "didnt find docker-registry-rw file! "
+            exit 1
+        fi
     fi
+
 }
 
 function build_docker_image () {
     local tag=$1
     local image_name=$(_docker_image "${tag}")
-
     local docker_build_cache=""
 
     if [ "${DOCKERIZE_FORCE_BUILD}" == "0" ];
@@ -88,18 +96,15 @@ function build_docker_image () {
         docker_build_cache="--no-cache"
     fi
 
-    run_ssh_agent
     # Try to build
     local build_dir=$(dirname "${BASH_SOURCE[0]}")
     echo "Building docker image ${image_name}"
     DOCKER_BUILDKIT=1 \
-        docker build ${docker_build_cache} -t gcr.io/anyvision-training/containerize:"${tag}" \
-        --ssh default="${SSH_AUTH_SOCK}" \
-        --secret id=jfrog-cfg,src="${HOME}"/.jfrog/jfrog-cli.conf \
-        --label "branch_name=development" \
-        --label "service_name=pipeng_devenv-${tag}" \
-        -f "$build_dir"/Dockerfile_local  "$build_dir"
-    kill_ssh_agent
+        docker build ${docker_build_cache} -t "${image_name}" \
+        --label "service_name=automation-infra" \
+        --label "tag=${tag}" \
+        -f "$build_dir"/Dockerfile_local "$build_dir" \
+        --network=host
 }
 
 function kill_container() {
@@ -107,7 +112,11 @@ function kill_container() {
 }
 
 function _add_mount() {
-    echo " --volume=$1"
+    if [ -x "$(command -v gravity)" ]; then
+        echo " --volume=/host$1"
+    else
+        echo " --volume=$1"
+    fi
 }
 
 
@@ -177,21 +186,16 @@ function run_docker () {
     # I dont think this is necessary because docker is run with --rm but am leaving it to make sure
     # trap "kill_container ${NAME}" 0
 
-    local script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
     local mount_path=$(dirname "$script_dir")
 
     debug_print "mounting up 1 from script_dir: $mount_path"
 
-    MOUNTS=("/dev:/dev"
-            "${HOME}/.ssh:/${HOME}/.ssh"
-            "/${HOME}/.netrc:/${HOME}/.netrc"
+    MOUNTS=("${HOME}/.ssh:${HOME}/.ssh"
             "/var/run/docker.sock:/var/run/docker.sock"
-            "${HOME}/.gitconfig:${HOME}/.gitconfig"
-            "${HOME}/.jfrog:${HOME}/.jfrog"
-            "$mount_path:$mount_path"
             "${HOME}/.local:${HOME}/.local"
             "${HOME}/.docker:${HOME}/.docker"
             "${HOME}/.aws:${HOME}/.aws"
+            "$mount_path:$mount_path"
 	        )
 
     mount_cmd=""
@@ -203,7 +207,7 @@ function run_docker () {
 
     python_path=$(build_python_path $mount_path)
 
-    env_cmd+="-e PYTHONPATH=${python_path} -e DISPLAY=${DISPLAY-':0'} -e CONSUL_NODE_ID=local-agent-${HOSTNAME}"
+    env_cmd+="-e PYTHONPATH=${python_path}"
 
     # mount source code in same location as in host
     cmd="docker run --name ${NAME} --privileged  --rm $mount_cmd $env_cmd"
@@ -239,11 +243,11 @@ function main () {
 cmd=${1:-"bash"}
 
 # If just asking for help
-if [ "$cmd" == "-h" ]; then
+if [ "$cmd" == "-h" ] || [ "$cmd" == "--help" ]; then
   echo "Use: V=1 $(basename "$0") for debug printing"
   echo "Just running $(basename "$0") will default to $(basename "$0") bash"
   echo "Or use $(basename "$0") and any args which docker run will accept"
-  exit
+  exit 0
 fi
 
 # if script is sourced dont run dockerize
