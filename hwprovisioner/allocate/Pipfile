@@ -4,6 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+asynctest = "==0.13.0"
 radon = "==4.0.0"
 bandit = "==1.6.2"
 black = "==19.3b0"
