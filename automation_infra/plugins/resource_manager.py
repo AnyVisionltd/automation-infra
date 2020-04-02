@@ -8,6 +8,8 @@ from botocore.exceptions import ClientError
 import sys
 import threading
 
+from automation_infra.plugins.ssh_direct import SSHCalledProcessError
+
 try:
     from devops_automation_infra.plugins.seaweed import Seaweed as BaseObject
 except ImportError:
@@ -25,8 +27,14 @@ class ResourceManager(BaseObject):
             raise FileNotFoundError("Missing aws credentials in ~/.aws folder")
         connected_ssh_module = self._host.SSH
         remote_home = connected_ssh_module.execute("echo $HOME").strip()
-        connected_ssh_module.execute(f"mkdir -p {remote_home}/.aws")
-        connected_ssh_module.put(f"{os.getenv('HOME')}/.aws/*", f"{remote_home}/.aws/")
+        try:
+            config_exists = len(connected_ssh_module.execute(f"ls {remote_home}/.aws/c*")) == 2
+        except SSHCalledProcessError as e:
+            if 'No such file or directory' in e.stderr:
+                connected_ssh_module.execute(f"mkdir -p {remote_home}/.aws")
+                connected_ssh_module.put(f"{os.getenv('HOME')}/.aws/*", f"{remote_home}/.aws/")
+            else:
+                raise e
         connected_ssh_module.execute("aws s3 ls s3://anyvision-testing")
 
     @property

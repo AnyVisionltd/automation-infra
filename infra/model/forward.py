@@ -22,7 +22,7 @@ class Handler(SocketServer.BaseRequestHandler):
     def handle(self):
         try:
             transport = self.ssh.get_transport()
-            logging.info(
+            logging.debug(
                 f"Opening tunnel to: {self.chain_host}")
             chan = transport.open_channel(
                 "direct-tcpip",
@@ -42,7 +42,7 @@ class Handler(SocketServer.BaseRequestHandler):
                 % (self.chain_host, self.chain_port)
             )
 
-        logging.info(
+        logging.debug(
             "Connected!  Tunnel open %r -> %r -> %r"
             % (
                 self.request.getpeername(),
@@ -66,7 +66,7 @@ class Handler(SocketServer.BaseRequestHandler):
         peername = self.request.getpeername()
         chan.close()
         self.request.close()
-        logging.info("Tunnel closed from %r" % (peername,))
+        logging.debug("Tunnel closed from %r" % (peername,))
 
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
