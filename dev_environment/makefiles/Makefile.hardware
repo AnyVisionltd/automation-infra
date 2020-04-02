@@ -7,7 +7,7 @@ CONN_FILE_PATH ?= "$${HOME}/.local/hardware.yaml"
 .PHONY: set-connection-file
 set-connection-file:
 	@echo "creating connection file under: $(CONN_FILE_PATH)"
-	@echo "host" > $(CONN_FILE_PATH)
+	@echo "host:" > $(CONN_FILE_PATH)
 	@echo "  ip: $(HOST_IP)" >> $(CONN_FILE_PATH)
 	@echo "  user: $(USERNAME)" >> $(CONN_FILE_PATH)
 	@echo "  password: $(PASS)" >> $(CONN_FILE_PATH)
