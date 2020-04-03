@@ -181,12 +181,3 @@ class Listener:
                     data = await resp.json()
                     if "status" not in data or data["status"] != 200:
                         log.error("failed to volunteer")
-
-    @staticmethod
-    def cleanup():
-        """
-        triggered when the app is destroyed (aiohttp on_cleanup)
-        """
-        log.debug("listener: cleanup")
-
-
