@@ -5,8 +5,6 @@ the listener is responsible for listening to the allocation api for jobs,
 determining if it is able to meet the demands of those jobs and if so,
 volunteering (to the allocate api) to process them
 """
-import json
-
 import asyncio
 import aiohttp
 
@@ -35,16 +33,22 @@ class Listener:
         it volunteers for those jobs
         """
         while True:
-            await asyncio.sleep(5)  # naive: allow processor to listen first
+            await asyncio.sleep(1)
             jobs = await self.get_jobs()
             if jobs:
-                matches = await self.matching_jobs(jobs)
+                matches = await self.match_jobs_to_config(jobs)
                 if matches:
                     await self.volunteer(app, matches)
 
-    # note: this method needs A LOT of cleanup attention ...
-    # currently only checks cpu, mem, labels and gpus
-    async def matching_jobs(self, jobs):
+    async def match_jobs_to_config(self, jobs):
+        """
+        iterates over parts of the config file and matches them to jobs
+        """
+        for rtype in ["static", "dynamic"]:
+            if rtype in CONFIG["resources"]:
+                return await self.matching_jobs(jobs, rtype)
+
+    async def matching_jobs(self, jobs, rtype):
         """
         assess jobs to see if this resource manager has the ability to service
         their needs
@@ -52,100 +56,115 @@ class Listener:
         log.debug("matching jobs ...")
         matches = []
         for job in jobs:
-            if "allocation_id" in job:
-                allocation_id = job["allocation_id"]
+            if "allocation_id" in job and "state" in job:
                 # naive: simple memoization
-                if allocation_id in self.job_inspection_cache:
+                if job["allocation_id"] in self.job_inspection_cache:
                     continue
-                self.job_inspection_cache.append(allocation_id)
+                self.job_inspection_cache.append(job["allocation_id"])
+                if job["state"] != "free":
+                    continue
 
-                jref = list(job["demands"])[0]
-                # @todo: review efficiency - horrible loop nesting
-                for rtype in ["static", "dynamic"]:
-                    if rtype in CONFIG["resources"]:
-                        for rref in CONFIG["resources"][rtype]:
-                            log.debug(
-                                "assessing %s for %s", allocation_id, rref
-                            )
-                            resource = CONFIG["resources"][rtype][rref]
-                            fail = False
-                            for demand in job["demands"][jref]:
-                                # @todo: break these out into separate methods
-                                if demand not in resource:
-                                    log.debug(
-                                        "%s has no %s field. skipping",
-                                        rref,
-                                        demand,
-                                    )
-                                    fail = True
-                                    break
-                                if demand == "labels":
-                                    for lbl in job["demands"][jref]["labels"]:
-                                        if lbl not in resource["labels"]:
-                                            fail = True
-                                            break
-                                elif demand == "gpu":
-                                    for gdemand in job["demands"][jref]["gpu"]:
-                                        for rgpu in resource["gpu"]:
-                                            if (
-                                                gdemand not in rgpu
-                                                or rgpu[gdemand]
-                                                != job["demands"][jref]["gpu"][
-                                                    gdemand
-                                                ]
-                                            ):
-                                                fail = True
-                                                break
-
-                                        if fail:
-                                            break
-                                    if fail:
-                                        break
-                                elif demand in ["cpu", "mem"]:
-                                    # we only support one comparisson for now
-                                    if ">=" in job["demands"][jref][demand]:
-                                        if (resource[demand]) < int(
-                                            job["demands"][jref][
-                                                demand
-                                            ].replace(">=", "")
-                                        ):
-                                            fail = True
-                                            break
-                                    else:
-                                        if int(resource[demand]) != int(
-                                            job["demands"][jref][demand]
-                                        ):
-                                            fail = True
-                                            break
-                            if not fail:
-                                matches.append(
-                                    {
-                                        "allocation_id": allocation_id,
-                                        "inventory_ref": rref,
-                                        "inventory_data": resource,
-                                        "inventory_type": rtype,
-                                        "job": job,
-                                    }
-                                )
+                for rref in CONFIG["resources"][rtype]:
+                    match = await self.match(
+                        job, rtype, rref, CONFIG["resources"][rtype][rref]
+                    )
+                    if match:
+                        matches.append(match)
         return matches
+
+    # currently only checks cpu, mem, labels and gpus
+    async def match(self, job, rtype, rref, resource):
+        """
+        match a job to a resource
+         - job. all job details (demands)
+         - rtype. the reference type. static or dynamic
+         - rref. the resource reference (a custom name, e.g. 'myserver')
+         - resource. the resource information
+        """
+        jref = list(job["demands"])[0]
+        job_demands = job["demands"][jref]
+        log.debug("assessing %s for %s", job["allocation_id"], rref)
+        fail = False
+        for demand in job_demands:
+            if demand not in resource:
+                log.debug("%s has no %s field. skipping", rref, demand)
+                fail = True
+            if demand == "labels":
+                fail = not await self.compare_labels(
+                    job_demands["labels"], resource["labels"]
+                )
+            elif demand == "gpu":
+                fail = not await self.compare_gpus(
+                    job_demands["gpu"], resource["gpu"]
+                )
+            elif demand in ["cpu", "mem"]:
+                fail = not await self.compare_cpuormem(
+                    job_demands[demand], resource[demand]
+                )
+            else:
+                log.warn(
+                    "got a field that I wasn't sure how to handle: %s", demand
+                )
+                fail = True
+            if fail:
+                return None
+        return {
+            "allocation_id": job["allocation_id"],
+            "inventory_ref": rref,
+            "inventory_data": resource,
+            "inventory_type": rtype,
+            "job": job,
+        }
+
+    async def compare_labels(self, job_labels, resource_labels):
+        """
+        compares labels to be sure there's a match
+        """
+        matched = [k for k in job_labels if k in resource_labels]
+        return len(matched) == len(job_labels)
+
+    async def compare_gpus(self, job_gpus, resource_gpus):
+        """
+        compares gpus to be sure there's a match
+        """
+        for job_gpu in job_gpus:
+            found = False
+            for resource_gpu in resource_gpus:
+                matched = {
+                    k
+                    for k in job_gpu
+                    if k in resource_gpu and job_gpu[k] == resource_gpu[k]
+                }
+                if len(matched) == len(job_gpu):
+                    found = True
+                    break
+            if not found:
+                return False
+        return True
+
+    async def compare_cpuormem(self, job_demand, resource_demand):
+        """
+        compares cpu or memory to ensure demands are met
+        """
+        if ">=" in str(job_demand):
+            if (resource_demand) >= int(job_demand.replace(">=", "")):
+                return True
+        else:
+            if int(resource_demand) == int(job_demand):
+                return True
+        return False
 
     async def get_jobs(self):
         """
-        grab all of the jobs currently in the queue and filter out any that
-        aren't free
+        grab all of the jobs currently in the queue
         """
-        jobs = []
         async with aiohttp.ClientSession() as client:
             async with client.get(
-                "%sapi/jobs" % CONFIG["ALLOCATE_API"],
+                "%sapi/jobs" % CONFIG["ALLOCATE_API"]
             ) as resp:
                 data = await resp.json()
-                for job in data["data"]:
-                    job = json.loads(job)
-                    if job["allocation_id"] not in self.job_inspection_cache:
-                        if job["state"] == "free":
-                            jobs.append(job)
-        return jobs
+                return data["data"]
+        return []
 
     @staticmethod
     async def volunteer(app, matches):
@@ -156,19 +175,13 @@ class Listener:
         log.debug("volunteering ...")
         log.debug(
             "sending to %sapi/resourcemanager/%s"
-            % (
-                CONFIG["ALLOCATE_API"],
-                CONFIG["UUID"],
-            )
+            % (CONFIG["ALLOCATE_API"], CONFIG["UUID"])
         )
         async with aiohttp.ClientSession() as client:
             async with client.post(
                 "%sapi/resourcemanager/%s"
-                % (
-                    CONFIG["ALLOCATE_API"],
-                    CONFIG["UUID"],
-                ),
-                json={"data": matches}
+                % (CONFIG["ALLOCATE_API"], CONFIG["UUID"]),
+                json={"data": matches},
             ) as resp:
                 data = await resp.json()
                 if "status" not in data or data["status"] != 200:
