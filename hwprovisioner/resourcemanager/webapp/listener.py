@@ -190,4 +190,3 @@ class Listener:
         log.debug("listener: cleanup")
 
 
-LISTENER = Listener()
