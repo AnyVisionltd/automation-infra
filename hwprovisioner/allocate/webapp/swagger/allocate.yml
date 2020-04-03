@@ -6,16 +6,6 @@ info:
   description: >-
     A service which allocates resources (servers, VMs, devices) for developers
 paths:
-  # rm.listener.get_jobs jobs / GET
-  # rm.listener.volunteer resourcemanager/$rm/ref POST
-  # rm.listener.sub jobsws/ / GET (sub)
-  # rm.processor.still_free jobs/allocation_id GET
-  # rm.processor.processprospect/$rm/ref GET (sub)
-  # rm.processor.processprospect/$rm/ref DELETE
-  # rm.processor.claim jobqueue/allocation_id POST
-  # tester.done jobs/ POST
-  # tester.done jobs/allocation_id DELETE
-
   /claim:
     post:
       tags: [Jobs]
@@ -179,44 +169,6 @@ paths:
                 properties:
                   allocation_id:
                     type: string
-                  demands:
-                    type: string
-  /resourcemanager/{resourcemanager_id}/{inventory_id}/{allocation_id}:
-    delete:
-      tags: [Prospector]
-      operationId: webapp.resourcemanager.volunteer
-      summary: >-
-        Removes a specific job from the resource list
-      parameters:
-        - name: resourcemanager_id
-          in: path
-          description: the rm id
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: inventory_id
-          in: path
-          description: the inv id
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: allocation_id
-          in: path
-          description: the allocation id
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        200:
-          description: Operation success indicator
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
                   allocation_id:
                     type: string
                   demands:
