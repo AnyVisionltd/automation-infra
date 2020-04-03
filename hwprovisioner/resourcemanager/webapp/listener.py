@@ -153,31 +153,23 @@ class Listener:
         tell the allocate service that we are a candidate for processing some
         of its jobs
         """
-        # @todo: this approach is really inefficient. we should send all of
-        #        the matches in a single request
         log.debug("volunteering ...")
-        for match in matches:
-            payload = {"data": match}
-            log.debug(
-                "sending to %sapi/resourcemanager/%s/%s-%s"
+        log.debug(
+            "sending to %sapi/resourcemanager/%s"
+            % (
+                CONFIG["ALLOCATE_API"],
+                CONFIG["UUID"],
+            )
+        )
+        async with aiohttp.ClientSession() as client:
+            async with client.post(
+                "%sapi/resourcemanager/%s"
                 % (
                     CONFIG["ALLOCATE_API"],
                     CONFIG["UUID"],
-                    match["inventory_type"],
-                    match["inventory_ref"],
-                )
-            )
-            async with aiohttp.ClientSession() as client:
-                async with client.post(
-                    "%sapi/resourcemanager/%s/%s-%s"
-                    % (
-                        CONFIG["ALLOCATE_API"],
-                        CONFIG["UUID"],
-                        match["inventory_type"],
-                        match["inventory_ref"],
-                    ),
-                    json=payload,
-                ) as resp:
-                    data = await resp.json()
-                    if "status" not in data or data["status"] != 200:
-                        log.error("failed to volunteer")
+                ),
+                json={"data": matches}
+            ) as resp:
+                data = await resp.json()
+                if "status" not in data or data["status"] != 200:
+                    log.error("failed to volunteer. %s", await resp.text)

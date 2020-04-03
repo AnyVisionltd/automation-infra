@@ -130,35 +130,37 @@ paths:
                     type: string
                   demands:
                     type: string
-  /resourcemanager/{resourcemanager_id}/{inventory_id}:
+  /resourcemanager/{resourcemanager_id}:
     post:
       tags: [Prospector]
       operationId: webapp.resourcemanager.volunteer
       summary: >-
-        Allows a resource manager to volunteer one of its resources for a job
+        Allows a resource manager to volunteer one or more of its resources for jobs
       parameters:
         - name: resourcemanager_id
           in: path
-          description: the rm id
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: inventory_id
-          in: path
-          description: the inv id
+          description: The resource manager id
           required: true
           schema:
             type: string
             format: uuid
       requestBody:
-        description: job info
+        description: an array of matches to volunteer
         content:
           application/json:
             schema:
               properties:
-                match:
-                  type: object
+                data:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      state:
+                        type: string
+                      allocation_id:
+                        type: string
+                      demands:
+                        type: string
       responses:
         200:
           description: Operation success indicator
@@ -167,7 +169,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  allocation_id:
+                  state:
                     type: string
                   allocation_id:
                     type: string
