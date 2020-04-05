@@ -4,8 +4,8 @@ aws-install:
 ifeq ($(OS),ubuntu)
 
 	@echo "Installing aws cli on $(OS)"
-	sudo apt update
-	sudo apt install -y unzip
+	sudo apt-get -qq update
+	sudo apt-get -q install -y unzip
 
 else ifeq ($(OS),red)
 
@@ -19,8 +19,8 @@ else ifeq ($(OS),centos)
 
 endif
 
-	curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-	unzip awscliv2.zip -d /tmp
+	curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+	unzip -q -o awscliv2.zip -d /tmp
 	sudo /tmp/aws/install --update
 	/usr/local/bin/aws --version
 
