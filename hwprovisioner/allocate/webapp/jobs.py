@@ -22,6 +22,7 @@ async def alljobs():
             results.append(job[1].decode("utf-8"))
         except json.decoder.JSONDecodeError:
             log.error("failed to decode")
+    results = [json.loads(result) for result in results]
     return web.json_response({"status": 200, "data": results})
 
 

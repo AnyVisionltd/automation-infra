@@ -91,6 +91,3 @@ class Processor:
         triggered when the app is destroyed (aiohttp on_cleanup)
         """
         log.debug("processor: cleanup")
-
-
-PROCESSOR = Processor()
