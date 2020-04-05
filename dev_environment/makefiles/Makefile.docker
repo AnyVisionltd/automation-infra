@@ -4,9 +4,9 @@ ifeq ($(OS),ubuntu)
 
 	@echo "Installing docker on $(OS)"
 
-	sudo apt-get update
+	sudo apt-get -qq update
 
-	sudo apt-get install -y \
+	sudo apt-get -qq install -y \
     apt-transport-https \
     ca-certificates \
     curl \
@@ -15,14 +15,14 @@ ifeq ($(OS),ubuntu)
 
 	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 
-	sudo add-apt-repository \
+	sudo add-apt-repository -y -n \
 	"deb [arch=amd64] https://download.docker.com/linux/ubuntu \
 	$$(lsb_release -cs) \
 	stable"
 
-	sudo apt-get update
+	sudo apt-get -qq update
 
-	sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+	sudo apt-get -q install -y docker-ce docker-ce-cli containerd.io
 
 	
 else ifeq ($(OS),red)
