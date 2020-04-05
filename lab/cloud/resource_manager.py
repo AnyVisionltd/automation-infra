@@ -47,10 +47,10 @@ class CloudResourceManager(object):
         result = []
         if response["Reservations"] and response["Reservations"][0]:
             for instance in response["Reservations"]:
-                instance_detailes = instance.get("Instances")[0]
-                instance_type = instance_detailes.get("InstanceType")
-                image_ami = instance_detailes.get("ImageId")
-                public_ip = instance_detailes.get("PublicIpAddress")
+                instance_details = instance.get("Instances")[0]
+                instance_type = instance_details.get("InstanceType")
+                image_ami = instance_details.get("ImageId")
+                public_ip = instance_details.get("PublicIpAddress")
                 result.append({"instance_type": instance_type, "image_ami": image_ami, "public_ip": public_ip})
                 print(instance_type, image_ami, public_ip)
             return web.json_response({'instances': result}, status=200)
