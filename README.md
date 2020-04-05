@@ -374,3 +374,18 @@ make test-lint-docker     # run only docker linter
 ## hwprovisoner architecture
 
 https://anyvision.atlassian.net/wiki/spaces/PROD/pages/1558806855
+
+## run backend services
+
+These steps will allow you to run allocate, redis and a resource manager:
+
+It is recommended you start by copying
+`./hwprovisioner/resourcemanager/example.resources.yml` to
+`./hwprovisioner/resourcemanager/resources.yml` and update the content to
+match the resources you have.
+
+
+```sh
+# note: RESOURCES_CONFIG_FILE is relative to ./hwprovisioner/resourcemanager/
+RESOURCES_CONFIG_FILE=./resources.yml make run-server
+```
