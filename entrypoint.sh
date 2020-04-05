@@ -20,10 +20,11 @@ echo 'source /environ ' >> "${userhome}"/.bashrc
 # so that we will be able to run docker inside docker
 groupmod -g "${DOCKER_GROUP_ID}" docker
 
-if [ $(whoami) == "root" ]; then
+if [ ${username} == "root" ]; then
     echo "running as root"
 else
     add_user
+    echo "running as ${username}"
     if [ "x$*" != "xbash" ]; then
         su "${username}" -c -- "$*"
     else
