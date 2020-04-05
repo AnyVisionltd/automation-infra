@@ -47,7 +47,6 @@ class SshDirect(object):
             return completed_process.stdout
         except CalledProcessError as ex:
             temp_ex = ex
-            logging.error(temp_ex.stderr)
             raise SSHCalledProcessError(temp_ex.returncode, temp_ex.cmd, temp_ex.output, temp_ex.stderr, self._host)
 
     def gpu_count(self):
