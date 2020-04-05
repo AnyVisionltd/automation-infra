@@ -31,4 +31,4 @@ config: set-connection-file docker-config aws-config
 
 
 .PHONY: all
-all: install config
+all: install config git-pull
