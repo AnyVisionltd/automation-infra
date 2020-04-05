@@ -1,6 +1,6 @@
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 PARENT_ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
-OS ?= $(shell hostnamectl status | grep "Operating System" | cut -d ':' -f 2 | awk '{print tolower($$1)}' | tr -d '[:blank:]')
+OS ?= $(shell hostnamectl status | grep "Operating System" | cut -d ':' -f 2 | sed 's/ //' | cut -d ' ' -f 1 | awk '{print tolower($$1)}')
 
 .PHONY: set-connection-file
 set-connection-file:
