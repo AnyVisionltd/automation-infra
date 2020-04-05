@@ -31,5 +31,3 @@ else
         su "${username}"
     fi    
 fi
-
-$@
