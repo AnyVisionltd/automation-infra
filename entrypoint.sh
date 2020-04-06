@@ -13,15 +13,21 @@ function add_user() {
 }
 
 
-sudo chmod 777 /etc/hosts
+chmod 777 /etc/hosts
 echo 'source /environ ' >> "${userhome}"/.bashrc
-add_user
+
 # We need to adjust docker group according to GID on the host machine
 # so that we will be able to run docker inside docker
 groupmod -g "${DOCKER_GROUP_ID}" docker
 
-if [ "x$*" != "xbash" ]; then
-    su "${username}" -c -- "$*"
+if [ ${username} == "root" ]; then
+    echo "running as root"
 else
-    su "${username}"
+    add_user
+    echo "running as ${username}"
+    if [ "x$*" != "xbash" ]; then
+        su "${username}" -c -- "$*"
+    else
+        su "${username}"
+    fi    
 fi

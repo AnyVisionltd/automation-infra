@@ -1,0 +1,14 @@
+HOST_IP ?= $(shell bash -c 'read -e -p "HOST IP: " ip; echo $$ip')
+USERNAME ?= $(shell bash -c 'read -e -p "USER: " user; echo $$user')
+PASS ?= $(shell bash -c 'read -e -p "PASSWORD (leave empty if use pem key file): " password; echo $$password')
+key_file_path ?= $(shell bash -c 'read -e -p "KEY PEM PATH (leave empty if use password): " key; echo $$key')
+CONN_FILE_PATH ?= "$${HOME}/.local/hardware.yaml"
+
+.PHONY: set-connection-file
+set-connection-file:
+	@echo "creating connection file under: $(CONN_FILE_PATH)"
+	@echo "host:" > $(CONN_FILE_PATH)
+	@echo "  ip: $(HOST_IP)" >> $(CONN_FILE_PATH)
+	@echo "  user: $(USERNAME)" >> $(CONN_FILE_PATH)
+	@echo "  password: $(PASS)" >> $(CONN_FILE_PATH)
+	@echo "  key_file_path: $(key_file_path)" >> $(CONN_FILE_PATH)

@@ -7,8 +7,8 @@ import weakref
 
 import connexion
 
-from .listener import LISTENER
-from .processor import PROCESSOR
+from .listener import Listener
+from .processor import Processor
 from .config import CONFIG
 from .settings import log
 
@@ -38,14 +38,14 @@ async def start_daemons(app):
     background tasks
     """
     # a single listener runs to volunteer
-    app["listen"] = app.loop.create_task(LISTENER.listen(app))
+    app["listen"] = app.loop.create_task(Listener().listen(app))
 
     # we want a dedicated processor for each inventory item
     app["process"] = []
     for rtype in CONFIG["resources"]:
         for rref in CONFIG["resources"][rtype]:
             app["process"].append(
-                app.loop.create_task(PROCESSOR.process(rtype, rref))
+                app.loop.create_task(Processor().process(rtype, rref))
             )
 
 

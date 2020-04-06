@@ -1,5 +1,7 @@
 include Makefile.common
 
+RESOURCES_CONFIG_FILE ?= ./example.resources.yml
+
 .PHONY: help
 help: _help
 
@@ -7,6 +9,14 @@ help: _help
 tests: ## run all tests
 	@cd ./hwprovisioner && make tests
 	@bash ./run_tests.sh
+
+
+.PHONY: run-server
+run-server: ## run allocate, a resource manager etc ...
+ifeq ("$(wildcard ./hwprovisioner/resourcemanager/$(RESOURCES_CONFIG_FILE))","")
+  $(error RESOURCES_CONFIG_FILE '$(RESOURCES_CONFIG_FILE)' not found in ./hwprovisioner/resourcemanager/)
+endif
+	@RESOURCES_CONFIG_FILE=${RESOURCES_CONFIG_FILE} docker-compose up
 
 .PHONY: lint
 lint: _lint ## run generic linters
