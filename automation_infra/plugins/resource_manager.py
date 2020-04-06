@@ -8,6 +8,8 @@ from botocore.exceptions import ClientError
 import sys
 import threading
 
+from automation_infra.plugins.ssh_direct import SSHCalledProcessError
+
 try:
     from devops_automation_infra.plugins.seaweed import Seaweed as BaseObject
 except ImportError:
@@ -16,6 +18,24 @@ from infra.model import plugins
 
 
 class ResourceManager(BaseObject):
+    def __init__(self, host):
+        super().__init__(host)
+        self._client = None
+
+    def config_aws(self):
+        if not os.path.exists(f'{os.path.expanduser("~")}/.aws'):
+            raise FileNotFoundError("Missing aws credentials in ~/.aws folder")
+        connected_ssh_module = self._host.SSH
+        remote_home = connected_ssh_module.execute("echo $HOME").strip()
+        try:
+            config_exists = len(connected_ssh_module.execute(f"ls {remote_home}/.aws/c*")) == 2
+        except SSHCalledProcessError as e:
+            if 'No such file or directory' in e.stderr:
+                connected_ssh_module.execute(f"mkdir -p {remote_home}/.aws")
+                connected_ssh_module.put(f"{os.getenv('HOME')}/.aws/*", f"{remote_home}/.aws/")
+            else:
+                raise e
+        connected_ssh_module.execute("aws s3 ls s3://anyvision-testing")
 
     @property
     def client(self):
@@ -24,9 +44,8 @@ class ResourceManager(BaseObject):
         return self._client
 
     def _s3_client(self):
-        self.start_tunnel(self.DNS_NAME, self.PORT)
+        self.config_aws()
         s3 = boto3.client('s3')  # Configure locally access keys on local machine in ~/.aws, this will use them
-
         return s3
 
     def upload_from_filesystem(self, local_path, upload_dir=""):
@@ -58,7 +77,6 @@ class ResourceManager(BaseObject):
         return f'{bucket}/{s3_path}'
 
     def get_s3_files(self, bucket, prefix):
-
         """Get a list of files in an S3 bucket."""
         files = []
         resp = self.client.list_objects_v2(Bucket=bucket, Prefix=prefix)

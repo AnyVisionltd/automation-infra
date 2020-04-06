@@ -1,0 +1,5 @@
+git@github.com:AnyVisionltd/devops-automation-infra.git
+git@github.com:AnyVisionltd/camera-service.git
+git@github.com:AnyVisionltd/pipeng.git
+git@github.com:AnyVisionltd/protobuf-contract.git
+git@github.com:AnyVisionltd/core-product.git

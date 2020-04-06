@@ -18,6 +18,7 @@ services:
       - REDIS_DB=0
     depends_on:
       - redis
+    working_dir: /src
     command: watchmedo auto-restart --patterns="*.py;*.yaml;*.yml" --recursive -- python -m 'webapp.app' serve
   heartbeats:
     image: anyvision-hwprovisioner-heartbeats
@@ -52,11 +53,12 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_DB=0
-      - ALLOCATE_API=http://allocate:8080/api/
-      - CONFIG_FILE=./example.resources.yml
+      - ALLOCATE_API=http://allocate:8080/
+      - CONFIG_FILE=${RESOURCES_CONFIG_FILE:-./example.resources.yml}
     depends_on:
       - redis
       - allocate
+    working_dir: /src
     command: watchmedo auto-restart --patterns="*.py;*.yaml;*.yml" --recursive -- python -m 'webapp.app' serve
   redis:
     image: redis:5.0.7

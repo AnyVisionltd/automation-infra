@@ -10,23 +10,32 @@ from .redisclient import REDIS
 from .settings import log
 
 
-async def volunteer(request, body, resourcemanager_id, inventory_id):
+async def volunteer(request, body, resourcemanager_id):
     """
-    a resource has volunteered to do this job eventually. add this job onto the
-    resource managers inventory queue so that it can attempt to process the job
-    once it's free
+    a resource manager has volunteered to process matched job(s) with it's
+    resource(s) eventually. add this job onto the dedicated resource queue(s)
+    so that it can attempt to process the job once it's free
     """
-    log.debug("got a volunteer")
-    log.debug("publishing to i:%s-%s", resourcemanager_id, inventory_id)
-    request.app["redis"].conn.publish(
-        "i:%s-%s" % (resourcemanager_id, inventory_id),
-        json.dumps(body["data"])
-    )
+    log.debug("got volunteer(s)")
+    if "data" in body:
+        for volunteer in body["data"]:
+            inv_id = f"{volunteer['inventory_type']}-{volunteer['inventory_ref']}"
+            log.debug("publishing to i:%s-%s" % (resourcemanager_id, inv_id))
+            request.app["redis"].conn.publish(
+                "i:%s-%s"
+                % (resourcemanager_id, inv_id), json.dumps(volunteer)
+            )
+        return web.json_response(
+            {
+                "status": 200,
+            }
+        )
     return web.json_response(
         {
-            "status": 200,
-            "data": {"queue": "i:%s-%s" % (inventory_id, resourcemanager_id)},
-        }
+            "status": "400",
+            "reason": "'data' not in payload"
+        },
+        status=400
     )
 
 
