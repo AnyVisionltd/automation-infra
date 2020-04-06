@@ -5,7 +5,6 @@ python -m webapp.app serve
 """
 import weakref
 
-import asyncio
 import connexion
 
 from .listener import Listener

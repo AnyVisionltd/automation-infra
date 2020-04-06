@@ -51,7 +51,10 @@ async def fetcher(hardware_req, provisioner, resource_wait=None):
                 })
                 reply = await websocket.receive_json(timeout=resource_wait)
                 if "inventory_data" in reply:
-                    return {"candidate": reply["inventory_data"]["access"]}
+                    return {
+                        "candidate": reply["inventory_data"]["access"],
+                        "allocation_id": reply["allocation_id"]
+                    }
             else:
                 logging.error("failed to set demands")
         except TimeoutError:
@@ -64,14 +67,17 @@ def init_hardware(hardware_req, provisioner=None):
     """
     hardware = {}
     if provisioner:  # provisioned mode
+        logging.info(f"initing hardware with provisioner {provisioner}")
         loop = asyncio.get_event_loop()
         start = time.time()
         reply = loop.run_until_complete(fetcher(hardware_req, provisioner))
         logging.debug("fetcher took %s seconds", time.time() - start)
         if "candidate" in reply:
+            logging.info(f'received hardware allocation: {reply}')
             hostname = list(hardware_req.keys())[0]
             hardware[hostname] = reply["candidate"]
             hardware[hostname]["alias"] = hostname
+            hardware[hostname]["allocation_id"] = reply["allocation_id"]
         else:
             if "reason" not in reply:
                 raise ValueError(

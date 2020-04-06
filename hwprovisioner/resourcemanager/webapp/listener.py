@@ -63,7 +63,6 @@ class Listener:
                 self.job_inspection_cache.append(job["allocation_id"])
                 if job["state"] != "free":
                     continue
-
                 for rref in CONFIG["resources"][rtype]:
                     match = await self.match(
                         job, rtype, rref, CONFIG["resources"][rtype][rref]
@@ -110,6 +109,7 @@ class Listener:
                 return None
         return {
             "allocation_id": job["allocation_id"],
+            "resourcemanager_id": CONFIG["UUID"],
             "inventory_ref": rref,
             "inventory_data": resource,
             "inventory_type": rtype,

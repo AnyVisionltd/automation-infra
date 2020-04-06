@@ -1,6 +1,6 @@
 include ../Makefile.common
 
-MODULES=allocate keepalive resourcemanager
+MODULES=allocate heartbeats resourcemanager
 
 .PHONY: help
 help: _help

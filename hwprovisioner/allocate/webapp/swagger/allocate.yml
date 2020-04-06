@@ -80,6 +80,32 @@ paths:
                     type: integer
                     description: The status for the operation
                     example: 200
+  /jobs/{allocation_id}:
+    get:
+      tags: [Jobs]
+      operationId: webapp.jobs.onejob
+      summary: Get all jobs from the inventory
+      parameters:
+        - name: allocation_id
+          in: path
+          description: job allocation id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Returns a single job from the inventory
+          content:
+            application/json:
+              schema:
+                type: object
+                description: The job object
+                properties:
+                  allocation_id:
+                    type: string
+                  data:
+                    type: string
   /ws/jobs:
     get:
       tags: [Jobs, WebSocket]

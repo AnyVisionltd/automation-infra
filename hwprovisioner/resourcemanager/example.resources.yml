@@ -11,7 +11,7 @@ resources:
       mem: 16
       access:
         ip: 1.2.3.5
-        username: myuser2
+        user: myuser2
         password: mypass2
         sshport: 23
         sshcontainerport: 2223

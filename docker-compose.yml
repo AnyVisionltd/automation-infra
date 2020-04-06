@@ -20,6 +20,24 @@ services:
       - redis
     working_dir: /src
     command: watchmedo auto-restart --patterns="*.py;*.yaml;*.yml" --recursive -- python -m 'webapp.app' serve
+  heartbeats:
+    image: anyvision-hwprovisioner-heartbeats
+    build:
+      context: ./hwprovisioner/heartbeats
+      dockerfile: Dockerfile
+    volumes:
+      - ./hwprovisioner/heartbeats:/src
+    ports:
+      - 7080:8080
+    environment:
+      - REDIS_USER=guest
+      - REDIS_PASSWORD=pAssw0Rd!
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    depends_on:
+      - redis
+    command: watchmedo auto-restart --patterns="*.py;*.yaml;*.yml" --recursive -- python -m 'webapp.app' serve
   resourcemanager:
     image: anyvision-hwprovisioner-resourcemanager
     build:
