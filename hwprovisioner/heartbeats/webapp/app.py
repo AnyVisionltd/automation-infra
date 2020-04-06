@@ -1,5 +1,5 @@
 """
-The entrypoint of the allocate service
+The entrypoint of the heartbeats service
 
 python -m webapp.app serve
 """
@@ -11,7 +11,6 @@ import connexion
 
 from .redisclient import REDIS
 from .settings import log
-from .expires import expire
 
 
 random.seed(1)
@@ -48,32 +47,15 @@ def run_app(run=True, port=8080):
     cxapp = connexion.AioHttpApp(
         __name__, port=port, specification_dir="swagger/",
     )
-    allocate = cxapp.add_api(
-        "allocate.yml", base_path="/api", pass_context_arg_name="request",
+    heartbeats = cxapp.add_api(
+        "heartbeats.yml", base_path="/api", pass_context_arg_name="request",
     )
-    allocate.subapp["websockets"] = weakref.WeakSet()
-    allocate.subapp["redis"] = REDIS
-
-    cxapp.app.on_startup.append(startup_daemons)
-    cxapp.app.on_cleanup.append(cleanup_daemons)
+    heartbeats.subapp["websockets"] = weakref.WeakSet()
+    heartbeats.subapp["redis"] = REDIS
 
     if run:
         return cxapp.run()
     return cxapp.app
-
-
-async def startup_daemons(app):
-    """
-    background tasks
-    """
-    app["expired_jobs"] = app.loop.create_task(expire(REDIS))
-
-
-async def cleanup_daemons(app):
-    """
-    task tidyups
-    """
-    app["expired_jobs"].cancel()
 
 
 if __name__ == "__main__":

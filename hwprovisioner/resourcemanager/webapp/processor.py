@@ -1,6 +1,8 @@
 """
 resource manager - processor
 """
+import json
+
 import aiohttp
 
 from .config import CONFIG
@@ -27,30 +29,51 @@ class Processor:
                 % (CONFIG["ALLOCATE_API"], CONFIG["UUID"], rtype, rref)
             ) as ws:
                 async for msg in ws:
-                    log.debug(msg.data)
                     if msg.type == aiohttp.WSMsgType.TEXT:
                         if msg.data == "close cmd":
                             await ws.close()
                             break
                         if "inventory_data" in msg.data:
-                            if await self.still_free(rtype, rref, msg.data):
+                            data = json.loads(msg.data)
+                            if await self.still_free(rtype, rref, data):
                                 # resource is ready. tell allocate to tell
                                 # tester that the resource is ready
-                                resp = await self.ready_up(
-                                    rtype, rref, msg.data
-                                )
+                                resp = await self.ready_up(rtype, rref, data)
                                 if await self.claim(resp):
                                     log.debug("succeeded")
+                            else:
+                                log.debug("job was already claimed. ignoring")
+                        elif "expired_job" in msg.data:
+                            data = json.loads(msg.data)
+                            await self.teardown(data)
                     elif msg.type == aiohttp.WSMsgType.ERROR:
                         break
+
+    async def teardown(self, data):
+        """
+        invoked once a job has expired
+        """
+        log.debug("tearing down resource")
 
     async def still_free(self, rtype, rref, data):
         """
         check to see if we can still process this request
         """
-        if rtype == "dynamic":
-            log.debug("checking to see if we can still process this request")
-        return True
+        log.debug("checking to see if we can still process this request")
+        async with aiohttp.ClientSession() as client:
+            async with client.get(
+                "%sapi/jobs/%s"
+                % (CONFIG["ALLOCATE_API"], data["allocation_id"])
+            ) as resp:
+                assert resp.status == 200
+                resp = await resp.json()
+                try:
+                    if resp["data"]["state"] == "free":
+                        return True
+                except KeyError as err:
+                    log.error("didnt get expected response from job")
+                    log.error(err)
+        return False
 
     async def ready_up(self, rtype, rref, data):
         """
@@ -74,14 +97,13 @@ class Processor:
         log.debug("claiming ...")
         async with aiohttp.ClientSession() as client:
             async with client.post(
-                "%sapi/claim" % CONFIG["ALLOCATE_API"],
-                json=data,
+                "%sapi/claim" % CONFIG["ALLOCATE_API"], json=json.dumps(data)
             ) as resp:
                 data = await resp.json()
                 if "status" not in data or data["status"] != 200:
                     log.error("failed to volunteer")
                 elif data["data"] == "claimed":
-                    log.debug('claim successful')
+                    log.debug("claim successful")
                     return True
         return False
 

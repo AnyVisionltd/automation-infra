@@ -3,19 +3,19 @@ allocate - jobs
 """
 import json
 import uuid
-from aiohttp import web
 import asyncio_redis
+from aiohttp import web
 from redis import RedisError
 
 from .redisclient import REDIS
 from .settings import log
 
 
-async def alljobs():
+async def alljobs(request):
     """
     return all of the jobs in the queue
     """
-    jobs = REDIS.conn.hgetall("jobs")
+    jobs = request.app["redis"].conn.hgetall("jobs")
     results = []
     for job in jobs.items():
         try:
@@ -24,6 +24,15 @@ async def alljobs():
             log.error("failed to decode")
     results = [json.loads(result) for result in results]
     return web.json_response({"status": 200, "data": results})
+
+
+async def onejob(request, allocation_id):
+    """
+    return single job
+    """
+    job = request.app["redis"].conn.hget("jobs", allocation_id)
+    data = json.loads(job)
+    return web.json_response({"status": 200, "data": data})
 
 
 async def post(body):
@@ -49,11 +58,10 @@ async def post(body):
             return web.json_response(
                 {"status": 500, "reason": str(err)}, status=500
             )
-    else:
-        return web.json_response(
-            {"status": 400, "reason": "'demands' missing from body"},
-            status=400
-        )
+    return web.json_response(
+        {"status": 400, "reason": "'demands' missing from body"},
+        status=400
+    )
 
 
 async def sub(request):
