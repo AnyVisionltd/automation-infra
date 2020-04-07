@@ -255,8 +255,9 @@ def kill_heartbeat_thread(hardware, request):
 @pytest.fixture(scope=determine_scope)
 def base_config(request):
     hardware = find_provisioner_hardware(request)
-    # TODO: check if not running provisioned the hb is unnecessary.
-    start_heartbeat_thread(hardware, request)
+    provisioned = request.config.getoption("--provisioner")
+    if provisioned:
+        start_heartbeat_thread(hardware, request)
     base = DefaultMunch(Munch)
     base.hosts = Munch()
     try_initing_hosts_intelligently(request, hardware, base)
@@ -265,7 +266,8 @@ def base_config(request):
     yield base
     logging.info("tearing down base_config fixture")
     helpers.tear_down_proxy_containers(base.hosts.items())
-    kill_heartbeat_thread(hardware, request)
+    if provisioned:
+        kill_heartbeat_thread(hardware, request)
 
 
 def pytest_runtest_setup(item):
