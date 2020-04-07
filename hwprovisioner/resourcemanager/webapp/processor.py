@@ -38,7 +38,7 @@ class Processor:
                             if await self.still_free(rtype, rref, data):
                                 # resource is ready. tell allocate to tell
                                 # tester that the resource is ready
-                                resp = await self.ready_up(rtype, rref, data)
+                                resp = await self.readyup(rtype, rref, data)
                                 if await self.claim(resp):
                                     log.debug("succeeded")
                             else:
@@ -75,7 +75,7 @@ class Processor:
                     log.error(err)
         return False
 
-    async def ready_up(self, rtype, rref, data):
+    async def readyup(self, rtype, rref, data):
         """
         initialize the resource if required. this should support spinning up
         vms on hardware or cloud
