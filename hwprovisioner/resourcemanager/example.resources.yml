@@ -18,7 +18,7 @@ resources:
       gpus:
         - brand: amd
           model: hd8490
-          memory: 4
+          mem: 4
       os:
         distro: ubuntu
         version: 16.04
@@ -34,7 +34,7 @@ resources:
       gpu:
         - brand: nvidia
           model: rtx4000
-          memory: 8
+          mem: 8
       os:
         distro: ubuntu
         version: 18.04
