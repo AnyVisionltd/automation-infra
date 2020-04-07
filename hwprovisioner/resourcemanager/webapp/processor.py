@@ -21,8 +21,8 @@ class Processor:
         """
         async with aiohttp.ClientSession() as session:
             log.debug(
-                "processor listening to %sapi/ws/resourcemanager/%s/%s-%s"
-                % (CONFIG["ALLOCATE_API"], CONFIG["UUID"], rtype, rref)
+                "processor listening to %sapi/ws/resourcemanager/%s/%s-%s",
+                CONFIG["ALLOCATE_API"], CONFIG["UUID"], rtype, rref
             )
             async with session.ws_connect(
                 "%sapi/ws/resourcemanager/%s/%s-%s"
