@@ -1,10 +1,13 @@
 """
 resource manager - processor
 """
+from importlib import import_module
 import json
 
 import aiohttp
 
+from plugins.plugin import ResourceManagerPlugin
+from plugins.static.static import StaticPlugin
 from webapp.config import CONFIG
 from webapp.settings import log
 
@@ -14,6 +17,12 @@ class Processor:
     all of the functionality for processing the inventory backlog
     """
 
+    def __init__(self):
+        """
+        instantiate class globals
+        """
+        self.plugins = {}
+
     async def process(self, rtype, rref):
         """
         entrypoint. a process should be ran for each resource defined in the
@@ -22,7 +31,10 @@ class Processor:
         async with aiohttp.ClientSession() as session:
             log.debug(
                 "processor listening to %sapi/ws/resourcemanager/%s/%s-%s",
-                CONFIG["ALLOCATE_API"], CONFIG["UUID"], rtype, rref
+                CONFIG["ALLOCATE_API"],
+                CONFIG["UUID"],
+                rtype,
+                rref,
             )
             async with session.ws_connect(
                 "%sapi/ws/resourcemanager/%s/%s-%s"
@@ -33,27 +45,64 @@ class Processor:
                         if msg.data == "close cmd":
                             await ws.close()
                             break
-                        if "inventory_data" in msg.data:
-                            data = json.loads(msg.data)
-                            if await self.still_free(rtype, rref, data):
-                                # resource is ready. tell allocate to tell
-                                # tester that the resource is ready
-                                resp = await self.readyup(rtype, rref, data)
-                                if await self.claim(resp):
-                                    log.debug("succeeded")
-                            else:
-                                log.debug("job was already claimed. ignoring")
-                        elif "expired_job" in msg.data:
-                            data = json.loads(msg.data)
-                            await self.teardown(data)
+                        if "allocation_id" in msg.data:
+                            await self.handle_process(
+                                rtype, rref, json.loads(msg.data)
+                            )
                     elif msg.type == aiohttp.WSMsgType.ERROR:
                         break
 
-    async def teardown(self, data):
+    async def handle_process(self, rtype, rref, data):
         """
-        invoked once a job has expired
+        the logic for handling a process via an (optional) plugin
+        if no plugin is found it will fallback to using the methods
+        defined in this class
         """
-        log.debug("tearing down resource")
+        if data["allocation_id"] not in self.plugins:
+            if rtype == "static":
+                self.plugins[data["allocation_id"]] = StaticPlugin(
+                    rtype, rref, data
+                )
+            else:
+                try:
+                    dmod = import_module("plugins." + rref + "." + rref)
+                    dcls = getattr(dmod, rref.capitalize() + "Plugin")
+                    if issubclass(dcls, ResourceManagerPlugin):
+                        self.plugins[data["allocation_id"]] = dcls(
+                            rtype, rref, data
+                        )
+                    else:
+                        log.error(
+                            "plugin is not a subclass of ResourceManagerPlugin"
+                        )
+                        return False
+                except ModuleNotFoundError as err:
+                    log.error("plugin not found for %s!", rref)
+                    log.error(err)
+                    return False
+        if "inventory_data" in data:
+            if await self.still_free(rtype, rref, data):
+                # resource is ready. tell allocate to tell
+                # tester that the resource is ready
+                resp = await self.plugins[data["allocation_id"]].readyup()
+                if not await self.validate_readyup_response(resp):
+                    log.error("got an invalid response from the plugin:")
+                    log.error(resp)
+                    return False
+                if await self.claim(resp):
+                    log.debug("succeeded")
+            else:
+                log.debug("job was already claimed. ignoring")
+        elif "expired_job" in data:
+            await self.plugins[data["allocation_id"]].teardown()
+
+    @staticmethod
+    async def validate_readyup_response(resp):
+        """
+        validates that the response from the plugin conforms to the appropriate
+        standards
+        """
+        return True
 
     async def still_free(self, rtype, rref, data):
         """
@@ -75,20 +124,6 @@ class Processor:
                     log.error(err)
         return False
 
-    async def readyup(self, rtype, rref, data):
-        """
-        initialize the resource if required. this should support spinning up
-        vms on hardware or cloud
-
-        returns object that will be consumed by the end user. this means that
-        the object can be enriched (e.g. if we spin up a new VM, we may not
-        know it's IP until this stage, so this is the place where you can
-        insert that data into the payload to be consumed by pytest / the user)
-        """
-        if rtype == "dynamic":
-            log.debug("readying up dynamic resource")
-        return data
-
     async def claim(self, data):
         """
         claims a job. this will perform the necessary steps to ensure that a
@@ -97,7 +132,8 @@ class Processor:
         log.debug("claiming ...")
         async with aiohttp.ClientSession() as client:
             async with client.post(
-                "%sapi/claim" % CONFIG["ALLOCATE_API"], json=json.dumps(data)
+                "%sapi/claim" % CONFIG["ALLOCATE_API"],
+                json=json.dumps(data)
             ) as resp:
                 data = await resp.json()
                 if "status" not in data or data["status"] != 200:
@@ -106,10 +142,3 @@ class Processor:
                     log.debug("claim successful")
                     return True
         return False
-
-    @staticmethod
-    def cleanup():
-        """
-        triggered when the app is destroyed (aiohttp on_cleanup)
-        """
-        log.debug("processor: cleanup")
