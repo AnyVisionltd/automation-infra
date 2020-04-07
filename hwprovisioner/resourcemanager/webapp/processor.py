@@ -5,8 +5,8 @@ import json
 
 import aiohttp
 
-from .config import CONFIG
-from .settings import log
+from webapp.config import CONFIG
+from webapp.settings import log
 
 
 class Processor:
