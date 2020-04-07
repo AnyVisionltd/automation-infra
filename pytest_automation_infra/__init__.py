@@ -83,21 +83,21 @@ def send_async_hb(provisioned_hw, stop):
 
 async def send_heartbeat(provisioned_hw, stop):
     while True:
-        logging.info(f"Starting heartbeat to provisioned hardware: {provisioned_hw}")
+        logging.debug(f"Starting heartbeat to provisioned hardware: {provisioned_hw}")
         for host in provisioned_hw.values():
-            logging.info(f"host: {host}")
+            logging.debug(f"host: {host}")
             if "allocation_id" not in host:
-                logging.error("'allocation_id' not in host data")
+                logging.debug("'allocation_id' not in host data")
                 continue
             allocation_id = host['allocation_id']
-            logging.info(f"allocation_id: {allocation_id}")
+            logging.debug(f"allocation_id: {allocation_id}")
             try:
                 async with aiohttp.ClientSession() as client:
                     payload = {"allocation_id": allocation_id}
-                    logging.info(f"sending post hb request payload: {payload}")
+                    logging.debug(f"sending post hb request payload: {payload}")
                     response = await client.post(
                         "%sapi/heartbeat" % os.getenv('HEARTBEAT_SERVER'), json=payload)
-                    logging.info(f"post response {response}")
+                    logging.debug(f"post response {response}")
                     if response.status != 200:
                         logging.error(
                             "Failed to send heartbeat! Got status %s",
