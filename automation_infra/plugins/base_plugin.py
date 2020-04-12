@@ -28,6 +28,15 @@ class TunneledPlugin(object):
     def stop_tunnel(self):
         self._forward_server.shutdown()
 
+    def ping(self):
+        return True
+
+    def reset_state(self):
+        return True
+
+    def verify_functionality(self):
+        return True
+
 
 # TODO: add functionality: reconnect (all plugins which obv were disconnected at once if one was disconnected) 
 # is_connected property
