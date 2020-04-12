@@ -1,4 +1,5 @@
 import itertools
+import logging
 
 from munch import Munch
 
@@ -85,6 +86,9 @@ class Host(object):
     def __str__(self):
         return self.ip
 
+    def clean_between_tests(self):
+        for name, plugin in self.__plugins.items():
+            plugins.clean(plugin)
 
 plugins.register('Host', Host)
 
