@@ -25,6 +25,8 @@ spec:
       # hostNetwork: true
       # dnsPolicy: ClusterFirstWithHostNet
       terminationGracePeriodSeconds: 2
+      tolerations:
+      - operator: Exists # matches all keys, values and effects which means this will tolerate everything
       containers:
       - name: automation-proxy
         image: gcr.io/anyvision-training/automation-proxy:master
