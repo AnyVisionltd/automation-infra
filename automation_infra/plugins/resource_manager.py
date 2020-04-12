@@ -76,13 +76,28 @@ class ResourceManager(BaseObject):
             self._host.Seaweed.upload_fileobj(file_obj, bucket, s3_path)
         return f'{bucket}/{s3_path}'
 
-    def get_s3_files(self, bucket, prefix):
+    def get_s3_files(self, bucket='anyvision-testing', prefix=''):
         """Get a list of files in an S3 bucket."""
         files = []
         resp = self.client.list_objects_v2(Bucket=bucket, Prefix=prefix)
         for obj in resp['Contents']:
             files.append(obj['Key'])
         return files
+
+    def ping(self):
+        files = self.get_s3_files()
+        return True
+
+    def verify_functionality(self):
+        logging.debug("verifying resource_manager functionality")
+        anv_testing_bucket = "anyvision-testing"
+        files = self.get_s3_files(anv_testing_bucket, "")
+        self.upload_from_filesystem("media/high_level_design.xml", "temp/")
+        assert self.file_exists(anv_testing_bucket, "temp/high_level_design.xml")
+        self.delete_file(anv_testing_bucket, 'temp/high_level_design.xml')
+        assert not self.file_exists(anv_testing_bucket, "temp/high_level_design.xml")
+        logging.debug("<<<<<<<<<RESOURCE_MANAGER PLUGIN FUNCTIONING PROPERLY>>>>>>>>>>>>>>>>>>")
+        return True
 
 
 plugins.register('ResourceManager', ResourceManager)
