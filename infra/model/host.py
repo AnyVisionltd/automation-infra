@@ -1,5 +1,6 @@
+import concurrent
 import itertools
-import logging
+import os
 
 from munch import Munch
 
@@ -87,8 +88,9 @@ class Host(object):
         return self.ip
 
     def clean_between_tests(self):
-        for name, plugin in self.__plugins.items():
-            plugins.clean(plugin)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.environ.get('WORKERS', 4)) as executor:
+            executor.map(plugins.clean, [plugin for name, plugin in self.__plugins.items()])
+
 
 plugins.register('Host', Host)
 
