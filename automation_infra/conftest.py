@@ -1,7 +1,7 @@
 import logging
 import pytest
 
-from automation_infra.utils.initializer import init_plugins
+from automation_infra.utils import initializer as infra_initializer
 
 
 @pytest.hookimpl(trylast=True)
@@ -10,5 +10,5 @@ def pytest_runtest_setup(item):
     hosts = item.funcargs['base_config'].hosts
     for name, host in hosts.items():
         # TODO: multi-thread this
-        init_plugins(host)
+        infra_initializer.init_plugins(host)
         host.clean_between_tests()

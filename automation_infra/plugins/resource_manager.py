@@ -85,8 +85,11 @@ class ResourceManager(BaseObject):
         return files
 
     def ping(self):
-        files = self.get_s3_files()
-        return True
+        try:
+            files = self.get_s3_files()
+            return True
+        except Exception:
+            raise ConnectionError
 
     def verify_functionality(self):
         logging.debug("verifying resource_manager functionality")
