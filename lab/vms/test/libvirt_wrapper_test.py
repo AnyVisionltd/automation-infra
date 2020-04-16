@@ -141,3 +141,49 @@ def test_load_vm_domains(libvirt_mock):
                            'disks': [{'serial': 's1', 'device_name': 'dev1', 'image': 'image', 'type': 'hdd', 'size': '10'}],
                            '_api_version': 'v1'})
 
+
+@patch('libvirt.open', new_callable=_libvirt_mock)
+def test_add_new_dhcp_entry(libvirt_mock):
+    tested = libvirt_wrapper.LibvirtWrapper("test_uri")
+    mocked_net = mock.MagicMock(spec=libvirt.virNetwork)
+    libvirt_mock.return_value.networkLookupByName.return_value = mocked_net
+    tested.add_dhcp_entry('default', '1.2.3.4', '52:54:00:8d:c0:07')
+    libvirt_mock.return_value.networkLookupByName.assert_called_once_with("default")
+    mocked_net.update.assert_called_once_with(libvirt.VIR_NETWORK_UPDATE_COMMAND_ADD_LAST,
+                    libvirt.VIR_NETWORK_SECTION_IP_DHCP_HOST, -1,
+                    "<host mac='52:54:00:8d:c0:07' ip='1.2.3.4'/>",
+                (libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE | libvirt.VIR_NETWORK_UPDATE_AFFECT_CONFIG))
+
+
+@patch('libvirt.open', new_callable=_libvirt_mock)
+def test_modify_existing_dhcp_entry(libvirt_mock):
+    tested = libvirt_wrapper.LibvirtWrapper("test_uri")
+    mocked_net = mock.MagicMock(spec=libvirt.virNetwork)
+    libvirt_mock.return_value.networkLookupByName.return_value = mocked_net
+    mocked_net.update.side_effect = [libvirt.libvirtError("exception"), None]
+    tested.add_dhcp_entry('default', '1.2.3.4', '52:54:00:8d:c0:07')
+    libvirt_mock.return_value.networkLookupByName.assert_called_once_with("default")
+    expected_calls = [mock.call(libvirt.VIR_NETWORK_UPDATE_COMMAND_ADD_LAST,
+                                libvirt.VIR_NETWORK_SECTION_IP_DHCP_HOST, -1,
+                                "<host mac='52:54:00:8d:c0:07' ip='1.2.3.4'/>",
+                                (libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE | libvirt.VIR_NETWORK_UPDATE_AFFECT_CONFIG)),
+                      mock.call(libvirt.VIR_NETWORK_UPDATE_COMMAND_MODIFY,
+                                libvirt.VIR_NETWORK_SECTION_IP_DHCP_HOST, -1,
+                                "<host mac='52:54:00:8d:c0:07' ip='1.2.3.4'/>",
+                                (libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE | libvirt.VIR_NETWORK_UPDATE_AFFECT_CONFIG))]
+
+    assert mocked_net.update.call_args_list == expected_calls
+
+
+@patch('libvirt.open', new_callable=_libvirt_mock)
+def test_remove_dhcp_entry(libvirt_mock):
+    tested = libvirt_wrapper.LibvirtWrapper("test_uri")
+    mocked_net = mock.MagicMock(spec=libvirt.virNetwork)
+    libvirt_mock.return_value.networkLookupByName.return_value = mocked_net
+    tested.remove_dhcp_entry('default', '52:54:00:8d:c0:07')
+    libvirt_mock.return_value.networkLookupByName.assert_called_once_with("default")
+    mocked_net.update.assert_called_once_with(libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE,
+                    libvirt.VIR_NETWORK_SECTION_IP_DHCP_HOST, -1,
+                    "<host mac='52:54:00:8d:c0:07'/>",
+                (libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE | libvirt.VIR_NETWORK_UPDATE_AFFECT_CONFIG))
+
