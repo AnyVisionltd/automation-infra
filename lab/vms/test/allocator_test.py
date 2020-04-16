@@ -4,7 +4,6 @@ from lab.vms import vm_manager
 from infra.utils import pci
 from lab.vms import libvirt_wrapper
 from lab.vms import image_store
-import asyncmock
 from lab import NotEnoughResourceException
 import mock
 from lab.vms import vm
@@ -19,7 +18,7 @@ def mock_libvirt():
 
 @pytest.fixture
 def mock_image_store():
-    return asyncmock.AsyncMock(spec=image_store.ImageStore)
+    return mock.Mock(spec=image_store.ImageStore)
 
 
 def _generate_device(num_gpus):
@@ -64,7 +63,7 @@ def _verify_vm_valid(allocator, vm, expected_vm_name, expected_base_image, expec
 async def test_allocate_machine_happy_case(event_loop, mock_libvirt, mock_image_store):
     gpu1 = _generate_device(1)
     macs = _generate_macs(1)
-    mock_image_store.clone_qcow = asyncmock.AsyncMock(return_value="/home/sasha_king.qcow")
+    mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
     tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
@@ -94,8 +93,8 @@ async def test_allocate_machine_happy_case(event_loop, mock_libvirt, mock_image_
 async def test_allocate_machine_with_disks(event_loop, mock_libvirt, mock_image_store):
     gpu1 = _generate_device(1)
     macs = _generate_macs(1)
-    mock_image_store.clone_qcow = asyncmock.AsyncMock(return_value="/home/sasha_king.qcow")
-    mock_image_store.create_qcow = asyncmock.AsyncMock(side_effect=["/home/disk1.qcow", "/home/disk2.qcow"])
+    mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
+    mock_image_store.create_qcow = mock.AsyncMock(side_effect=["/home/disk1.qcow", "/home/disk2.qcow"])
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
     tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
@@ -131,7 +130,7 @@ async def test_allocate_machine_with_disks(event_loop, mock_libvirt, mock_image_
 async def test_kill_non_existing_vm(event_loop, mock_libvirt, mock_image_store):
     gpu1 = _generate_device(1)
     macs = _generate_macs(1)
-    mock_image_store.clone_qcow = asyncmock.AsyncMock(return_value="/home/sasha_king.qcow")
+    mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
     tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
@@ -147,7 +146,7 @@ async def test_kill_non_existing_vm(event_loop, mock_libvirt, mock_image_store):
 async def test_allocate_machine_no_gpus(event_loop, mock_libvirt, mock_image_store):
     gpus = []
     macs = _generate_macs(1)
-    mock_image_store.clone_qcow = asyncmock.AsyncMock(return_value="/home/sasha_king.qcow")
+    mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
 
     tested = allocator.Allocator(macs, gpus, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
@@ -180,7 +179,7 @@ async def test_allocate_machine_no_gpus(event_loop, mock_libvirt, mock_image_sto
 async def test_allocate_more_vms_than_we_can(event_loop, mock_libvirt, mock_image_store):
     gpus = _generate_device(1)
     macs = _generate_macs(1)
-    mock_image_store.clone_qcow = asyncmock.AsyncMock(return_value="/home/sasha_king.qcow")
+    mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
     tested = allocator.Allocator(macs, gpus, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
@@ -207,7 +206,7 @@ async def test_allocate_more_vms_than_we_can(event_loop, mock_libvirt, mock_imag
 async def test_allocate_multiple(event_loop, mock_libvirt, mock_image_store):
     gpus = _generate_device(10)
     macs = _generate_macs(10)
-    mock_image_store.clone_qcow = asyncmock.AsyncMock(side_effect=["1.qcow", "2.qcow"])
+    mock_image_store.clone_qcow = mock.AsyncMock(side_effect=["1.qcow", "2.qcow"])
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
     tested = allocator.Allocator(macs, gpus, manager, "sasha", max_vms=3, paravirt_device="eth0", sol_base_port=1000)
 
@@ -245,7 +244,7 @@ async def test_allocate_multiple(event_loop, mock_libvirt, mock_image_store):
 async def test_start_stop_machine(event_loop, mock_libvirt, mock_image_store):
     gpu1 = _generate_device(1)
     macs = _generate_macs(1)
-    mock_image_store.clone_qcow = asyncmock.AsyncMock(return_value="/home/sasha_king.qcow")
+    mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
     alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
@@ -265,7 +264,7 @@ async def test_start_stop_machine(event_loop, mock_libvirt, mock_image_store):
 async def test_machine_info(event_loop, mock_libvirt, mock_image_store):
     gpu1 = _generate_device(1)
     macs = _generate_macs(2)
-    mock_image_store.clone_qcow = asyncmock.AsyncMock(return_value="/home/sasha_king.qcow")
+    mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
     mock_libvirt.dhcp_lease_info.return_value = {'52:54:00:8d:c0:07': ['192.168.122.186'],
                                                  '52:54:00:8d:c0:08': ['192.168.122.187']}
     mock_libvirt.status.return_value = "on"
