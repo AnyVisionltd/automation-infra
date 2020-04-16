@@ -360,3 +360,30 @@ async def test_create_machine_and_restore_machine(event_loop, mock_libvirt, mock
     restored_vm_info = await manager.info(old_allocator.vms['sasha-vm-0'])
 
     assert restored_vm_info == old_vm_info
+
+
+@pytest.mark.asyncio
+async def test_restore_machine_fail_to_restore_network(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler):
+    gpu1 = _generate_device(2)
+    macs = _generate_macs(2)
+    mock_dhcp_handler.allocate_ip = mock.AsyncMock(return_value = "1.1.1.1")
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
+    mock_image_store.clone_qcow.return_value = "/tmp/image.qcow"
+    old_allocator = allocator.Allocator(copy.copy(macs), copy.copy(gpu1), manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    await old_allocator.allocate_vm("sasha_image1", memory_gb=1, base_image_size=None, networks=["bridge"], num_cpus=2, num_gpus=1)
+    assert len(old_allocator.vms) == 1
+    assert 'sasha-vm-0' in old_allocator.vms
+
+    # Get json with which machine was created
+    vm_def = mock_libvirt.define_vm.call_args.args[0].json
+    # Now set load to return same json
+    mock_libvirt.load_lab_vms.return_value = [munch.Munch(vm_def)]
+
+    # Now recreate the allocator
+    mock_dhcp_handler.reallocate_ip = mock.AsyncMock(side_effect = Exception("Failed to allocate ip"))
+    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    await tested.restore_vms()
+    assert len(tested.vms) == 0
+    # We still must have all resources that allocator was initializes with
+    assert tested.mac_addresses == macs
+    assert tested.gpus_list == gpu1

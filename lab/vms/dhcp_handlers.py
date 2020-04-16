@@ -138,6 +138,15 @@ class DHCPManager(object):
         mac = net_info['macaddress']
         return await self._handlers[net_type].release_lease(mac)
 
+    async def reallocate_ip(self, net_info):
+        logging.debug(f"Reallocate ip net {net_info}")
+        try:
+            await self.deallocate_ip(net_info)
+        except:
+            # we dont care if deallocate ip had failed we just do it to make sure it is released
+            pass
+        await self.allocate_ip(net_info)
+
 
 if __name__ == '__main__':
     import argparse
