@@ -1,0 +1,101 @@
+import scapy
+from scapy import config as scapy_conf
+from scapy import arch as scapy_arch
+from scapy.layers import l2, inet, dhcp
+from scapy import sendrecv
+import codecs
+import concurrent.futures
+import asyncio
+import logging
+# This conf is needed to make dhcp requests, so that responses
+# will be not be checked against our real ip address
+scapy_conf.conf.checkIPaddr = False
+
+
+class DHCPRequestor(object):
+    '''  The purpose of this class is to deal with sysadmins that does not
+    give me access to dhcp server, and i need to guess VM ip in advance to return
+    to the client what would be ip address of the vm after it will be created,
+    so we take vm mac address and its name and send dhcp request.. nasty stuff
+    '''
+
+    def __init__(self, net_iface, loop, verbose=False, dhcp_timeout_sec=10):
+        self._loop = loop
+        self._net_iface = net_iface
+        self._real_mac = scapy_arch.get_if_hwaddr(self._net_iface)
+        self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+        self._dhcp_timeout_sec = dhcp_timeout_sec
+        self._verbose = verbose
+
+    @staticmethod
+    def _dhcp_reply_info(dhcp_reply):
+        bootp = dhcp_reply.getlayer('BOOTP')
+        options_list = bootp.payload.getfieldval('options')
+        result = {"ip" : bootp.yiaddr}
+        for option in options_list:
+            if type(option) is tuple:
+                result[option[0]] = option[1]
+        return result
+
+    def _dhcp_request(self, mac_raw, requested_ip, xid_cookie=0, server_id="0.0.0.0"):
+        logging.debug(f"Sending dhcp request for {requested_ip} cookie {xid_cookie} server id {server_id} net {self._net_iface}")
+        dhcp_request = l2.Ether(src=self._real_mac, dst="ff:ff:ff:ff:ff:ff") / \
+                        inet.IP(src="0.0.0.0", dst="255.255.255.255") / \
+                        inet.UDP(sport=68, dport=67) / \
+                        dhcp.BOOTP(chaddr=mac_raw, xid=xid_cookie) / \
+                        dhcp.DHCP(options=[("message-type", "request"), ("server_id", server_id),
+                                      ("requested_addr", requested_ip), ("param_req_list", 0), "end"])
+
+        # send request, wait for ack
+        dhcp_reply = sendrecv.srp1(dhcp_request, iface=self._net_iface, verbose=self._verbose, timeout=self._dhcp_timeout_sec)
+        if dhcp_reply is None:
+            raise TimeoutError(f"DHCP request timeout on net {self._net_iface}")
+        reply = DHCPRequestor._dhcp_reply_info(dhcp_reply)
+        if dhcp.DHCPTypes[reply['message-type']] != 'ack':
+            raise Exception("Failed to get ack %s" % reply)
+        return reply
+
+    def _request_lease(self, mac_address, ip=None):
+        logging.debug(f"Requesting lease for mac {mac_address} ip {ip} iface {self._net_iface}")
+        mac_raw = codecs.decode(mac_address.replace(':', ''), 'hex')
+        if ip is None:
+            dhcp_discover = l2.Ether(src=self._real_mac, dst='ff:ff:ff:ff:ff:ff') / \
+                            inet.IP(src='0.0.0.0', dst='255.255.255.255') / \
+                            inet.UDP(dport=67, sport=68) / \
+                            dhcp.BOOTP(chaddr=mac_raw, xid=scapy.volatile.RandInt()) / dhcp.DHCP(options=[('message-type', 'discover'), 'end'])
+            dhcp_offer = sendrecv.srp1(dhcp_discover, iface=self._net_iface, verbose=self._verbose, timeout=self._dhcp_timeout_sec)
+            if dhcp_offer is None:
+                raise TimeoutError(f"Timeout. failed to get offer for mac {mac_address} iface: {self._net_iface}")
+            ip = dhcp_offer[dhcp.BOOTP].yiaddr
+            server_id = dhcp_offer[dhcp.BOOTP].siaddr
+            xid_cookie = dhcp_offer[dhcp.BOOTP].xid
+        else:
+            server_id = "0.0.0.0"
+            xid_cookie = 0
+        return self._dhcp_request(mac_raw, ip, xid_cookie, server_id)
+
+    async def request_lease(self, mac, ip=None):
+        lease_info = await self._loop.run_in_executor(self._thread_pool, lambda: self._request_lease(mac, ip))
+        return lease_info['ip']
+
+    async def release_lease(self, mac):
+        pass
+
+
+if __name__ == '__main__':
+    import argparse
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    logger.addHandler(ch)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--iface", help="Name of the interface")
+    parser.add_argument("--ip", help="IP to ask", required=False, default=None)
+    parser.add_argument("mac", help="Mac address to request")
+
+    args = parser.parse_args()
+    loop = asyncio.get_event_loop()
+    client = DHCPRequestor(args.iface, loop)
+    print(loop.run_until_complete(client.request_lease(args.mac, args.ip)))
