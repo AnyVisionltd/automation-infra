@@ -8,7 +8,7 @@ from lab.vms import cloud_init
 
 class VMManager(object):
 
-    def __init__(self, loop, libvirt_api, image_store, disk_privisoner, cloud_init):
+    def __init__(self, loop, libvirt_api, image_store, disk_privisoner, cloud_init, dhcp_manager):
         self.loop = loop 
         self.libvirt_api = libvirt_api
         self.image_store = image_store
@@ -17,6 +17,7 @@ class VMManager(object):
         self.cloud_init = cloud_init
         # "sda" is taken for boot drive
         self.vol_names = ["sd%s" % letter for letter in  string.ascii_lowercase[1:]]
+        self.dhcp_manager = dhcp_manager
 
     async def _create_disk(self, vm, disk):
         disk['image'] = await self.image_store.create_qcow(vm.name, disk['type'], disk['size'], disk['serial'])
@@ -72,9 +73,22 @@ class VMManager(object):
 
         await self._remove_cloud_init_iso(vm)
 
+    async def _init_networks(self, vm):
+        for net in vm.net_ifaces:
+            logging.info(f"vm {vm.name} Request ip address of behalf of vm for net {net}",)
+            net['ip'] = await self.dhcp_manager.allocate_ip(net)
+
+    async def _deinit_networks_no_exception(self, vm):
+        for net in vm.net_ifaces:
+            logging.info(f"vm {vm.name} release ip for net {net}")
+            try:
+                await self.dhcp_manager.deallocate_ip(net)
+            except:
+                logging.exception(f"Failed to remove network {net}")
+
     async def allocate_vm(self, vm):
         try:
-            await self._create_storage(vm)
+            await asyncio.gather(self._create_storage(vm), self._init_networks(vm))
             await self.loop.run_in_executor(self.thread_pool,
                                                      lambda: self.libvirt_api.define_vm(vm))
             await self.start_vm(vm)
@@ -104,7 +118,7 @@ class VMManager(object):
         try:
             await self.loop.run_in_executor(self.thread_pool,
                                             lambda: self.libvirt_api.kill_by_name(vm.name))
-            await self._delete_storage(vm)
+            await asyncio.gather(self._delete_storage(vm), self._deinit_networks_no_exception(vm))
         except:
             raise
 

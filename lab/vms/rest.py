@@ -39,7 +39,7 @@ class HyperVisor(object):
             logging.exception("Failed to create VM")
             return web.json_response({'status' : 'Failed'}, status=500)
         else:
-            return web.json_response({'status' : 'Success', 'name': vm.name}, status=200)
+            return web.json_response({'status' : 'Success', 'name': vm.name, 'info' : vm.json}, status=200)
 
     async def handle_destroy_vm(self, request):
         vm_name = request.match_info['name']
