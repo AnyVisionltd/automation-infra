@@ -5,6 +5,7 @@ import logging
 from lab.vms import rest, cloud_init
 from lab.vms import allocator
 from lab.vms import vm_manager
+from lab.vms import dhcp_handlers
 from lab.vms import libvirt_wrapper
 from lab.vms import image_store
 from lab.vms import storage as libstorage
@@ -95,7 +96,10 @@ if __name__ == '__main__':
     ndb_driver = libstorage.NBDProvisioner()
     ndb_driver.initialize()
     vm_boot_init = cloud_init.CloudInit(args.run_dir)
-    manager = vm_manager.VMManager(loop, vmm, storage, ndb_driver, vm_boot_init)
+    bridged_dhcp = dhcp_handlers.DHCPRequestor(args.paravirt_net_device, loop)
+    nat_dhcp = dhcp_handlers.LibvirtDHCPAllocator(loop, vmm, args.private_net)
+    dhcp_client = dhcp_handlers.DHCPManager(handlers={'bridge': bridged_dhcp, 'isolated' : nat_dhcp})
+    manager = vm_manager.VMManager(loop, vmm, storage, ndb_driver, vm_boot_init, dhcp_client)
     allocator = allocator.Allocator(mac_addresses=config['macs'], gpus_list=gpu_pci_devices, vm_manager=manager,
                                     server_name=args.server_name, max_vms=args.max_vms, private_network=args.private_net,
                                     paravirt_device=args.paravirt_net_device, sol_base_port=args.sol_port)
