@@ -120,6 +120,25 @@ class LibvirtDHCPAllocator(object):
         await self._loop.run_in_executor(self._thread_pool, lambda: self._libvirt.remove_dhcp_entry(self._net_name, mac))
 
 
+class DHCPManager(object):
+
+    def __init__(self, handlers):
+        self._handlers = handlers
+
+    async def allocate_ip(self, net_info):
+        net_type = net_info['mode']
+        logging.debug(f"Allocating ip for net {net_info}")
+        mac = net_info['macaddress']
+        ip = net_info.get('ip', None)
+        return await self._handlers[net_type].request_lease(mac, ip)
+
+    async def deallocate_ip(self, net_info):
+        net_type = net_info['mode']
+        logging.debug(f"Releasig lease for net {net_info}")
+        mac = net_info['macaddress']
+        return await self._handlers[net_type].release_lease(mac)
+
+
 if __name__ == '__main__':
     import argparse
     logger = logging.getLogger()
