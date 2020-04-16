@@ -5,6 +5,8 @@ from contextlib import contextmanager
 from libvirt import libvirtError
 import xmltodict
 import munch
+import ipaddress
+import netaddr
 
 
 class LibvirtWrapper(object):
@@ -141,3 +143,25 @@ class LibvirtWrapper(object):
             flags = (libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE |
                      libvirt.VIR_NETWORK_UPDATE_AFFECT_CONFIG)
             net.update(cmd, section, -1, xml, flags)
+
+    def _network_info(self, network_name):
+        with self._libvirt_connection() as connection:
+            net = connection.networkLookupByName(network_name)
+            net_info_xml = net.XMLDesc()
+        return xmltodict.parse(net_info_xml, dict_constructor=dict, force_list=('host'))
+
+    def get_network_dhcp_info(self, network_name):
+        net_info = self._network_info(network_name)
+        ipnet_info = net_info['network']['ip']
+        ipnet = ipaddress.IPv4Network('%s/%s' % (ipnet_info['@address'], ipnet_info['@netmask']), strict=False)
+        dhcp_range = ipnet_info['dhcp']['range']
+        reserved_hosts = ipnet_info['dhcp'].get('host',[])
+        permitted_range = netaddr.IPSet(netaddr.IPRange(dhcp_range['@start'], dhcp_range['@end']))
+        # lets remove already reserved hosts from the list of allowed
+        for dhcp_entry in reserved_hosts:
+            permitted_range.remove(dhcp_entry['@ip'])
+
+        reserved = [{'ip' : reserved_host['@ip'], 'mac': reserved_host['@mac']} for reserved_host in reserved_hosts]
+
+        return {'net' : ipnet, 'hosts' : [ str(ip) for ip in permitted_range], 'reserved' : reserved}
+

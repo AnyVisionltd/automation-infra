@@ -6,6 +6,8 @@ import xmltodict
 from lab.vms import vm
 from infra.utils import pci
 import munch
+import ipaddress
+import netaddr
 
 
 def _libvirt_mock():
@@ -187,3 +189,96 @@ def test_remove_dhcp_entry(libvirt_mock):
                     "<host mac='52:54:00:8d:c0:07'/>",
                 (libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE | libvirt.VIR_NETWORK_UPDATE_AFFECT_CONFIG))
 
+
+
+@patch('libvirt.open', new_callable=_libvirt_mock)
+def test_get_network_dhcp_info_no_reserved_hosts(libvirt_mock):
+    tested = libvirt_wrapper.LibvirtWrapper("test_uri")
+    mocked_net = mock.MagicMock(spec=libvirt.virNetwork)
+    libvirt_mock.return_value.networkLookupByName.return_value = mocked_net
+    mocked_net.XMLDesc.return_value = """
+    <network>
+  <name>default</name>
+  <uuid>056eb636-e982-4996-9233-bdd3b4c47288</uuid>
+  <forward mode="nat">
+    <nat>
+      <port start="1024" end="65535"/>
+    </nat>
+  </forward>
+  <bridge name="virbr0" stp="on" delay="0"/>
+  <mac address="52:54:00:44:91:21"/>
+  <ip address="192.168.122.1" netmask="255.255.255.0">
+    <dhcp>
+      <range start="192.168.122.2" end="192.168.122.5"/>
+    </dhcp>
+  </ip>
+</network>
+    """
+    info = tested.get_network_dhcp_info('default')
+    assert info['net'] == ipaddress.IPv4Network('192.168.122.0/24')
+    assert info['hosts'] == ['192.168.122.2', '192.168.122.3', '192.168.122.4', '192.168.122.5']
+
+@patch('libvirt.open', new_callable=_libvirt_mock)
+def test_get_network_dhcp_info_single_reservation(libvirt_mock):
+    tested = libvirt_wrapper.LibvirtWrapper("test_uri")
+    mocked_net = mock.MagicMock(spec=libvirt.virNetwork)
+    libvirt_mock.return_value.networkLookupByName.return_value = mocked_net
+    mocked_net.XMLDesc.return_value = """
+    <network>
+  <name>default</name>
+  <uuid>056eb636-e982-4996-9233-bdd3b4c47288</uuid>
+  <forward mode="nat">
+    <nat>
+      <port start="1024" end="65535"/>
+    </nat>
+  </forward>
+  <bridge name="virbr0" stp="on" delay="0"/>
+  <mac address="52:54:00:44:91:21"/>
+  <ip address="192.168.122.1" netmask="255.255.255.0">
+    <dhcp>
+      <range start="192.168.122.2" end="192.168.122.5"/>
+      <host mac="52:54:00:3d:29:37" ip="192.168.122.3"/>
+    </dhcp>
+  </ip>
+</network>
+    """
+    info = tested.get_network_dhcp_info('default')
+    assert info['net'] == ipaddress.IPv4Network('192.168.122.0/24')
+    assert info['hosts'] == ['192.168.122.2', '192.168.122.4', '192.168.122.5']
+    assert info['reserved'] == [{'ip' : '192.168.122.3', 'mac' : '52:54:00:3d:29:37'}]
+
+
+@patch('libvirt.open', new_callable=_libvirt_mock)
+def test_get_network_dhcp_info_no_more_reservations(libvirt_mock):
+    tested = libvirt_wrapper.LibvirtWrapper("test_uri")
+    mocked_net = mock.MagicMock(spec=libvirt.virNetwork)
+    libvirt_mock.return_value.networkLookupByName.return_value = mocked_net
+    mocked_net.XMLDesc.return_value = """
+    <network>
+  <name>default</name>
+  <uuid>056eb636-e982-4996-9233-bdd3b4c47288</uuid>
+  <forward mode="nat">
+    <nat>
+      <port start="1024" end="65535"/>
+    </nat>
+  </forward>
+  <bridge name="virbr0" stp="on" delay="0"/>
+  <mac address="52:54:00:44:91:21"/>
+  <ip address="192.168.122.1" netmask="255.255.255.0">
+    <dhcp>
+      <range start="192.168.122.2" end="192.168.122.5"/>
+      <host mac="52:54:00:3d:29:37" ip="192.168.122.2"/>
+      <host mac="52:54:00:3d:29:38" ip="192.168.122.3"/>
+      <host mac="52:54:00:3d:29:39" ip="192.168.122.4"/>
+      <host mac="52:54:00:3d:29:40" ip="192.168.122.5"/>
+    </dhcp>
+  </ip>
+</network>
+    """
+    info = tested.get_network_dhcp_info('default')
+    assert info['net'] == ipaddress.IPv4Network('192.168.122.0/24')
+    assert info['hosts'] == []
+    assert info['reserved'] == [{'ip' : '192.168.122.2', 'mac' : '52:54:00:3d:29:37'},
+                                {'ip' : '192.168.122.3', 'mac' : '52:54:00:3d:29:38'},
+                                {'ip' : '192.168.122.4', 'mac' : '52:54:00:3d:29:39'},
+                                {'ip' : '192.168.122.5', 'mac' : '52:54:00:3d:29:40'}]
