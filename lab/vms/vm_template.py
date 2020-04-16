@@ -6,6 +6,7 @@ template = '''
   <memory unit='GiB'>{{ machine.memsize }}</memory>
   <currentMemory unit='GiB'>{{ machine.memsize }}</currentMemory>
   <vcpu placement='static'>{{ machine.num_cpus }}</vcpu>
+  <uuid>{{machine.uuid}}</uuid>
 
   <metadata>{{metadata}}</metadata>
 

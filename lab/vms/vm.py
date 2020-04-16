@@ -3,6 +3,7 @@ import asyncio
 import json
 import copy
 import xmltodict
+import uuid as libuuid
 
 
 class VM(object):
@@ -11,7 +12,7 @@ class VM(object):
 
     def __init__(self, name, num_cpus, memsize, sol_port, base_image,
                 net_ifaces=None, pcis=None, disks=None, api_version=None,
-                image=None):
+                image=None, uuid=None):
         self.net_ifaces = net_ifaces or []
         self.pcis = pcis or []
         self.disks = disks or []
@@ -23,6 +24,7 @@ class VM(object):
         self.lock = asyncio.Lock()
         self.api_version = api_version or VM.OBJECT_VERSION
         self.image = image
+        self.uuid = uuid or str(libuuid.uuid4())
 
     @property
     def json(self):
@@ -35,7 +37,8 @@ class VM(object):
                 "sol_port" : self.sol_port,
                 "base_image" : self.base_image,
                 "api_version" : self.api_version,
-                "image" : self.image}
+                "image" : self.image,
+                "uuid" : self.uuid}
 
     def __repr__(self):
         data = self.json
