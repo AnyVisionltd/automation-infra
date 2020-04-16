@@ -36,7 +36,7 @@ class ImageStore(object):
                         lambda: os.listdir(os.path.abspath(self.base_qcow_path)))
         return [os.path.splitext(file)[0] for file in files]
 
-    async def clone_qcow(self, base_qcow_image_name, image_name):
+    async def clone_qcow(self, base_qcow_image_name, image_name, image_size):
         # first check if file exists
         backing_file = self.base_qcow_path_from_name(base_qcow_image_name)
 
@@ -47,6 +47,8 @@ class ImageStore(object):
         path = self.run_qcow_path_from_name(image_name)
 
         args = ['qemu-img', 'create', '-f', 'qcow2', '-o', 'backing_file=%s' % backing_file, path]
+        if image_size != None:
+            args.append("%sG" % image_size)
         logging.debug("Running command %s", args)
         proc = await asyncio.create_subprocess_exec(*args, close_fds=True,
                                                     stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
