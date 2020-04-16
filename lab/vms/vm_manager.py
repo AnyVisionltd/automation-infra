@@ -3,7 +3,6 @@ import logging
 import string
 import uuid
 import asyncio
-from lab.vms import cloud_init
 
 
 class VMManager(object):
