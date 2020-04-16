@@ -7,6 +7,7 @@ import codecs
 import concurrent.futures
 import asyncio
 import logging
+import threading
 # This conf is needed to make dhcp requests, so that responses
 # will be not be checked against our real ip address
 scapy_conf.conf.checkIPaddr = False
@@ -80,6 +81,43 @@ class DHCPRequestor(object):
 
     async def release_lease(self, mac):
         pass
+
+
+class LibvirtDHCPAllocator(object):
+
+    def __init__(self, loop, libivrt_wrapper, network_name):
+        self._libvirt = libivrt_wrapper
+        self._net_name = network_name
+        self._thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+        self._loop = loop
+        self._ip_allocation_lock = threading.Lock()
+
+    def _allocate_ip_sync(self, mac, ip=None):
+        with self._ip_allocation_lock:
+            dhcp_info = self._libvirt.get_network_dhcp_info(self._net_name)
+
+            # Check if there are no free ips .. raise
+            if len(dhcp_info['hosts']) == 0:
+                raise Exception(f'IP range for network {self._net_name} is empty')
+
+            # If we are with ip check that it is in the range
+            if ip is not None:
+                if ip not in dhcp_info['hosts']:
+                    raise Exception(f"Requested ip {ip} not in dhcp range {dhcp_info['hosts']}")
+                ip_candidate = ip
+            else:
+                ip_candidate = dhcp_info['hosts'].pop()
+
+            logging.debug(f"Requesting least mac {mac} ip {ip_candidate}")
+            self._libvirt.add_dhcp_entry(self._net_name, ip_candidate, mac)
+        return str(ip_candidate)
+
+    async def request_lease(self, mac, ip=None):
+        lease_info = await self._loop.run_in_executor(self._thread_pool, lambda: self._allocate_ip_sync(mac, ip))
+        return lease_info
+
+    async def release_lease(self, mac):
+        await self._loop.run_in_executor(self._thread_pool, lambda: self._libvirt.remove_dhcp_entry(self._net_name, mac))
 
 
 if __name__ == '__main__':
