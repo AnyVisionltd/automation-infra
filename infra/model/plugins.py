@@ -21,21 +21,23 @@ def clean(plugin):
     verify_functionality - a method which does basic 'sanity' test flow of plugin methods and verifies plugin is
     functioning properly... Useful to run after making changes to a plugin, or when seeing weird plugin behavior
     """
+    logging.info(f"cleaning plugin {plugin}")
     try:
-        assert plugin.ping()
+        plugin.ping()
     except AttributeError:
         logging.debug(f"plugin {plugin} doesnt have ping method")
-    except ConnectionError:
-        raise Exception(f"Clean between tests failed on {plugin} plugin")
+    except Exception as e:
+        raise Exception(f"Clean between tests failed on {plugin} plugin, {e}")
         exit(1)
     try:
-        assert plugin.reset_state()
+        plugin.reset_state()
     except AttributeError:
         logging.debug(f"plugin {plugin} doesnt have reset_state method")
     try:
-        assert plugin.ping()
+        plugin.ping()
     except AttributeError:
         logging.debug(f"plugin {plugin} doesnt have ping method")
-    except ConnectionError:
-        raise Exception(f"Clean between tests failed on {plugin} plugin")
+    except Exception as e:
+        raise Exception(f"Clean between tests failed on {plugin} plugin, {e}")
         exit(1)
+    logging.info(f"done cleaning plugin {plugin}")
