@@ -109,4 +109,4 @@ if __name__ == '__main__':
         loop.run_until_complete(allocator.delete_all_dangling_vms())
     app = web.Application()
     rest.HyperVisor(allocator, storage, app)
-    web.run_app(app, port=args.port)
+    web.run_app(app, port=args.port, access_log_format='%a %t "%r" time %Tf sec %s')
