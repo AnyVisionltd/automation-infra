@@ -18,7 +18,7 @@ echo 'source /environ ' >> "${userhome}"/.bashrc
 
 # We need to adjust docker group according to GID on the host machine
 # so that we will be able to run docker inside docker
-groupmod -g "${DOCKER_GROUP_ID}" docker
+# groupmod -g "${DOCKER_GROUP_ID}" docker
 
 if [ ${username} == "root" ]; then
     echo "running as root"
