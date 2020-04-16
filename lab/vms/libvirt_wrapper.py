@@ -114,3 +114,30 @@ class LibvirtWrapper(object):
                     vms.append(data)
         logging.info("Loaded %s", vms)
         return vms
+
+    def add_dhcp_entry(self, network_name, ip, mac):
+        logging.info(f"Adding dhcp entry to libvirt {network_name} {ip} {mac}")
+        with self._libvirt_connection() as connection:
+            net = connection.networkLookupByName(network_name)
+            section = libvirt.VIR_NETWORK_SECTION_IP_DHCP_HOST
+            xml = "<host mac='%s' ip='%s'/>" % (mac, ip)
+            flags = (libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE |
+                     libvirt.VIR_NETWORK_UPDATE_AFFECT_CONFIG)
+            # first lets try add last command since in most cases this will be a new mac/ip
+            # if that fails lets try update command (yes libvirt API sucks)
+            try:
+                net.update(libvirt.VIR_NETWORK_UPDATE_COMMAND_ADD_LAST, section, -1, xml, flags)
+            except libvirtError:
+                net.update(libvirt.VIR_NETWORK_UPDATE_COMMAND_MODIFY, section, -1, xml, flags)
+
+
+    def remove_dhcp_entry(self, network_name, mac):
+        logging.info(f"Remove dhcp entry to libvirt {network_name} {mac}")
+        with self._libvirt_connection() as connection:
+            net = connection.networkLookupByName(network_name)
+            cmd = libvirt.VIR_NETWORK_UPDATE_COMMAND_DELETE
+            section = libvirt.VIR_NETWORK_SECTION_IP_DHCP_HOST
+            xml = "<host mac='%s'/>" % (mac)
+            flags = (libvirt.VIR_NETWORK_UPDATE_AFFECT_LIVE |
+                     libvirt.VIR_NETWORK_UPDATE_AFFECT_CONFIG)
+            net.update(cmd, section, -1, xml, flags)
