@@ -14,9 +14,9 @@ def _do_create(args):
             "disks" : [] }
 
     if args.ssd:
-        data["disks"].append({"size" : args.ssd, "type" : "ssd", "fs" : "xfs"})
+        data["disks"].append({"size" : args.ssd, "type" : "ssd", "mount" : "/ssd", "fs" : "xfs"})
     if args.hdd:
-        data["disks"].append({"size" : args.hdd, "type" : "hdd", "fs": "xfs"})
+        data["disks"].append({"size" : args.hdd, "type" : "hdd", "mount" : "/storage", "fs": "xfs"})
 
     return requests.post("http://%s/vms" % args.allocator, json=data)
 

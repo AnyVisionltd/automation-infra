@@ -2,7 +2,7 @@ from infra.utils import shell
 from infra.utils import pci
 from infra.utils import anylogging
 import logging
-from lab.vms import rest
+from lab.vms import rest, cloud_init
 from lab.vms import allocator
 from lab.vms import vm_manager
 from lab.vms import libvirt_wrapper
@@ -94,7 +94,8 @@ if __name__ == '__main__':
     pci.vfio_bind_pci_devices(config['pci'])
     ndb_driver = libstorage.NBDProvisioner()
     ndb_driver.initialize()
-    manager = vm_manager.VMManager(loop, vmm, storage, ndb_driver)
+    vm_boot_init = cloud_init.CloudInit(args.run_dir)
+    manager = vm_manager.VMManager(loop, vmm, storage, ndb_driver, vm_boot_init)
     allocator = allocator.Allocator(mac_addresses=config['macs'], gpus_list=gpu_pci_devices, vm_manager=manager,
                                     server_name=args.server_name, max_vms=args.max_vms, private_network=args.private_net,
                                     paravirt_device=args.paravirt_net_device, sol_base_port=args.sol_port)
