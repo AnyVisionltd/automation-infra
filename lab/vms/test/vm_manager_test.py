@@ -1,6 +1,5 @@
 import pytest
 from lab.vms import image_store, libvirt_wrapper, vm_manager
-import asyncmock
 import mock
 from lab.vms import vm
 
@@ -12,7 +11,7 @@ def mock_libvirt():
 
 @pytest.fixture
 def mock_image_store():
-    return asyncmock.AsyncMock(spec=image_store.ImageStore)
+    return mock.AsyncMock(spec=image_store.ImageStore)
 
 
 @pytest.mark.asyncio

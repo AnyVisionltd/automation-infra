@@ -1,6 +1,5 @@
 import pytest
 from lab.vms import image_store
-import asyncmock
 import mock
 import asyncio
 import asynctest
@@ -8,9 +7,9 @@ import uuid
 
 
 def _subprocess_mock():
-    mock = asyncmock.AsyncMock()
-    mock.wait.return_value = asyncmock.AsyncMock(spec=asyncio.subprocess.Process)
-    return mock
+    subprocess_mock = mock.AsyncMock()
+    subprocess_mock.wait.return_value = mock.AsyncMock(spec=asyncio.subprocess.Process)
+    return subprocess_mock
 
 def _subprocess_cmd():
     return " ".join(asyncio.create_subprocess_exec.call_args[0])
