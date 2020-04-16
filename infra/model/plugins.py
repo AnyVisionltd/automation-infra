@@ -23,21 +23,21 @@ def clean(plugin):
     """
     logging.info(f"cleaning plugin {plugin}")
     try:
-        assert plugin.ping()
+        plugin.ping()
     except AttributeError:
         logging.debug(f"plugin {plugin} doesnt have ping method")
-    except ConnectionError:
-        raise Exception(f"Clean between tests failed on {plugin} plugin")
+    except Exception as e:
+        raise Exception(f"Clean between tests failed on {plugin} plugin, {e}")
         exit(1)
     try:
-        assert plugin.reset_state()
+        plugin.reset_state()
     except AttributeError:
         logging.debug(f"plugin {plugin} doesnt have reset_state method")
     try:
-        assert plugin.ping()
+        plugin.ping()
     except AttributeError:
         logging.debug(f"plugin {plugin} doesnt have ping method")
-    except ConnectionError:
-        raise Exception(f"Clean between tests failed on {plugin} plugin")
+    except Exception as e:
+        raise Exception(f"Clean between tests failed on {plugin} plugin, {e}")
         exit(1)
     logging.info(f"done cleaning plugin {plugin}")
