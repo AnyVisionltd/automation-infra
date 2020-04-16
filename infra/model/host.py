@@ -55,12 +55,19 @@ class Host(object):
         self.extra_config = host_config
         self.__plugins = {}
         self._temp_dir_counter = itertools.count()
+        self.use_kong = False
+
+    def init_plugin_with_kong(self, name):
+        self.use_kong = True
+        return self.__getattr__(name)
 
     def __getattr__(self, name):
         if name not in self.__plugins:
             # Access by key but if there's a problem raise an AttributeError to be consistent with expected behavior
             try:
-                self.__plugins[name] = plugins.plugins[name](self)
+                self.__plugins[name] = plugins.plugins[name](self, self.use_kong) \
+                    if self.use_kong else plugins.plugins[name](self)
+                self.kong = False
             except KeyError:
                 print(f"plugin {name} wasnt found!")
                 raise AttributeError
