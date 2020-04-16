@@ -9,6 +9,8 @@ import mock
 from lab.vms import vm
 import copy
 import munch
+from lab.vms import storage
+from unittest.mock import call
 
 
 @pytest.fixture
@@ -20,6 +22,9 @@ def mock_libvirt():
 def mock_image_store():
     return mock.Mock(spec=image_store.ImageStore)
 
+@pytest.fixture
+def mock_nbd_provisioner():
+    return mock.Mock(spec=storage.NBDProvisioner)
 
 def _generate_device(num_gpus):
     return [ pci.Device(domain=dev, bus=dev, slot=dev,
@@ -60,11 +65,11 @@ def _verify_vm_valid(allocator, vm, expected_vm_name, expected_base_image, expec
 
 
 @pytest.mark.asyncio
-async def test_allocate_machine_happy_case(event_loop, mock_libvirt, mock_image_store):
+async def test_allocate_machine_happy_case(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner):
     gpu1 = _generate_device(1)
     macs = _generate_macs(1)
     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
-    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner)
     tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
     await tested.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
@@ -88,19 +93,21 @@ async def test_allocate_machine_happy_case(event_loop, mock_libvirt, mock_image_
     mock_image_store.delete_qcow.assert_called_with("/home/sasha_king.qcow")
     mock_libvirt.kill_by_name.assert_called_with("sasha-vm-0")
 
+def _find_disks_by_type(vm, disk_type):
+    return [disk for disk in vm.disks if disk['type'] == disk_type]
 
 @pytest.mark.asyncio
-async def test_allocate_machine_with_disks(event_loop, mock_libvirt, mock_image_store):
+async def test_allocate_machine_with_disks(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner):
     gpu1 = _generate_device(1)
     macs = _generate_macs(1)
     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
     mock_image_store.create_qcow = mock.AsyncMock(side_effect=["/home/disk1.qcow", "/home/disk2.qcow"])
-    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner)
     tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
     await tested.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1,
-                             disks=[{"type": "ssd", "size" : 10},
-                                    {"type" : "hdd", "size" : 5}])
+                             disks=[{"type": "ssd", "size" : 10, "fs": "xfs"},
+                                    {"type" : "hdd", "size" : 5, "fs": "ext4"}])
     assert len(tested.vms) == 1
     vm = tested.vms['sasha-vm-0']
     _verify_vm_valid(tested, vm, expected_vm_name="sasha-vm-0",
@@ -109,9 +116,14 @@ async def test_allocate_machine_with_disks(event_loop, mock_libvirt, mock_image_
                      expected_mem=1,
                      expected_networks=[{"mac" : macs[0], "type" : "bridge", "source" : "eth0"}],
                      num_cpus=2,
-                     disks=[{"type" : "ssd", "size" : 10, "image": "/home/disk1.qcow"},
-                            {"type" : "hdd", "size" : 5, "image": "/home/disk2.qcow"}])
+                     disks=[{"type" : "ssd", "size" : 10, "image": "/home/disk1.qcow", "fs" : "xfs"},
+                            {"type" : "hdd", "size" : 5, "image": "/home/disk2.qcow", "fs" : "ext4"}])
 
+    ssd_serial = _find_disks_by_type(vm, "ssd")[0]['serial']
+    hdd_serial = _find_disks_by_type(vm, "hdd")[0]['serial']
+    provision_calls = [call('/home/disk1.qcow', 'xfs', ssd_serial),
+                       call('/home/disk2.qcow', 'ext4', hdd_serial)]
+    assert mock_nbd_provisioner.provision_disk.call_args_list == provision_calls
     mock_image_store.clone_qcow.assert_called_with("sasha_image1", "sasha-vm-0")
     mock_libvirt.define_vm.assert_called()
 
@@ -127,11 +139,11 @@ async def test_allocate_machine_with_disks(event_loop, mock_libvirt, mock_image_
     mock_libvirt.kill_by_name.assert_called_with("sasha-vm-0")
 
 @pytest.mark.asyncio
-async def test_kill_non_existing_vm(event_loop, mock_libvirt, mock_image_store):
+async def test_kill_non_existing_vm(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner):
     gpu1 = _generate_device(1)
     macs = _generate_macs(1)
     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
-    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner)
     tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
     await tested.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
@@ -143,11 +155,11 @@ async def test_kill_non_existing_vm(event_loop, mock_libvirt, mock_image_store):
 
  
 @pytest.mark.asyncio
-async def test_allocate_machine_no_gpus(event_loop, mock_libvirt, mock_image_store):
+async def test_allocate_machine_no_gpus(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner):
     gpus = []
     macs = _generate_macs(1)
     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
-    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner)
 
     tested = allocator.Allocator(macs, gpus, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
@@ -176,11 +188,11 @@ async def test_allocate_machine_no_gpus(event_loop, mock_libvirt, mock_image_sto
 
 
 @pytest.mark.asyncio
-async def test_allocate_more_vms_than_we_can(event_loop, mock_libvirt, mock_image_store):
+async def test_allocate_more_vms_than_we_can(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner):
     gpus = _generate_device(1)
     macs = _generate_macs(1)
     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
-    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner)
     tested = allocator.Allocator(macs, gpus, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
     await tested.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=0)
@@ -203,11 +215,11 @@ async def test_allocate_more_vms_than_we_can(event_loop, mock_libvirt, mock_imag
 
 
 @pytest.mark.asyncio
-async def test_allocate_multiple(event_loop, mock_libvirt, mock_image_store):
+async def test_allocate_multiple(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner):
     gpus = _generate_device(10)
     macs = _generate_macs(10)
     mock_image_store.clone_qcow = mock.AsyncMock(side_effect=["1.qcow", "2.qcow"])
-    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner)
     tested = allocator.Allocator(macs, gpus, manager, "sasha", max_vms=3, paravirt_device="eth0", sol_base_port=1000)
 
     await tested.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=2)
@@ -241,11 +253,11 @@ async def test_allocate_multiple(event_loop, mock_libvirt, mock_image_store):
 
 
 @pytest.mark.asyncio
-async def test_start_stop_machine(event_loop, mock_libvirt, mock_image_store):
+async def test_start_stop_machine(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner):
     gpu1 = _generate_device(1)
     macs = _generate_macs(1)
     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
-    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner)
     alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
     await alloc.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
@@ -261,7 +273,7 @@ async def test_start_stop_machine(event_loop, mock_libvirt, mock_image_store):
 
 
 @pytest.mark.asyncio
-async def test_machine_info(event_loop, mock_libvirt, mock_image_store):
+async def test_machine_info(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner):
     gpu1 = _generate_device(1)
     macs = _generate_macs(2)
     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
@@ -269,12 +281,12 @@ async def test_machine_info(event_loop, mock_libvirt, mock_image_store):
                                                  '52:54:00:8d:c0:08': ['192.168.122.187']}
     mock_libvirt.status.return_value = "on"
 
-    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner)
     alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
     await alloc.allocate_vm("sasha_image1", memory_gb=1, networks=["isolated", "isolated"], num_cpus=2, num_gpus=1,
-                            disks=[{"type": "ssd", "size" : 10},
-                                    {"type" : "hdd", "size" : 5}])
+                            disks=[{"type": "ssd", "size" : 10, "fs" : "ext4"},
+                                    {"type" : "hdd", "size" : 5, "fs" : "ext4"}])
     assert len(alloc.vms) == 1
     assert 'sasha-vm-0' in alloc.vms
     vm_info = await manager.info(alloc.vms['sasha-vm-0'])
@@ -287,10 +299,10 @@ async def test_machine_info(event_loop, mock_libvirt, mock_image_store):
 
 
 @pytest.mark.asyncio
-async def test_delete_machines_on_start(event_loop, mock_libvirt, mock_image_store):
+async def test_delete_machines_on_start(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner):
     gpu1 = _generate_device(1)
     macs = _generate_macs(2)
-    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner)
     alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
 
     existing_vms = [vm.VM(name="name1", num_cpus=1, memsize=1,
@@ -308,10 +320,10 @@ async def test_delete_machines_on_start(event_loop, mock_libvirt, mock_image_sto
 
 
 @pytest.mark.asyncio
-async def test_create_machine_and_restore_machine(event_loop, mock_libvirt, mock_image_store):
+async def test_create_machine_and_restore_machine(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner):
     gpu1 = _generate_device(2)
     macs = _generate_macs(2)
-    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store)
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner)
     mock_image_store.clone_qcow.return_value = "/tmp/image.qcow"
     old_allocator = allocator.Allocator(copy.copy(macs), copy.copy(gpu1), manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
     await old_allocator.allocate_vm("sasha_image1", memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
