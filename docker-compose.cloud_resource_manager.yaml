@@ -1,0 +1,28 @@
+version: '3.7'
+
+networks:
+  prod:
+
+services:
+  cloud-resource-manager:
+    image: gcr.io/anyvision-training/cloud-resource-manager:0.1
+    restart: always
+    networks:
+      prod:
+        aliases:
+            - cloud-resource-manager.tls.ai
+    ports:
+      - 8080:8080
+
+    environment:
+      - OWNER_NAME=il_cloud_resource_manager
+
+    volumes:
+      # credentials for aws mounted from local dir
+      - /path/to/.aws/credentials:/root/.aws/credentials
+#      - .:/root/cloud-provisioner
+#      - /home/aharon/PycharmProjects/terraform:/root/terraform
+
+    logging:
+      options:
+        max-size: 1g

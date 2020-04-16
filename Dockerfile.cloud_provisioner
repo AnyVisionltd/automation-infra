@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:experimental
+FROM ubuntu:18.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ARG TERRAFORM_VERSION=0.12.24
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    python3.7 \
+    python3-pip \
+    git \
+    unzip \
+    vim 
+
+RUN pip3 install aiohttp python-terraform
+
+COPY . /root/cloud-provisioner
+RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
+RUN --mount=type=ssh git clone git@github.com:AnyVisionltd/terraform.git /root/terraform
+RUN curl -o  terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
+   https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+RUN unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/
+RUN chmod +x /usr/local/bin/terraform
+WORKDIR /root/cloud-provisioner
+ENTRYPOINT ["python3", "/root/cloud-provisioner/lab/cloud/resource_manager.py"]
