@@ -32,6 +32,19 @@ def _check_kvm_ok():
         raise
 
 
+def _check_network_interface_up(net_iface):
+    network_state = f"/sys/class/net/{net_iface}/operstate"
+    with open(network_state, 'r') as f:
+        net_state = f.read().strip()
+    if net_state != "up":
+        raise Exception(f"Network infterface {net_iface} is not operational")
+
+
+def _check_libvirt_network_is_up(vmm, net_name):
+    if not vmm.is_network_active(net_name):
+        raise Exception(f"Network {net_name} is not operational")
+
+
 def load_config(file_name):
     config = {}
     with open(file_name, 'r') as f:
@@ -89,6 +102,8 @@ if __name__ == '__main__':
     _check_kvm_ok()
     _setup_macvlan_device(args.paravirt_net_device)
     vmm = libvirt_wrapper.LibvirtWrapper(args.qemu_uri)
+    _check_network_interface_up(args.paravirt_net_device)
+    _check_libvirt_network_is_up(vmm, args.private_net)
     storage = image_store.ImageStore(loop, base_qcow_path=args.images_dir,
                                      run_qcow_path=args.run_dir,ssd_path=args.ssd_dir, hdd_path=args.hdd_dir)
     gpu_pci_devices = config['pci']
