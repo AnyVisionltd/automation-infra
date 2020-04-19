@@ -165,3 +165,7 @@ class LibvirtWrapper(object):
 
         return {'net' : ipnet, 'hosts' : [ str(ip) for ip in permitted_range], 'reserved' : reserved}
 
+    def is_network_active(self, network_name):
+        with self._libvirt_connection() as connection:
+            net = connection.networkLookupByName(network_name)
+            return net.isActive() == 1
