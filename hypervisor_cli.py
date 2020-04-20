@@ -7,6 +7,7 @@ import json
 
 def _do_create(args):
     data = {"base_image": args.image,
+            "base_image_size" : args.size,
             "ram" : args.ram,
             "num_cpus": args.cpus,
             "networks" : args.networks_all,
@@ -14,9 +15,9 @@ def _do_create(args):
             "disks" : [] }
 
     if args.ssd:
-        data["disks"].append({"size" : args.ssd, "type" : "ssd"})
+        data["disks"].append({"size" : args.ssd, "type" : "ssd", "mount" : "/ssd", "fs" : "xfs"})
     if args.hdd:
-        data["disks"].append({"size" : args.hdd, "type" : "hdd"})
+        data["disks"].append({"size" : args.hdd, "type" : "hdd", "mount" : "/storage", "fs": "xfs"})
 
     return requests.post("http://%s/vms" % args.allocator, json=data)
 
@@ -47,6 +48,7 @@ if __name__ == "__main__":
 
     create = commands.add_parser("create", help="Create VM")
     create.add_argument("--image", help="Name of base image from which to create VM", required=True)
+    create.add_argument("--size", help="Size of boot disk in GB", required=False)
     create.add_argument("--ram", help="Ram in GBytes", type=int, required=True)
     create.add_argument("--ssd", help="SSD disk in Gbytes", type=int, required=False)
     create.add_argument("--hdd", help="HDD disk in Gbytes", type=int, required=False)

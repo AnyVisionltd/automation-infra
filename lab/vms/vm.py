@@ -1,8 +1,5 @@
-import munch
 import asyncio
-import json
-import copy
-import xmltodict
+import uuid as libuuid
 
 
 class VM(object):
@@ -10,8 +7,8 @@ class VM(object):
     OBJECT_VERSION = "v1"
 
     def __init__(self, name, num_cpus, memsize, sol_port, base_image,
-                net_ifaces=None, pcis=None, disks=None, api_version=None,
-                image=None):
+                 base_image_size=None, net_ifaces=None, pcis=None, disks=None, api_version=None,
+                 image=None, cloud_init_iso=None, uuid=None):
         self.net_ifaces = net_ifaces or []
         self.pcis = pcis or []
         self.disks = disks or []
@@ -23,6 +20,9 @@ class VM(object):
         self.lock = asyncio.Lock()
         self.api_version = api_version or VM.OBJECT_VERSION
         self.image = image
+        self.cloud_init_iso = cloud_init_iso
+        self.uuid = uuid or str(libuuid.uuid4())
+        self.base_image_size = base_image_size
 
     @property
     def json(self):
@@ -35,7 +35,10 @@ class VM(object):
                 "sol_port" : self.sol_port,
                 "base_image" : self.base_image,
                 "api_version" : self.api_version,
-                "image" : self.image}
+                "image" : self.image,
+                "cloud_init_iso": self.cloud_init_iso,
+                "uuid" : self.uuid,
+                "base_image_size" : self.base_image_size}
 
     def __repr__(self):
         data = self.json

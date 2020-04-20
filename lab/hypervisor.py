@@ -2,11 +2,13 @@ from infra.utils import shell
 from infra.utils import pci
 from infra.utils import anylogging
 import logging
-from lab.vms import rest
+from lab.vms import rest, cloud_init
 from lab.vms import allocator
 from lab.vms import vm_manager
+from lab.vms import dhcp_handlers
 from lab.vms import libvirt_wrapper
 from lab.vms import image_store
+from lab.vms import storage as libstorage
 import asyncio
 from aiohttp import web
 import argparse
@@ -28,6 +30,19 @@ def _check_kvm_ok():
     except:
         logging.error("KVM cannot run in accelerated mode are KVM modules exist?")
         raise
+
+
+def _check_network_interface_up(net_iface):
+    network_state = f"/sys/class/net/{net_iface}/operstate"
+    with open(network_state, 'r') as f:
+        net_state = f.read().strip()
+    if net_state != "up":
+        raise Exception(f"Network infterface {net_iface} is not operational")
+
+
+def _check_libvirt_network_is_up(vmm, net_name):
+    if not vmm.is_network_active(net_name):
+        raise Exception(f"Network {net_name} is not operational")
 
 
 def load_config(file_name):
@@ -87,11 +102,19 @@ if __name__ == '__main__':
     _check_kvm_ok()
     _setup_macvlan_device(args.paravirt_net_device)
     vmm = libvirt_wrapper.LibvirtWrapper(args.qemu_uri)
+    _check_network_interface_up(args.paravirt_net_device)
+    _check_libvirt_network_is_up(vmm, args.private_net)
     storage = image_store.ImageStore(loop, base_qcow_path=args.images_dir,
                                      run_qcow_path=args.run_dir,ssd_path=args.ssd_dir, hdd_path=args.hdd_dir)
     gpu_pci_devices = config['pci']
     pci.vfio_bind_pci_devices(config['pci'])
-    manager = vm_manager.VMManager(loop, vmm, storage)
+    ndb_driver = libstorage.NBDProvisioner()
+    ndb_driver.initialize()
+    vm_boot_init = cloud_init.CloudInit(args.run_dir)
+    bridged_dhcp = dhcp_handlers.DHCPRequestor(args.paravirt_net_device, loop)
+    nat_dhcp = dhcp_handlers.LibvirtDHCPAllocator(loop, vmm, args.private_net)
+    dhcp_client = dhcp_handlers.DHCPManager(handlers={'bridge': bridged_dhcp, 'isolated' : nat_dhcp})
+    manager = vm_manager.VMManager(loop, vmm, storage, ndb_driver, vm_boot_init, dhcp_client)
     allocator = allocator.Allocator(mac_addresses=config['macs'], gpus_list=gpu_pci_devices, vm_manager=manager,
                                     server_name=args.server_name, max_vms=args.max_vms, private_network=args.private_net,
                                     paravirt_device=args.paravirt_net_device, sol_base_port=args.sol_port)
@@ -101,4 +124,4 @@ if __name__ == '__main__':
         loop.run_until_complete(allocator.delete_all_dangling_vms())
     app = web.Application()
     rest.HyperVisor(allocator, storage, app)
-    web.run_app(app, port=args.port)
+    web.run_app(app, port=args.port, access_log_format='%a %t "%r" time %Tf sec %s')
