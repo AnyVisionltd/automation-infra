@@ -21,7 +21,7 @@ def get_open_port():
 class Handler(SocketServer.BaseRequestHandler):
     def handle(self):
         try:
-            logging.debug(
+            logging.info(
                 f"Opening tunnel to: {self.chain_host}")
             chan = self.transport.open_channel(
                 "direct-tcpip",
@@ -40,7 +40,7 @@ class Handler(SocketServer.BaseRequestHandler):
                 % (self.chain_host, self.chain_port)
             )
 
-        logging.debug(
+        logging.info(
             "Connected!  Tunnel open %r -> %r -> %r"
             % (
                 self.request.getpeername(),
@@ -64,7 +64,7 @@ class Handler(SocketServer.BaseRequestHandler):
         peername = self.request.getpeername()
         chan.close()
         self.request.close()
-        logging.debug("Tunnel closed from %r" % (peername,))
+        logging.info("Tunnel closed from %r <- %r" % (peername, (self.chain_host, self.chain_port)))
 
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
