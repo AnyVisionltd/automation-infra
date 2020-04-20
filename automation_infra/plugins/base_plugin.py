@@ -17,13 +17,13 @@ class TunneledPlugin(object):
         if force_same_port:
             try:
                 self._forward_server, self.local_bind_port = forward.start_tunnel(
-                    remote, port, self._host.SSH, port)
+                    remote, port, self._host.SSH.get_transport(), port)
             except OSError:
                 self._forward_server, self.local_bind_port = forward.start_tunnel(remote, port,
-                                                                                  self._host.SSH)
+                                                                                  self._host.SSH.get_transport())
         else:
             self._forward_server, self.local_bind_port = forward.start_tunnel(remote, port,
-                                                                              self._host.SSH)
+                                                                              self._host.SSH.get_transport())
 
     def stop_tunnel(self):
         self._forward_server.shutdown()
