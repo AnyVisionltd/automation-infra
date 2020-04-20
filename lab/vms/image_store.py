@@ -36,7 +36,7 @@ class ImageStore(object):
                         lambda: os.listdir(os.path.abspath(self.base_qcow_path)))
         return [os.path.splitext(file)[0] for file in files]
 
-    async def clone_qcow(self, base_qcow_image_name, image_name):
+    async def clone_qcow(self, base_qcow_image_name, image_name, image_size):
         # first check if file exists
         backing_file = self.base_qcow_path_from_name(base_qcow_image_name)
 
@@ -47,6 +47,8 @@ class ImageStore(object):
         path = self.run_qcow_path_from_name(image_name)
 
         args = ['qemu-img', 'create', '-f', 'qcow2', '-o', 'backing_file=%s' % backing_file, path]
+        if image_size != None:
+            args.append("%sG" % image_size)
         logging.debug("Running command %s", args)
         proc = await asyncio.create_subprocess_exec(*args, close_fds=True,
                                                     stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
@@ -60,7 +62,7 @@ class ImageStore(object):
 
     async def create_qcow(self, vm_name, storage_type, size_gb, serial_num):
         path = self._storage_path(storage_type, vm_name, serial_num)
-        size = "%dG" % size_gb
+        size = "%dG" % int(size_gb)
         args = ['qemu-img', 'create', '-f', 'qcow2', path, size]
         logging.debug("Running command %s", args)
         proc = await asyncio.create_subprocess_exec(*args, close_fds=True,
@@ -94,8 +96,11 @@ if __name__ == '__main__':
     commands.required = True
 
     create = commands.add_parser('create', help="Create QCOW image with given base image")
-    create.add_argument('--backing')
     create.add_argument('--image')
+    create.add_argument('--backing')
+    create.add_argument('--size')
+    create.add_argument('--type')
+    create.add_argument('--name')
 
     delete = commands.add_parser('delete', help="Delete QCOW image")
     delete.add_argument('--image')
@@ -105,9 +110,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.command == 'create':
-        backing_path = os.path.abspath(args.backing)
-        backing_dir = os.path.dirname(backing_path)
-        backing_file = os.path.basename(backing_path)
+        backing_path = os.path.abspath(args.backing) if args.backing else None
+        backing_dir = os.path.dirname(backing_path) if backing_path else None
+        backing_file = os.path.basename(backing_path) if backing_path else None
     else:
         backing_dir = None
     run_abs_path = os.path.abspath(args.image)
@@ -117,7 +122,10 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     store = ImageStore(loop, backing_dir, run_qcow_dir, run_qcow_dir, run_qcow_dir)
     if args.command == 'create':
-        loop.run_until_complete(store.clone_qcow(backing_file, run_qcow_name))
+        if args.backing is None:
+            loop.run_until_complete(store.create_qcow(args.name, args.type, args.size, serial_num="1234"))
+        else:
+            loop.run_until_complete(store.clone_qcow(backing_file, run_qcow_name))
     elif args.command == 'delete':
         loop.run_until_complete(store.delete_qcow(backing_file, args.image))
     else:

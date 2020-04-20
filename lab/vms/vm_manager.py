@@ -3,28 +3,49 @@ import logging
 import string
 import uuid
 import asyncio
-from . import vm as libvm
-from infra.utils import pci
 
 
 class VMManager(object):
 
-    def __init__(self, loop, libvirt_api, image_store):
+    def __init__(self, loop, libvirt_api, image_store, disk_privisoner, cloud_init, dhcp_manager):
         self.loop = loop 
         self.libvirt_api = libvirt_api
         self.image_store = image_store
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+        self.disk_privisoner = disk_privisoner
+        self.cloud_init = cloud_init
         # "sda" is taken for boot drive
         self.vol_names = ["sd%s" % letter for letter in  string.ascii_lowercase[1:]]
+        self.dhcp_manager = dhcp_manager
+
+    async def _create_disk(self, vm, disk):
+        disk['image'] = await self.image_store.create_qcow(vm.name, disk['type'], disk['size'], disk['serial'])
+        await self.loop.run_in_executor(self.thread_pool,
+                                    lambda: self.disk_privisoner.provision_disk(disk['image'], disk['fs'], disk['serial']))
+
+    async def _create_vm_boot_disk(self, vm):
+        logging.debug(f"Going to clone qcow  for vm {vm.name} base: {vm.base_image} size {vm.base_image_size}")
+        vm.image = await self.image_store.clone_qcow(vm.base_image, vm.name, vm.base_image_size)
+
+    async def _generate_cloud_init_iso(self, vm):
+        logging.debug(f"Going to generate iso for vm {vm.name}")
+        vm.cloud_init_iso = await self.loop.run_in_executor(self.thread_pool, lambda: self.cloud_init.generate_iso(vm))
+
+    async def _remove_cloud_init_iso(self, vm):
+        try:
+            await self.loop.run_in_executor(self.thread_pool, lambda: self.cloud_init.delete_iso(vm))
+        except:
+            logging.warn(f"Failed to remove iso for vm {vm.name}", exc_info=True)
 
     async def _create_storage(self, vm):
-        image_path = await self.image_store.clone_qcow(vm.base_image, vm.name)
-        vm.image = image_path
+        tasks = [self._create_vm_boot_disk(vm), self._generate_cloud_init_iso(vm)]
 
         for i, disk in enumerate(vm.disks):
             disk['serial'] = str(uuid.uuid4())
             disk['device_name'] = self.vol_names[i]
-            disk['image'] = await self.image_store.create_qcow(vm.name, disk['type'], disk['size'], disk['serial'])
+            tasks.append(self._create_disk(vm, disk))
+
+        await asyncio.gather(*tasks)
 
     async def verify_storage_valid(self, vm):
         try:
@@ -51,9 +72,24 @@ class VMManager(object):
             if 'image' in disk:
                 await self._delete_qcow_no_exception(disk['image'])
 
+        await self._remove_cloud_init_iso(vm)
+
+    async def _init_networks(self, vm):
+        for net in vm.net_ifaces:
+            logging.info(f"vm {vm.name} Request ip address of behalf of vm for net {net}",)
+            net['ip'] = await self.dhcp_manager.allocate_ip(net)
+
+    async def _deinit_networks_no_exception(self, vm):
+        for net in vm.net_ifaces:
+            logging.info(f"vm {vm.name} release ip for net {net}")
+            try:
+                await self.dhcp_manager.deallocate_ip(net)
+            except:
+                logging.exception(f"Failed to remove network {net}")
+
     async def allocate_vm(self, vm):
         try:
-            await self._create_storage(vm)
+            await asyncio.gather(self._create_storage(vm), self._init_networks(vm))
             await self.loop.run_in_executor(self.thread_pool,
                                                      lambda: self.libvirt_api.define_vm(vm))
             await self.start_vm(vm)
@@ -83,7 +119,7 @@ class VMManager(object):
         try:
             await self.loop.run_in_executor(self.thread_pool,
                                             lambda: self.libvirt_api.kill_by_name(vm.name))
-            await self._delete_storage(vm)
+            await asyncio.gather(self._delete_storage(vm), self._deinit_networks_no_exception(vm))
         except:
             raise
 

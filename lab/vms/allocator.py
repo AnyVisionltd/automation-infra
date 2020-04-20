@@ -45,6 +45,12 @@ class Allocator(object):
                                 net_iface['macaddress'], self.mac_addresses)
             macs_to_reserve.append(net_iface['macaddress'])
 
+            # Now lets try to reserve the ip VM previously had
+            try:
+                await self.vm_manager.dhcp_manager.reallocate_ip(net_iface)
+            except Exception as e:
+                raise VMRestoreException(vm_data, f'Failed to init networks of vm {vm_data}') from e
+
         for pci in pcis_info:
             matchind_gpu = [gpu for gpu in self.gpus_list if gpu.full_address == pci]
             if len(matchind_gpu) == 0:
@@ -115,7 +121,7 @@ class Allocator(object):
             if net not in ('bridge', 'isolated'):
                 raise ValueError(f"Invalid network parameter {networks}")
 
-    async def allocate_vm(self, base_image, memory_gb, networks, num_gpus=0, num_cpus=4, disks=None):
+    async def allocate_vm(self, base_image, base_image_size, memory_gb, networks, num_gpus=0, num_cpus=4, disks=None):
         ''' 
         @networks - list of networks that we want to allocate, possible 
         values are "isolated, bridge"
@@ -147,7 +153,7 @@ class Allocator(object):
         machine = vm.VM(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
                          net_ifaces=networks, sol_port=self._sol_port(),
                          pcis=gpus, base_image=base_image,
-                         disks=disks)
+                         disks=disks, base_image_size=base_image_size)
         self.vms[vm_name] = machine
 
         async with machine.lock:

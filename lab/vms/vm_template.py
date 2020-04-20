@@ -6,6 +6,7 @@ template = '''
   <memory unit='GiB'>{{ machine.memsize }}</memory>
   <currentMemory unit='GiB'>{{ machine.memsize }}</currentMemory>
   <vcpu placement='static'>{{ machine.num_cpus }}</vcpu>
+  <uuid>{{machine.uuid}}</uuid>
 
   <metadata>{{metadata}}</metadata>
 
@@ -59,6 +60,15 @@ template = '''
       <alias name='virtio-disk-{{disk.type}}'/>
     </disk>
     {% endfor %}
+
+    {% if machine.cloud_init_iso %}
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='{{machine.cloud_init_iso}}'/>
+      <target dev='hda' bus='ide'/>
+      <readonly/>
+    </disk>
+    {% endif %}
 
     <controller type='pci' index='0' model='pci-root'>
       <alias name='pci.0'/>
