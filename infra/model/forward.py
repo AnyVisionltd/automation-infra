@@ -21,16 +21,14 @@ def get_open_port():
 class Handler(SocketServer.BaseRequestHandler):
     def handle(self):
         try:
-            transport = self.ssh.get_transport()
             logging.debug(
                 f"Opening tunnel to: {self.chain_host}")
-            chan = transport.open_channel(
+            chan = self.transport.open_channel(
                 "direct-tcpip",
                 (self.chain_host, self.chain_port),
                 self.request.getpeername(),
             )
         except Exception as e:
-            transport.close()
             raise Exception(
                 "Error trying to open_channel: Incoming request to %s:%d was rejected by the SSH server."
                 % (self.chain_host, self.chain_port)
@@ -74,11 +72,11 @@ class ForwardServer(SocketServer.ThreadingTCPServer):
     allow_reuse_address = True
 
 
-def start_tunnel(remote_host, remote_port, ssh_plugin, local_port=None):
+def start_tunnel(remote_host, remote_port, ssh_transport, local_port=None):
     class SubHander(Handler):
         chain_host = remote_host
         chain_port = remote_port
-        ssh = ssh_plugin
+        transport = ssh_transport
 
     if local_port is None:
         local_port = get_open_port()
