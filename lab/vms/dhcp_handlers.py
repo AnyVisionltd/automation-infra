@@ -8,6 +8,7 @@ import concurrent.futures
 import asyncio
 import logging
 import threading
+from automation_infra.utils import waiter
 # This conf is needed to make dhcp requests, so that responses
 # will be not be checked against our real ip address
 scapy_conf.conf.checkIPaddr = False
@@ -38,7 +39,7 @@ class DHCPRequestor(object):
                 result[option[0]] = option[1]
         return result
 
-    def _dhcp_request(self, mac_raw, requested_ip, xid_cookie=0, server_id="0.0.0.0"):
+    def _dhcp_request(self, mac_raw, requested_ip, xid_cookie=0, server_id="0.0.0.0", timeout_sec=10):
         logging.debug(f"Sending dhcp request for {requested_ip} cookie {xid_cookie} server id {server_id} net {self._net_iface}")
         dhcp_request = l2.Ether(src=self._real_mac, dst="ff:ff:ff:ff:ff:ff") / \
                         inet.IP(src="0.0.0.0", dst="255.255.255.255") / \
@@ -48,7 +49,7 @@ class DHCPRequestor(object):
                                       ("requested_addr", requested_ip), ("param_req_list", 0), "end"])
 
         # send request, wait for ack
-        dhcp_reply = sendrecv.srp1(dhcp_request, iface=self._net_iface, verbose=self._verbose, timeout=self._dhcp_timeout_sec)
+        dhcp_reply = sendrecv.srp1(dhcp_request, iface=self._net_iface, verbose=self._verbose, timeout=timeout_sec)
         if dhcp_reply is None:
             raise TimeoutError(f"DHCP request timeout on net {self._net_iface}")
         reply = DHCPRequestor._dhcp_reply_info(dhcp_reply)
@@ -56,7 +57,7 @@ class DHCPRequestor(object):
             raise Exception("Failed to get ack %s" % reply)
         return reply
 
-    def _request_lease(self, mac_address, ip=None):
+    def _do_request_lease(self, mac_address, ip=None, timeout_sec=10):
         logging.debug(f"Requesting lease for mac {mac_address} ip {ip} iface {self._net_iface}")
         mac_raw = codecs.decode(mac_address.replace(':', ''), 'hex')
         if ip is None:
@@ -64,7 +65,7 @@ class DHCPRequestor(object):
                             inet.IP(src='0.0.0.0', dst='255.255.255.255') / \
                             inet.UDP(dport=67, sport=68) / \
                             dhcp.BOOTP(chaddr=mac_raw, xid=scapy.volatile.RandInt()) / dhcp.DHCP(options=[('message-type', 'discover'), 'end'])
-            dhcp_offer = sendrecv.srp1(dhcp_discover, iface=self._net_iface, verbose=self._verbose, timeout=self._dhcp_timeout_sec)
+            dhcp_offer = sendrecv.srp1(dhcp_discover, iface=self._net_iface, verbose=self._verbose, timeout=timeout_sec)
             if dhcp_offer is None:
                 raise TimeoutError(f"Timeout. failed to get offer for mac {mac_address} iface: {self._net_iface}")
             ip = dhcp_offer[dhcp.BOOTP].yiaddr
@@ -73,7 +74,12 @@ class DHCPRequestor(object):
         else:
             server_id = "0.0.0.0"
             xid_cookie = 0
-        return self._dhcp_request(mac_raw, ip, xid_cookie, server_id)
+        return self._dhcp_request(mac_raw, ip, xid_cookie, server_id, timeout_sec=timeout_sec)
+
+    def _request_lease(self, mac_address, ip=None):
+        dhcp_operation_timeout_sec = 3
+        return waiter.wait_for_predicate_nothrow(lambda: self._do_request_lease(mac_address, ip=ip, timeout_sec=dhcp_operation_timeout_sec),
+                                          timeout=self._dhcp_timeout_sec, exception_cls=TimeoutError)
 
     async def request_lease(self, mac, ip=None):
         lease_info = await self._loop.run_in_executor(self._thread_pool, lambda: self._request_lease(mac, ip))
