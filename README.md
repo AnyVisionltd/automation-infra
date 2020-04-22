@@ -207,7 +207,16 @@ make -f Makefile-env git-pull
 # OR
 
 make -f Makefile-env git-pull PRODUCT=<product name>
+
+# OR clone using url instead of ssh
+
+make -f Makefile-env git-pull PRODUCT=<product name> CLONE_METHOD=url
+
+# OR clone using url instead of ssh and set user and token
+
+make -f Makefile-env git-pull PRODUCT=<product name> CLONE_METHOD=url GIT_USER=<user> GIT_TOKEN=<token>
 ```
+**or**
 
 **Manual**
 
