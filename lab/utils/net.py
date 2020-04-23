@@ -65,12 +65,14 @@ def network_info(device_name):
 
 def setup_macvlan_device(eth_device, ip_iface, macvlan_device_name):
     logging.info("Going to setup macvlan device %s for device %s info %s", macvlan_device_name, eth_device, ip_iface)
+    macvlan_device_metric = 100
     try:
         add_macvlan_device(eth_device, macvlan_device_name)
         add_ip_to_device(macvlan_device_name, ip_iface.compressed)
         start_device(macvlan_device_name)
         delete_routes(macvlan_device_name)
-        add_route(ip_iface.network.compressed, macvlan_device_name)
+        add_route(ip_iface.network.compressed, macvlan_device_name, macvlan_device_metric)
+        change_route_metric_for_device(eth_device, macvlan_device_metric + 1)
     except:
         logging.exception("Failed to setup macvlan device %s on %s", macvlan_device_name, eth_device)
         if not device_exists(macvlan_device_name):
