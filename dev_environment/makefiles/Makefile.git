@@ -1,4 +1,7 @@
 REPOS_DIR ?= $(PARENT_ROOT_DIR)
+CLONE_METHOD ?= ssh
+GIT_USER ?= ""
+GIT_TOKEN ?= ""
 
 .PHONY: git-install
 git-install:
@@ -34,9 +37,20 @@ endif
 		case "$$line" in \#*) continue ;; esac ; \
 		REPO_NAME=$$(basename $$line | cut -d '.' -f 1) ; \
 		if [ ! -d $(REPOS_DIR)/$$REPO_NAME ]; then \
-			echo "git clone $$REPO_NAME to $(REPOS_DIR)" ; \
-			git -C $(REPOS_DIR) clone $$line ; \
+			if [ $(CLONE_METHOD) = 'url' ]; then \
+				if [ -n $(GIT_USER) ] && [ -n $(GIT_TOKEN) ]; then \
+					GIT_REPO_URL="https://$(GIT_USER):$(GIT_TOKEN)@github.com/$$( echo $$line | sed 's/https:\/\/github.com\///' | sed 's/git@github.com://')"; \
+				else \
+					GIT_REPO_URL="https://github.com/$$( echo $$line | sed 's/https:\/\/github.com\///' | sed 's/git@github.com://')"; \
+				fi ; \
+				GIT_REPO_URL_ALIAS="https://github.com/$$( echo $$line | sed 's/https:\/\/github.com\///' | sed 's/git@github.com://')"; \
+			else \
+				GIT_REPO_URL="$$line" ; \
+				GIT_REPO_URL_ALIAS="$$line" ; \
+			fi ; \
+			echo "git clone $$REPO_NAME ($$GIT_REPO_URL_ALIAS) to $(REPOS_DIR)" ; \
+			git -C $(REPOS_DIR) clone $$GIT_REPO_URL ; \
 		else \
 			echo "Git Repository $$REPO_NAME Already exist under $(REPOS_DIR)" ; \
-		fi \
+		fi ; \
 	done < "$(ROOT_DIR)/dev_environment/$(PRODUCT).txt"
