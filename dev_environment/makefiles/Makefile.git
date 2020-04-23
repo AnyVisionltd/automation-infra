@@ -37,26 +37,19 @@ endif
 		case "$$line" in \#*) continue ;; esac ; \
 		REPO_NAME=$$(basename $$line | cut -d '.' -f 1) ; \
 		if [ ! -d $(REPOS_DIR)/$$REPO_NAME ]; then \
-			GIT_REPO_SSH_URL=$$(echo $$line | cut -d ',' -f 1) ; \
-			GIT_BRANCH=$$(echo $$line | cut -d ',' -s -f 2) ; \
 			if [ $(CLONE_METHOD) = 'url' ]; then \
 				if [ -n $(GIT_USER) ] && [ -n $(GIT_TOKEN) ]; then \
-					GIT_REPO_URL="https://$(GIT_USER):$(GIT_TOKEN)@github.com/$$( echo $$GIT_REPO_SSH_URL | sed 's/https:\/\/github.com\///' | sed 's/git@github.com://')"; \
+					GIT_REPO_URL="https://$(GIT_USER):$(GIT_TOKEN)@github.com/$$( echo $$line | sed 's/https:\/\/github.com\///' | sed 's/git@github.com://')"; \
 				else \
-					GIT_REPO_URL="https://github.com/$$( echo $$GIT_REPO_SSH_URL | sed 's/https:\/\/github.com\///' | sed 's/git@github.com://')"; \
+					GIT_REPO_URL="https://github.com/$$( echo $$line | sed 's/https:\/\/github.com\///' | sed 's/git@github.com://')"; \
 				fi ; \
-				GIT_REPO_URL_ALIAS="https://github.com/$$( echo $$GIT_REPO_SSH_URL | sed 's/https:\/\/github.com\///' | sed 's/git@github.com://')"; \
+				GIT_REPO_URL_ALIAS="https://github.com/$$( echo $$line | sed 's/https:\/\/github.com\///' | sed 's/git@github.com://')"; \
 			else \
-				GIT_REPO_URL="$$GIT_REPO_SSH_URL" ; \
-				GIT_REPO_URL_ALIAS="$$GIT_REPO_SSH_URL" ; \
+				GIT_REPO_URL="$$line" ; \
+				GIT_REPO_URL_ALIAS="$$line" ; \
 			fi ; \
-			if [ -n "$$GIT_BRANCH" ]; then \
-				echo "git clone $$REPO_NAME ($$GIT_REPO_URL_ALIAS) on branch $$GIT_BRANCH to $(REPOS_DIR)" ; \
-				git -C $(REPOS_DIR) clone $$GIT_REPO_URL -b $$GIT_BRANCH ; \
-			else \
-				echo "git clone $$REPO_NAME ($$GIT_REPO_URL_ALIAS) to $(REPOS_DIR)" ; \
-				git -C $(REPOS_DIR) clone $$GIT_REPO_URL ; \
-			fi ; \
+			echo "git clone $$REPO_NAME ($$GIT_REPO_URL_ALIAS) to $(REPOS_DIR)" ; \
+			git -C $(REPOS_DIR) clone $$GIT_REPO_URL ; \
 		else \
 			echo "Git Repository $$REPO_NAME Already exist under $(REPOS_DIR)" ; \
 		fi ; \
