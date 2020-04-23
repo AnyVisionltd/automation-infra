@@ -31,6 +31,11 @@ def start_device(device):
     shell.run_cmd(f"ip link set dev {device} up", shell=True)
 
 
+def change_route_metric_for_device(device, metric):
+    cmd = f"ifmetric {device} {metric}"
+    shell.run_cmd(cmd, shell=True)
+
+
 def add_route(network, device, metric=None):
     logging.info("Add route %s device %s", network, device)
     cmd = f"ip route add {network} dev {device}"
