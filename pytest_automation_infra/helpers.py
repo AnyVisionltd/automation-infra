@@ -97,11 +97,22 @@ def deploy_proxy_container(connected_ssh_module):
         set_up_docker_container(connected_ssh_module)
 
 
+def is_blank(connected_ssh_module):
+    if not is_k8s(connected_ssh_module):
+        try:
+            connected_ssh_module.execute("docker ps")
+        except SSHCalledProcessError:
+            return True
+    return False
+
+
 def init_proxy_container_and_connect(host):
     logging.info(f"[{host}] connecting to ssh directly")
     host.SshDirect.connect()
     logging.info(f"[{host}] connected successfully")
 
+    if is_blank(host.SshDirect):
+        return
     deploy_proxy_container(host.SshDirect)
 
     logging.info(f"[{host}] connecting to ssh container")
@@ -144,7 +155,8 @@ def remove_proxy_container(connected_ssh_module):
 
 
 def tear_down_container(host):
-    remove_proxy_container(host.SshDirect)
+    if not is_blank(host.SshDirect):
+        remove_proxy_container(host.SshDirect)
 
 
 def tear_down_proxy_containers(hosts):
