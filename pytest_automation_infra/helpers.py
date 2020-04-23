@@ -144,7 +144,6 @@ def remove_proxy_container(connected_ssh_module):
 
 
 def tear_down_container(host):
-    host.SshDirect.connect()
     remove_proxy_container(host.SshDirect)
 
 
