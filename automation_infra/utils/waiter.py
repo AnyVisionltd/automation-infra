@@ -1,7 +1,7 @@
 import time
 
 
-def wait_for_predicate_nothrow(predicate, timeout=10, interval=1.0):
+def wait_for_predicate_nothrow(predicate, timeout=10, interval=1.0, exception_cls=Exception):
     before = time.time()
     caught_exceptions = ""
     while True:
@@ -9,7 +9,7 @@ def wait_for_predicate_nothrow(predicate, timeout=10, interval=1.0):
             result = predicate()
             if result is not None:
                 return result
-        except Exception as e:
+        except exception_cls as e:
             caught_exceptions = caught_exceptions + str(e) + "\n"
         if time.time() - before > timeout:
             raise TimeoutError("Predicate timed out, during the time we caught theses exceptions: \n" + caught_exceptions)
