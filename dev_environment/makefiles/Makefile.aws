@@ -19,8 +19,8 @@ else ifeq ($(OS),centos)
 
 endif
 
-	curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-	unzip -q -o awscliv2.zip -d /tmp
+	curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+	unzip -q -o /tmp/awscliv2.zip -d /tmp
 	sudo /tmp/aws/install --update
 	/usr/local/bin/aws --version
 
