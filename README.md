@@ -6,7 +6,8 @@ In other words, pull requests are happily accepted :)
 
 ## Table of Contents  
 * [Background](#background)
-* [Set Up you environment](#set-up-your-environment)
+* [Set Up your environment](#set-up-your-environment)
+    * [set working directory](#set-working-directory)
     * [set connection file](#set-connection-file)
     * [set docker](#set-docker)
     * [set aws s3](#set-aws-s3)
@@ -27,9 +28,27 @@ Inside automation folder will be another folder with the same name as the base r
 
 Install make
 
-*Ubuntu*: `apt update && apt -y install make`
+*Ubuntu*: `sudo apt update && sudo apt -y install make`
 
-*RHEL/CentOS*: `yum -y install make`
+*RHEL/CentOS*: `sudo yum -y install make`
+
+## set working directory
+
+First, let's create **new** directory which will contains all the relevant git repositories for the automation tests.
+why? This Directory will be the parent directory so we will be able to use your IDE to open all those repos in same window and work with the automation libraries
+
+```
+mkdir -p $HOME/automation_repos
+cd $HOME/automation_repos
+```
+> you can choose a different parent directory as much as you want
+
+Now Let's clone the base git repo of the automation tests to the parent directory that you created above
+
+```
+git clone git@github.com:AnyVisionltd/automation-infra.git
+cd automation-infra
+```
 
 ## set connection file
 
@@ -110,7 +129,6 @@ docker login "https://gcr.io" -u _json_key -p "$(cat ~/.gcr/docker-registry-ro.j
 
 ### install aws cli
 
-
 **Makefile**
 
 ```
@@ -180,22 +198,6 @@ or
 ## git repositories
 
 Let's `git pull` all the relevant git repositories by product
-
-First, let's create **new** directory which will contains all the relevant git repositories for the automation tests.
-why? This Directory will be the parent directory so we will be able to use your IDE to open all those repos in same window and work with the automation libraries
-
-```
-mkdir -p $HOME/automation_repos
-cd $HOME/automation_repos
-```
-> you can choose a different parent directory as much as you want
-
-Now Let's clone the base git repo of the automation tests to the parent directory that you created above
-
-```
-git clone git@github.com:AnyVisionltd/automation-infra.git
-cd automation-infra
-```
 
 Now we can pull all the relevant git repositories by product
 
