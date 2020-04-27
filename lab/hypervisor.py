@@ -41,8 +41,11 @@ def _check_network_interface_up(net_iface):
 
 
 def _check_libvirt_network_is_up(vmm, net_name):
-    if not vmm.is_network_active(net_name):
-        raise Exception("Network %s is not operational" % net_name)
+    logging.info(f"Going to active network {net_name}")
+    try:
+        vmm.activate_network(net_name)
+    except Exception as e:
+        raise Exception("Network %s is not operational" % net_name) from e
 
 
 def load_config(file_name):
