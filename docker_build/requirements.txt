@@ -1,2 +1,7 @@
 rpyc
 confluent_kafka
+google
+protobuf
+numpy
+opencv-python
+grpcio==1.21.1
