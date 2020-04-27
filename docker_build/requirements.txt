@@ -1,2 +1,7 @@
 rpyc
 confluent_kafka
+google
+protobuf
+numpy
+opencv-python==4.2.0.32
+grpcio==1.21.1
