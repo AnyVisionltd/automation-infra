@@ -77,6 +77,8 @@ pytest-timeout = "*"
 Faker = "==4.0.1"
 python-socketio = "==4.4.0"
 prometheus-http-clint = {git = "https://github.com/tomoncle/prometheus-http-client",editable = true,ref = "master"}
+scapy = "==2.4.3"
+netaddr = "==0.7.19"
 ipdb = "*"
 rpyc = "*"
 
