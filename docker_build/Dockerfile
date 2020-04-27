@@ -13,6 +13,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     ffmpeg \
     curl \
     net-tools \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
