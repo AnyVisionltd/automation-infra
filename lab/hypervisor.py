@@ -42,7 +42,7 @@ def _check_network_interface_up(net_iface):
 
 def _check_libvirt_network_is_up(vmm, net_name):
     if not vmm.is_network_active(net_name):
-        raise Exception(f"Network {net_name} is not operational")
+        raise Exception("Network %s is not operational" % net_name)
 
 
 def load_config(file_name):
