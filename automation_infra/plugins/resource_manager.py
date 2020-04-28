@@ -18,6 +18,8 @@ from infra.model import plugins
 
 
 class ResourceManager(BaseObject):
+    """NOTE: Please dont use this plugin. The proper plugin to use is in devops-automation-infra
+    repository. This is here for historical reasons only."""
     def __init__(self, host):
         super().__init__(host)
         self._client = None
