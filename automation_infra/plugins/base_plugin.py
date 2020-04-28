@@ -1,6 +1,6 @@
 import logging
 
-from infra.model import forward
+from infra.model import tunnel
 
 
 class TunneledPlugin(object):
@@ -17,16 +17,10 @@ class TunneledPlugin(object):
         
     def start_tunnel(self, remote, port, force_same_port=False):
         port = int(port) # ensure port is integer
-        if force_same_port:
-            try:
-                self._forward_server, self.local_bind_port = forward.start_tunnel(
-                    remote, port, self._host.SSH.get_transport(), port)
-            except OSError:
-                self._forward_server, self.local_bind_port = forward.start_tunnel(remote, port,
-                                                                                  self._host.SSH.get_transport())
-        else:
-            self._forward_server, self.local_bind_port = forward.start_tunnel(remote, port,
-                                                                              self._host.SSH.get_transport())
+        try:
+            self._forward_server, self.local_bind_port = tunnel.Tunnel.try_start_tunnel(remote, port, self._host.SSH.get_transport(), port)
+        except OSError:
+            self._forward_server, self.local_bind_port = tunnel.Tunnel.try_start_tunnel(remote, port, self._host.SSH.get_transport())
         logging.info(f"local bind port: {self.local_bind_port}")
 
     def stop_tunnel(self):
