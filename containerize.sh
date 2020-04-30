@@ -207,7 +207,7 @@ function run_docker () {
 
     python_path=$(build_python_path $mount_path)
 
-    env_cmd+="-e PYTHONPATH=${python_path}"
+    env_cmd+="-e PYTHONPATH=${python_path} "
 
     # mount source code in same location as in host
     cmd="docker run -t --name ${NAME} --privileged  --rm $mount_cmd $env_cmd"
