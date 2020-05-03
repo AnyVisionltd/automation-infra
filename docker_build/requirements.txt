@@ -6,3 +6,4 @@ numpy
 opencv-python
 boto3
 grpcio==1.21.1
+PyMySQL==0.9.3
