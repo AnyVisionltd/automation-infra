@@ -30,7 +30,7 @@ spec:
       containers:
       - name: automation-proxy
         image: gcr.io/anyvision-training/automation-proxy:master
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         # command: ["/usr/sbin/sshd"]
         # args: ["-D","-e"]
         # command: ["sleep"]
