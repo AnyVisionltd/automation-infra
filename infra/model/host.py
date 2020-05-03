@@ -89,7 +89,7 @@ class Host(object):
 
     def clean_between_tests(self):
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.environ.get('WORKERS', 4)) as executor:
-            executor.map(plugins.clean, [plugin for name, plugin in self.__plugins.items()])
+            list(executor.map(plugins.clean, [plugin for name, plugin in self.__plugins.items()]))
 
 
 plugins.register('Host', Host)
