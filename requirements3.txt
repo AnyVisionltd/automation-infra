@@ -81,3 +81,5 @@ pandas
 matplotlib
 torch
 sklearn
+lxml
+zeep
