@@ -4,6 +4,7 @@ import os
 
 from munch import Munch
 
+from automation_infra.utils.timer import timeitdecorator
 from infra.model import plugins
 
 EXAMPLE_IP = '35.231.0.137'
@@ -87,6 +88,7 @@ class Host(object):
     def __str__(self):
         return self.ip
 
+    @timeitdecorator
     def clean_between_tests(self):
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.environ.get('WORKERS', 4)) as executor:
             list(executor.map(plugins.clean, [plugin for name, plugin in self.__plugins.items()]))
