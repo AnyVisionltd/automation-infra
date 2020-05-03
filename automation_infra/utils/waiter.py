@@ -38,6 +38,17 @@ def wait_nothrow(operation, timeout=10, interval=1.0):
         time.sleep(interval)
 
 
+def await_changing_result(predicate, interval=2, tries=10):
+    prev_res = predicate()
+    for i in range(tries):
+        time.sleep(interval)
+        res = predicate()
+        if res == prev_res:
+            return res
+        else:
+            prev_res = res
+
+
 @contextmanager
 def time_limit(seconds):
     """
