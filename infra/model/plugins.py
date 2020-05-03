@@ -1,4 +1,7 @@
 import logging
+import time
+
+from automation_infra.utils.timer import timeit
 
 plugins = {}
 
@@ -22,22 +25,23 @@ def clean(plugin):
     functioning properly... Useful to run after making changes to a plugin, or when seeing weird plugin behavior
     """
     logging.info(f"cleaning plugin {plugin}")
-    try:
-        plugin.ping()
-    except AttributeError:
-        logging.debug(f"plugin {plugin} doesnt have ping method")
-    except Exception as e:
-        raise Exception(f"Clean between tests failed on {plugin} plugin, {e}")
-        exit(1)
-    try:
-        plugin.reset_state()
-    except AttributeError:
-        logging.debug(f"plugin {plugin} doesnt have reset_state method")
-    try:
-        plugin.ping()
-    except AttributeError:
-        logging.debug(f"plugin {plugin} doesnt have ping method")
-    except Exception as e:
-        raise Exception(f"Clean between tests failed on {plugin} plugin, {e}")
-        exit(1)
+    with timeit(f"clean {plugin}"):
+        try:
+            plugin.ping()
+        except AttributeError:
+            logging.debug(f"plugin {plugin} doesnt have ping method")
+        except Exception as e:
+            raise Exception(f"Clean between tests failed on {plugin} plugin, {e}")
+            exit(1)
+        try:
+            plugin.reset_state()
+        except AttributeError:
+            logging.debug(f"plugin {plugin} doesnt have reset_state method")
+        try:
+            plugin.ping()
+        except AttributeError:
+            logging.debug(f"plugin {plugin} doesnt have ping method")
+        except Exception as e:
+            raise Exception(f"Clean between tests failed on {plugin} plugin, {e}")
+            exit(1)
     logging.info(f"done cleaning plugin {plugin}")
