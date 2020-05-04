@@ -77,6 +77,20 @@ def _setup_macvlan_device(paravirt_device):
     logging.info("Macvlan device %s is setup", MACVLAN_DEV_NAME)
 
 
+def _vfio_bind_pci_devices(devices):
+    logging.debug("Going to vfio bind devices %s", devices)
+    for device in devices:
+        # If device is already VFIO and it is in use we wont be able to bind it,
+        # but we assume it is in-use by our VM`s and we are just reloading
+        if pci.device_driver(device) == 'vfio-pci' and pci.enable_count(device) > 0:
+            logging.info("Skip binding device %s it is already vfio-pci and in-use", device)
+            continue
+        try:
+            pci.vfio_bind_pci_device(device)
+        except Exception as e:
+            raise Exception("Failed to bind device %s verify", device) from e
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", help="Config file containing pci addresses and mac addressses", required=True)
@@ -110,7 +124,7 @@ if __name__ == '__main__':
     storage = image_store.ImageStore(loop, base_qcow_path=args.images_dir,
                                      run_qcow_path=args.run_dir,ssd_path=args.ssd_dir, hdd_path=args.hdd_dir)
     gpu_pci_devices = config['pci']
-    pci.vfio_bind_pci_devices(config['pci'])
+    _vfio_bind_pci_devices(config['pci'])
     ndb_driver = libstorage.NBDProvisioner()
     ndb_driver.initialize()
     vm_boot_init = cloud_init.CloudInit(args.run_dir)
