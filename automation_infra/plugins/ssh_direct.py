@@ -98,13 +98,15 @@ class SshDirect(object):
         self._connection.close()
 
     def run_snippet(self, code_snippet, *args, **kwargs):
-        code = snippet.Snippet(code_snippet)
+        excludes = kwargs.pop('excludes', [])
+        code = snippet.Snippet(code_snippet, excludes)
         code.prepare()
         instance = code.create_instance(self._host)
         return instance.run(*args, **kwargs)
 
     def run_background_snippet(self, code_snippet, *args, **kwargs):
-        code = snippet.Snippet(code_snippet)
+        excludes = kwargs.pop('excludes', [])
+        code = snippet.Snippet(code_snippet, excludes)
         code.prepare()
         instance = code.create_instance(self._host)
         return instance.run_background(*args, **kwargs)

@@ -61,8 +61,9 @@ class SnippetRunner(object):
 
 class Snippet(object):
 
-    def __init__(self, target):
+    def __init__(self, target, excludes=()):
         self.target = target
+        self.excludes = excludes
         self.archive_path = None
 
     _wrapper_script = """
@@ -98,7 +99,7 @@ else:
         module = self.target.__module__
         name = self.target.__name__
         script = self._wrapper_script.format(module=module, target=name)
-        packed = PythonPacker.from_script(script, outfile or name)
+        packed = PythonPacker.from_script(script, outfile or name, excludes=self.excludes)
         self.archive_path = packed.outfile
 
     def create_instance(self, host, interpreter='python3'):
