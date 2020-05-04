@@ -1,6 +1,5 @@
 import logging
 import select
-import signal
 import threading
 
 from automation_infra.utils import waiter
@@ -63,6 +62,7 @@ class Tunnel(object):
             chain_host = remote_host
             chain_port = remote_port
             transport = ssh_transport
+            local_bind_port = local_port
 
         if local_port is None:
             local_port = get_open_port()
@@ -78,7 +78,7 @@ class Handler(SocketServer.BaseRequestHandler):
     def handle(self):
         try:
             logging.info(
-                f"Opening tunnel to: {self.chain_host}")
+                f"Opening tunnel ({self.local_bind_port}) -> ({self.chain_host}:{self.chain_port})")
             chan = self.transport.open_channel(
                 "direct-tcpip",
                 (self.chain_host, self.chain_port),
@@ -97,9 +97,9 @@ class Handler(SocketServer.BaseRequestHandler):
             )
 
         logging.info(
-            "Connected!  Tunnel open %r -> %r -> %r"
+            "Connected!  Tunnel open (%r) -> %r -> %r"
             % (
-                self.request.getpeername(),
+                f"localhost:{self.local_bind_port}",
                 chan.getpeername(),
                 (self.chain_host, self.chain_port),
             )
@@ -117,10 +117,9 @@ class Handler(SocketServer.BaseRequestHandler):
                     break
                 self.request.send(data)
 
-        peername = self.request.getpeername()
         chan.close()
         self.request.close()
-        logging.info("Tunnel closed from %r <- %r" % (peername, (self.chain_host, self.chain_port)))
+        logging.info("Tunnel closed from (%r) <- %r" % (f"localhost:{self.local_bind_port}", (self.chain_host, self.chain_port)))
 
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
