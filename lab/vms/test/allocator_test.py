@@ -333,6 +333,15 @@ async def test_delete_machines_on_start(event_loop, mock_libvirt, mock_image_sto
     mock_libvirt.kill_by_name.assert_has_calls([mock.call("name1"), mock.call("name2")])
 
 
+def _adjust_machine_xml_to_libvirt_result(libvirt_xml):
+    # Dont know why but when we read from libvirt metadata we get it without namespace
+    # So this is what we need to do in the test
+    return libvirt_xml.replace('<vm:instance xmlns:vm="anyvision">', '<instance>').replace('</vm:instance>', '</instance>')
+
+def _emulate_libvirt_xml_dump_and_load(machine):
+    xml = libvirt_wrapper.LibvirtWrapper.machine_metadata_xml(machine)
+    xml = _adjust_machine_xml_to_libvirt_result(xml)
+    return libvirt_wrapper.LibvirtWrapper.machine_metadata_xml_to_metadata(xml)
 
 @pytest.mark.asyncio
 async def test_create_machine_and_restore_machine(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler):
