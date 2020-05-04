@@ -4,6 +4,7 @@ import logging
 import munch
 from infra.utils import shell
 from builtins import staticmethod
+import os
 
 LSPCI_D_REGEX = re.compile("(([0-9a-f]{4}):([0-9a-f]{2}):([0-9a-f]{2}).([0-9a-f]))\s*")
 
@@ -77,6 +78,15 @@ def vfio_bind_pci_device(device):
     logging.debug("vfio bind device %s", device)
     shell.run_cmd(["/usr/local/bin/vfio-pci-bind.sh", device.full_address])
 
+def device_driver(device):
+    path = f'/sys/bus/pci/devices/{device.full_address}/driver'
+    driver_path = os.readlink(path)
+    return driver_path.split('/')[-1]
+
+def enable_count(device):
+    path = f'/sys/bus/pci/devices/{device.full_address}/enable'
+    with open(path, 'r') as f:
+        return int(f.read().strip())
 
 def vfio_bind_pci_devices(devices):
     logging.debug("Going to vfio bind devices %s", devices)
