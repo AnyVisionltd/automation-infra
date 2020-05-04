@@ -30,7 +30,9 @@ class Allocator(object):
         pcis_info = vm_data.get('pcis', [])
         macs_to_reserve = []
         gpus_to_reserve = []
-
+        # This is dirty hack, since xml is missing the "disks" and we need this variable to
+        # exists empty in order to correctly restore vm we initialize it here
+        vm_data.setdefault('disks', [])
         # First check if storage is valid
         if not await self.vm_manager.verify_storage_valid(vm_data):
             raise VMRestoreException(vm_data, "Storage is not valid")
