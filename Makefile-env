@@ -22,6 +22,11 @@ git-%:
 include $(ROOT_DIR)/dev_environment/makefiles/Makefile.git
 
 
+.PHONY: packages-%
+packages-%:
+include $(ROOT_DIR)/dev_environment/makefiles/Makefile.packages
+
+
 .PHONY: install
 install: docker-install aws-install git-install
 

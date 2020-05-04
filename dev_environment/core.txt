@@ -4,3 +4,4 @@ git@github.com:AnyVisionltd/pipeng.git
 git@github.com:AnyVisionltd/protobuf-contract.git
 git@github.com:AnyVisionltd/core-product.git,master-2.2.0
 git@github.com:AnyVisionltd/End_to_end_benchmarking.git
+git@github.com:AnyVisionltd/licensing-service.git
