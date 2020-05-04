@@ -8,7 +8,6 @@ from lab import NotEnoughResourceException
 import mock
 from lab.vms import vm
 import copy
-import munch
 from lab.vms import storage
 from unittest.mock import call
 
@@ -358,9 +357,9 @@ async def test_create_machine_and_restore_machine(event_loop, mock_libvirt, mock
     old_vm_info = await manager.info(old_allocator.vms['sasha-vm-0'])
 
     # Get json with which machine was created
-    vm_def = mock_libvirt.define_vm.call_args.args[0].json
-    # Now set load to return same json
-    mock_libvirt.load_lab_vms.return_value = [munch.Munch(vm_def)]
+    vm_def = mock_libvirt.define_vm.call_args.args[0]
+    vm_metadata_to_restore = _emulate_libvirt_xml_dump_and_load(vm_def)
+    mock_libvirt.load_lab_vms.return_value = [vm_metadata_to_restore]
 
     # Now recreate the allocator
     tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
@@ -385,9 +384,9 @@ async def test_restore_machine_fail_to_restore_network(event_loop, mock_libvirt,
     assert 'sasha-vm-0' in old_allocator.vms
 
     # Get json with which machine was created
-    vm_def = mock_libvirt.define_vm.call_args.args[0].json
-    # Now set load to return same json
-    mock_libvirt.load_lab_vms.return_value = [munch.Munch(vm_def)]
+    vm_def = mock_libvirt.define_vm.call_args.args[0]
+    vm_metadata_to_restore = _emulate_libvirt_xml_dump_and_load(vm_def)
+    mock_libvirt.load_lab_vms.return_value = [vm_metadata_to_restore]
 
     # Now recreate the allocator
     mock_dhcp_handler.reallocate_ip = mock.AsyncMock(side_effect = Exception("Failed to allocate ip"))
