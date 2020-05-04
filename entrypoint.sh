@@ -25,9 +25,9 @@ if [ ${username} == "root" ]; then
 else
     add_user
     echo "running as ${username}"
-    if [ "x$*" != "xbash" ]; then
-        su "${username}" -c -- "$*"
-    else
-        su "${username}"
-    fi    
+fi
+if [ "x$*" != "xbash" ]; then
+    su "${username}" -c -- "$*"
+else
+    su "${username}"
 fi
