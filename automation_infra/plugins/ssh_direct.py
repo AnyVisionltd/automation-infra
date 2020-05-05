@@ -127,7 +127,7 @@ class SshDirect(object):
             key_path_on_source = self._install_private_key(dest_host.keyfile, self._host)
             prefix = "scp -i %s" % key_path_on_source
         else:
-            prefix = "sshpass -p %s scp -o PubkeyAuthentication=no" % dest_host.password
+            prefix = "sshpass -p '%s' scp -o PubkeyAuthentication=no" % dest_host.password
 
         scp_script = '%(prefix)s -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\
                      -r %(source)s root@%(dest_ip)s:%(dest)s' % dict(prefix=prefix,
@@ -141,7 +141,7 @@ class SshDirect(object):
         if self._host.keyfile:
             prefix = "scp -i %s" % self._host.keyfile
         else:
-            prefix = "sshpass -p %s scp -o PubkeyAuthentication=no" % self._host.password
+            prefix = "sshpass -p '%s' scp -o PubkeyAuthentication=no" % self._host.password
 
         cmd_template = '%(prefix)s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\
                         -r %(localpath)s %(username)s@%(hostname)s:%(remotepath)s'
@@ -156,7 +156,7 @@ class SshDirect(object):
         if self._host.keyfile:
             prefix = "scp -i %s" % self._host.keyfile
         else:
-            prefix = "sshpass -p %s scp -o PubkeyAuthentication=no" % self._host.password
+            prefix = "sshpass -p '%s' scp -o PubkeyAuthentication=no" % self._host.password
 
         cmd_template = '%(prefix)s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\
                         -r %(username)s@%(hostname)s:%(remotepath)s %(localpath)s'
