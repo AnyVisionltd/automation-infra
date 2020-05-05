@@ -27,22 +27,20 @@ class LibvirtWrapper(object):
             if connection is not None:
                 connection.close()
 
-    @staticmethod
-    def machine_metadata_xml(vm):
+    def _machine_metadata_xml(self, vm):
         data = vm.json
         data.update({'@xmlns:vm' : 'anyvision'})
         # wrap with namespace
         vm_instance = {'vm:instance' : data}
         return xmltodict.unparse(vm_instance, full_document=False)
 
-    @staticmethod
-    def machine_metadata_xml_to_metadata(xml):
+    def _machine_metadata_xml_to_metadata(self, xml):
         vm_data = xmltodict.parse(xml, dict_constructor=dict, force_list=('net_ifaces', 'pcis', 'disks'))
         return munch.Munch(vm_data['instance'])
 
     def define_vm(self, machine_info):
         with self._libvirt_connection() as connection:
-            xml = vm_template.generate_xml(machine_info, LibvirtWrapper.machine_metadata_xml(machine_info))
+            xml = vm_template.generate_xml(machine_info, self._machine_metadata_xml(machine_info))
             logging.info("Defined vm %(name)s, xml: \n %(xml)s", dict(name=machine_info.name, xml=xml))
             connection.defineXML(xml)
 
@@ -113,7 +111,7 @@ class LibvirtWrapper(object):
                 except libvirtError:
                     logging.info("Domain %s is not anyvision vm..skipping", domain.name())
                 else:
-                    data = LibvirtWrapper.machine_metadata_xml_to_metadata(vm_xml)
+                    data = self._machine_metadata_xml_to_metadata(vm_xml)
                     logging.debug("Loaded json %s for vm %s", data, domain.name())
                     vms.append(data)
         logging.info("Loaded %s", vms)
