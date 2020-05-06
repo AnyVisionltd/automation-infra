@@ -7,7 +7,7 @@ DOCKERIZE_FORCE_BUILD=${DOCKERIZE_FORCE_BUILD:-0}
 V=${V:=0}
 
 # Absolute path to this script
-SCRIPT=$(readlink -f "$0")
+SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
 # Absolute path to the script directory
 script_dir=$(dirname "$SCRIPT")
 
@@ -206,6 +206,7 @@ function run_docker () {
     mount_cmd+=" "
 
     python_path=$(build_python_path $mount_path)
+    python_path+=":$script_dir"
 
     env_cmd+="-e PYTHONPATH=${python_path} "
 
