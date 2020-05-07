@@ -4,17 +4,20 @@ import time
 import logging
 
 
-def timeitdecorator(func):
-    @wraps(func)
-    def _time_it(*args, **kwargs):
-        start = time.time()
-        try:
-            return func(*args, **kwargs)
-        finally:
-            duration = time.time() - start
-            if duration > 1:
-                logging.debug(f"{func}: execution time: {duration}s")
-    return _time_it
+
+def timeitdecorator(log_level=logging.INFO, min_time=1):
+    def _wrapper(func):
+        @wraps(func)
+        def _time_it(*args, **kwargs):
+            start = time.time()
+            try:
+                return func(*args, **kwargs)
+            finally:
+                duration = time.time() - start
+                if not min_time or duration > min_time:
+                    logging.log(log_level, f"{func}: execution time: {duration}s")
+        return _time_it
+    return _wrapper
 
 
 @contextmanager
