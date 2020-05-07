@@ -13,6 +13,7 @@ class SshDirect(object):
     def __init__(self, host):
         self._host = host
         self._connection = None
+        self.home_dir = '/home/' + self._host.user  if self._host.user is not 'root' else '/root'
 
     def connect(self, timeout=10):
         self._connection = connection.Connection(self._host)
