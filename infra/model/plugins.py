@@ -24,7 +24,7 @@ def clean(plugin):
     verify_functionality - a method which does basic 'sanity' test flow of plugin methods and verifies plugin is
     functioning properly... Useful to run after making changes to a plugin, or when seeing weird plugin behavior
     """
-    logging.info(f"cleaning plugin {plugin}")
+    logging.debug(f"cleaning plugin {plugin}")
     with timeit(f"clean {plugin}"):
         try:
             plugin.ping()
@@ -44,4 +44,4 @@ def clean(plugin):
         except Exception as e:
             raise Exception(f"Clean between tests failed on {plugin} plugin, {e}")
             exit(1)
-    logging.info(f"done cleaning plugin {plugin}")
+    logging.debug(f"done cleaning plugin {plugin}")

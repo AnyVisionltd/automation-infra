@@ -13,7 +13,7 @@ def timeitdecorator(func):
         finally:
             duration = time.time() - start
             if duration > 1:
-                logging.info(f"{func}: execution time: {duration}s")
+                logging.debug(f"{func}: execution time: {duration}s")
     return _time_it
 
 
@@ -23,4 +23,4 @@ def timeit(alias=''):
     yield
     duration = time.time() - start
     if duration > 1:
-        logging.info(f"{alias} -> duration: {duration}")
+        logging.debug(f"{alias} -> duration: {duration}")
