@@ -16,12 +16,13 @@ class TunneledPlugin(object):
         self.local_bind_port = None
         
     def start_tunnel(self, remote, port):
+        logging.info(f"starting tunnel to {remote}")
         port = int(port) # ensure port is integer
         try:
             self._forward_server, self.local_bind_port = tunnel.Tunnel.try_start_tunnel(remote, port, self._host.SSH.get_transport(), port)
         except OSError:
             self._forward_server, self.local_bind_port = tunnel.Tunnel.try_start_tunnel(remote, port, self._host.SSH.get_transport())
-        logging.info(f"tunnel started: {remote}:{self.local_bind_port}")
+        logging.info(f"tunnel started: {self._forward_server.server_address} -> {remote}:{self.local_bind_port}")
 
     def stop_tunnel(self):
         self._forward_server.shutdown()
