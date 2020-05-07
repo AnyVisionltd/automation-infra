@@ -39,6 +39,11 @@ class Tunnel(object):
         logging.debug(f"stopping tunnel from localhost:{self._local_bind_port} -> {self.remote_dns_name}:{self._local_bind_port}")
         self._safe_stop()
 
+    @property
+    def local_endpoint(self):
+        return f"{self._hostname}:{self._local_bind_port}"
+
+
     def _safe_stop(self):
         try:
             with waiter.time_limit(3):
