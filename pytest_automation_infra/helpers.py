@@ -6,6 +6,9 @@ import paramiko
 from automation_infra.plugins.ssh_direct import SSHCalledProcessError
 import os
 
+logging.getLogger('paramiko').setLevel(logging.WARN)
+
+
 def hardware_config(hardware):
     def wrapper(func):
         func.__hardware_reqs = hardware
