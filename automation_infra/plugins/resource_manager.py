@@ -79,7 +79,6 @@ class ResourceManager(BaseObject):
         return f'{bucket}/{s3_path}'
 
     def get_raw_resource(self, resource_path):
-        bucket = "automation_infra"
         with BytesIO() as file_obj:
             self.client.download_fileobj("anyvision-testing", resource_path, file_obj)
             file_obj.seek(0)
