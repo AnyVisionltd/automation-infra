@@ -42,9 +42,7 @@ function update_received_cmd () {
 
 function main () {
     local cmd=$1
-    echo "received command: $cmd"
     cmd=$(update_received_cmd "$cmd")
-    echo "after updating received command: $cmd"
     echo "running command: ./containerize.sh $cmd"
     ./containerize.sh "$cmd"
 }
