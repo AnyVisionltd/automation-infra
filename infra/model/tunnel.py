@@ -64,6 +64,14 @@ class Tunnel(object):
             transport = ssh_transport
             local_bind_port = local_port
 
+            def __init__(self, request, client_address, server):
+                logging.info(f"initing <<{remote_host}>> subhandler: {client_address} -> {server.server_address} ")
+                super().__init__(request, client_address, server)
+
+            def finish(self):
+                logging.info(f'finishing <<{remote_host}>> subhandler: {self.server.server_address}')
+                return SocketServer.BaseRequestHandler.finish(self)
+
         if local_port is None:
             local_port = get_open_port()
         forward_server = ForwardServer(("", local_port), SubHander)
@@ -77,28 +85,32 @@ class Tunnel(object):
 class Handler(SocketServer.BaseRequestHandler):
     def handle(self):
         try:
+            logging.info(f"handler request.peername(): {self.request.getpeername()}")
             logging.info(
-                f"Opening tunnel ({self.local_bind_port}) -> ({self.chain_host}:{self.chain_port})")
+                f"Handling SocketServer {self.server.server_address} -> ({self.chain_host}:{self.chain_port})")
             chan = self.transport.open_channel(
                 "direct-tcpip",
                 (self.chain_host, self.chain_port),
                 self.request.getpeername(),
             )
         except Exception as e:
-            raise Exception(
-                "Error trying to open_channel: Incoming request to %s:%d was rejected by the SSH server."
+            logging.error(
+                "Error in SocketServer handler trying to open_channel: Incoming request to %s:%d was rejected by the SSH server."
                 % (self.chain_host, self.chain_port)
             )
+            return
 
         if chan is None:
-            raise Exception(
-                "Error trying to open_channel: Incoming request to %s:%d was rejected by the SSH server."
+            logging.error(
+                "Error in SockerServer handler trying to open_channel: Channel is None"
                 % (self.chain_host, self.chain_port)
             )
+            return
 
         logging.info(
-            "Connected!  Tunnel open (%r) -> %r -> %r"
+            "Connected! handler client %r functioning for (%r) -> %r -> %r"
             % (
+                self.request.getpeername(),
                 f"localhost:{self.local_bind_port}",
                 chan.getpeername(),
                 (self.chain_host, self.chain_port),
@@ -116,10 +128,10 @@ class Handler(SocketServer.BaseRequestHandler):
                 if len(data) == 0:
                     break
                 self.request.send(data)
-
+        request_peername = self.request.getpeername()
         chan.close()
         self.request.close()
-        logging.info("Tunnel closed from (%r) <- %r" % (f"localhost:{self.local_bind_port}", (self.chain_host, self.chain_port)))
+        logging.info("Handler client %r closed from (%r) <- %r" % (request_peername, f"localhost:{self.local_bind_port}", (self.chain_host, self.chain_port)))
 
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
