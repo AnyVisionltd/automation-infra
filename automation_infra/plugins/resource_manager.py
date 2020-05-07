@@ -16,6 +16,7 @@ except ImportError:
     from automation_infra.plugins.base_plugin import TunneledPlugin as BaseObject
 from infra.model import plugins
 
+logging.getLogger('botocore').setLevel(logging.WARN)
 
 class ResourceManager(BaseObject):
     """NOTE: Please dont use this plugin. The proper plugin to use is in devops-automation-infra
