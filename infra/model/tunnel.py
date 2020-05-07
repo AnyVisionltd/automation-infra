@@ -32,11 +32,11 @@ class Tunnel(object):
         self._local_bind_port = None
 
     def start(self):
-        logging.info(f"starting tunnel to -> {self.remote_dns_name}:{self._local_bind_port}")
+        logging.debug(f"starting tunnel to -> {self.remote_dns_name}:{self._local_bind_port}")
         self._start_tunnel()
 
     def stop(self):
-        logging.info(f"stopping tunnel from localhost:{self._local_bind_port} -> {self.remote_dns_name}:{self._local_bind_port}")
+        logging.debug(f"stopping tunnel from localhost:{self._local_bind_port} -> {self.remote_dns_name}:{self._local_bind_port}")
         self._safe_stop()
 
     def _safe_stop(self):
@@ -65,11 +65,11 @@ class Tunnel(object):
             local_bind_port = local_port
 
             def __init__(self, request, client_address, server):
-                logging.info(f"initing <<{remote_host}>> subhandler: {client_address} -> {server.server_address} ")
+                logging.debug(f"initing <<{remote_host}>> subhandler: {client_address} -> {server.server_address} ")
                 super().__init__(request, client_address, server)
 
             def finish(self):
-                logging.info(f'finishing <<{remote_host}>> subhandler: {self.server.server_address}')
+                logging.debug(f'finishing <<{remote_host}>> subhandler: {self.server.server_address}')
                 return SocketServer.BaseRequestHandler.finish(self)
 
         if local_port is None:
@@ -85,8 +85,8 @@ class Tunnel(object):
 class Handler(SocketServer.BaseRequestHandler):
     def handle(self):
         try:
-            logging.info(f"handler request.peername(): {self.request.getpeername()}")
-            logging.info(
+            logging.debug(f"handler request.peername(): {self.request.getpeername()}")
+            logging.debug(
                 f"Handling SocketServer {self.server.server_address} -> ({self.chain_host}:{self.chain_port})")
             chan = self.transport.open_channel(
                 "direct-tcpip",
@@ -107,7 +107,7 @@ class Handler(SocketServer.BaseRequestHandler):
             )
             return
 
-        logging.info(
+        logging.debug(
             "Connected! handler client %r functioning for (%r) -> %r -> %r"
             % (
                 self.request.getpeername(),
@@ -131,7 +131,7 @@ class Handler(SocketServer.BaseRequestHandler):
         request_peername = self.request.getpeername()
         chan.close()
         self.request.close()
-        logging.info("Handler client %r closed from (%r) <- %r" % (request_peername, f"localhost:{self.local_bind_port}", (self.chain_host, self.chain_port)))
+        logging.debug("Handler client %r closed from (%r) <- %r" % (request_peername, f"localhost:{self.local_bind_port}", (self.chain_host, self.chain_port)))
 
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
