@@ -8,8 +8,8 @@ function add_user() {
     ln -s /tmp/home_bin "${userhome}"/bin
     gpasswd -a "${username}" docker &>/dev/null
     chown "${username}":"${username}" "${userhome}"
-    usermod -aG docker "${username}"
-    usermod -aG video "${username}"
+    usermod -aG docker "${username}" &>/dev/null
+    usermod -aG video "${username}" &>/dev/null
 }
 
 
