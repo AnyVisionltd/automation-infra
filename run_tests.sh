@@ -44,7 +44,8 @@ function main () {
     local cmd=$1
     cmd=$(update_received_cmd "$cmd")
     echo "running command: ./containerize.sh $cmd"
-    ./containerize.sh "$cmd"
+    local script_dir=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
+    $script_dir/containerize.sh "$cmd"
 }
 
 
