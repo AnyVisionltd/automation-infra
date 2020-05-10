@@ -1,39 +1,44 @@
-import subprocess
-import os
-
 from infra.model import plugins
 
 
-
 class Iptables(object):
-
-    IP_CHANGE_CMD = 'iptables -{action} DOCKER-USER --dst {service_name} -j REJECT'
-    IP_FLUSH_CMD = 'iptables -t filter  --flush DOCKER-USER'
-    IP_BLOCK_FORWARD_CMD = 'iptables -{action} FORWARD --dest {service_name} -j DROP'
+    AUTOMATION_CHAIN = 'AUTOMATION-INFRA'
 
     def __init__(self, host):
         self._host = host
-
-    def __del__(self):
-        self.flush()
+        self._ssh = host.SSH
 
     def flush(self):
+        self._ssh.execute(f'iptables --flush {self.AUTOMATION_CHAIN}')
+
+    def create(self):
+        self._ssh.execute(f"iptables --new-chain {self.AUTOMATION_CHAIN}")
+
+    def flush_or_create(self):
         try:
-            self._host.SSH.execute(self.IP_FLUSH_CMD)
-        finally:
-            return
+            self.flush()
+        except:
+            self.create()
+
+    def activate_automation_chain(self):
+        chain = self.AUTOMATION_CHAIN
+        commands = [(f"iptables --check OUTPUT --jump {chain}", f"iptables --insert OUTPUT --jump {chain}"),
+                    (f"iptables --check {chain} --jump RETURN", f"iptables --insert {chain} --jump RETURN")]
+        for try_cmd, except_cmd in commands:
+            try:
+                self._host.SSH.execute(try_cmd)
+            except:
+                self._host.SSH.execute(except_cmd)
 
     def block(self, service_name):
-        self._host.SSH.execute(self.IP_CHANGE_CMD.format(action='I', service_name=service_name))
+        self._host.SSH.execute(f"iptables --insert {self.AUTOMATION_CHAIN} --dest {service_name} -j REJECT")
 
     def unblock(self, service_name):
-        self._host.SSH.execute(self.IP_CHANGE_CMD.format(action='D', service_name=service_name))
+        self._host.SSH.execute(f"iptables --delete {self.AUTOMATION_CHAIN} --dest {service_name} -j REJECT")
 
-    def block_forward(self, service_name):
-        self._host.SSH.execute(self.IP_BLOCK_FORWARD_CMD.format(action='I', service_name=service_name))
-
-    def unblock_forward(self, service_name):
-        self._host.SSH.execute(self.IP_BLOCK_FORWARD_CMD.format(action='D', service_name=service_name))
+    def reset_state(self):
+        self.flush_or_create()
+        self.activate_automation_chain()
 
 
 plugins.register('Iptables', Iptables)
