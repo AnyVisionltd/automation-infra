@@ -26,6 +26,18 @@ class Allocator(object):
         self.private_network = private_network
         self.sol_base_port = sol_base_port
 
+    async def _try_restore_ip(self, vm_data, net_iface, max_retries):
+        last_error = None
+        for i in range(max_retries):
+            try:
+                await self.vm_manager.dhcp_manager.reallocate_ip(net_iface)
+                break
+            except TimeoutError as e:
+                logging.warning(f"try {i} Ip reallocation failed on machine {vm_data} machine might not be accessibe")
+                last_error = e
+        else:
+            raise last_error
+
     async def _try_restore_vm(self, vm_data):
         pcis_info = vm_data.get('pcis', [])
         macs_to_reserve = []
@@ -49,7 +61,9 @@ class Allocator(object):
 
             # Now lets try to reserve the ip VM previously had
             try:
-                await self.vm_manager.dhcp_manager.reallocate_ip(net_iface)
+                await self._try_restore_ip(vm_data, net_iface, max_retries=10)
+            except TimeoutError:
+                logging.error(f"Ip reallocation failed on machine {vm_data} machine might not be accessibe" , exc_info=True)
             except Exception as e:
                 raise VMRestoreException(vm_data, f'Failed to init networks of vm {vm_data}') from e
 
