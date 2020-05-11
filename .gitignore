@@ -236,3 +236,5 @@ output.log
 .my-uuid
 
 .vscode/
+
+config/hypervisor.yaml
