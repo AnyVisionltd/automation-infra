@@ -32,3 +32,34 @@ def run(jobs, *, max_workers=None, job_timeout=None):
 def call(*callables):
     jobs = dict(enumerate(*callables))
     run(jobs)
+
+
+
+class Background(object):
+
+    def __init__(self, jobs, *, max_workers=None):
+        max_workers = max_workers or len(jobs)
+        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
+        if isinstance(jobs, (list, tuple)):
+            jobs = dict(enumerate(jobs))
+        self._jobs = jobs
+
+    def start(self):
+        self._futures = prepare_jobs(self._executor, self._jobs)
+
+    def wait(self, timeout=None):
+        results = {}
+        for future in concurrent.futures.as_completed(self._futures, timeout=timeout):
+            job_id = self._futures[future]
+            try:
+                results[job_id] = future.result()
+            except:
+                logging.exception("When concurrently running '%(job_id)s'", dict(job_id=str(job_id)))
+                raise
+        return results
+
+
+def start(jobs, max_workers=None):
+    job = Background(jobs, max_workers=max_workers)
+    job.start()
+    return job
