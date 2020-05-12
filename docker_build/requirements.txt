@@ -1,5 +1,5 @@
 rpyc
-confluent_kafka
+kafka-python
 google
 protobuf
 numpy
