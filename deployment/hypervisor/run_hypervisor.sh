@@ -41,7 +41,8 @@ params="--config=/root/config.yaml --images-dir=${BASE_IMAGE_DIR} --run-dir=${RU
 --ssd-dir=${SSD_IMAGES_DIR} --hdd-dir=${HDD_IMAGES_DIR} --log-level=${LOG_LEVEL} --max-vms=${MAX_VMS} \
 --paravirt-net-device=${PARAVIRT_NET_DEVICE} --sol-port=${SOL_PORT} --server-name=${HOSTNAME}"
 
+docker stop --time=30 $(docker ps -aq --filter name=hypervisor) 2> /dev/null || true
+docker rm $(docker ps -aq --filter name=hypervisor) 2> /dev/null || true
 
 docker run -d --net=host --privileged --restart=always --log-driver=syslog --log-opt tag=HYPERVISOR \
-${mounts_cmd} hypervisor:latest ${params}
-
+${mounts_cmd} --name hypervisor hypervisor:latest ${params}
