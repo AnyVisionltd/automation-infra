@@ -1,14 +1,21 @@
 #!/bin/bash 
 set -e
 
-RUN_IMAGES_DIR="${RUN_IMAGES_DIR:-/home/sashas/workspace2/run_images}"
-BASE_IMAGE_DIR="${BASE_IMAGE_DIR:-/home/sashas/workspace2/images}"
-SSD_IMAGES_DIR="${SSD_IMAGES_DIR:-/home/sashas/workspace2/ssd_images}"
-HDD_IMAGES_DIR="${HDD_IMAGES_DIR:-/home/sashas/workspace2/hdd_images}"
-CONFIG_FILE="${CONFIG_FILE:-/home/sashas/workspace2/automation-infra/config/hypervisor.yaml}"
+# Absolute path to this script
+SCRIPT=$(readlink -f "$0")
+# Absolute path to the script directory
+BASEDIR=$(dirname "$SCRIPT")
+
+RUN_IMAGES_DIR="${RUN_IMAGES_DIR:-/storage/vms/run_images}"
+BASE_IMAGE_DIR="${BASE_IMAGE_DIR:-/storage/vms/images}"
+SSD_IMAGES_DIR="${SSD_IMAGES_DIR:-/ssd/vms/ssd_images}"
+HDD_IMAGES_DIR="${HDD_IMAGES_DIR:-/storage/vms/hdd_images}"
+PROJECT_DIR="${PROJECT_DIR:-$HOME/automation-infra}"
+CONFIG_FILE="${CONFIG_FILE:-$PROJECT_DIR/config/hypervisor.yaml}"
 MAX_VMS="${MAX_VMS:-1}"
 LOG_LEVEL="${LOG_LEVEL:-DEBUG}"
-PARAVIRT_NET_DEVICE="${PARAVIRT_NET_DEVICE:-enp0s31f6}"
+DEFAULT_NIC=$(ip route show default | head -1  | awk '{print $5}')
+PARAVIRT_NET_DEVICE="${PARAVIRT_NET_DEVICE:-$DEFAULT_NIC}"
 SOL_PORT="${SOL_PORT:-10000}"
 HOSTNAME=$(hostname)
 KERNEL_LIBS=/lib/modules/$(uname -r)
