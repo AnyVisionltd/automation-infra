@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 set -e
 
 # Absolute path to this script
@@ -21,6 +21,8 @@ HOSTNAME=$(hostname)
 KERNEL_LIBS=/lib/modules/$(uname -r)
 LIBVIRT_SOCK=/var/run/libvirt/libvirt-sock
 
+python3 ${PROJECT_DIR}/tools/config_hypervisor.py --max-vms ${MAX_VMS}
+
 
 files_sum=$(find ${PROJECT_DIR}/lab/ ${PROJECT_DIR}/Dockerfile.hypervisor -type f -exec md5sum {} \; | sort -k 2 | md5sum | awk {'print $1'} | awk '{print substr($1,1,12)}')
 HYPERVISOR_DOCKER_TAG="${HYPERVISOR_DOCKER_TAG:-$files_sum}"
@@ -28,6 +30,7 @@ HYPERVISOR_DOCKER_TAG="${HYPERVISOR_DOCKER_TAG:-$files_sum}"
 if [[ "$(docker images -q "hypervisor:${HYPERVISOR_DOCKER_TAG}" 2> /dev/null)" == "" ]]; then
   docker build --network=host -t hypervisor:${HYPERVISOR_DOCKER_TAG} -f "Dockerfile.hypervisor" "${PROJECT_DIR}"
 fi
+
 MOUNTS=("$RUN_IMAGES_DIR:$RUN_IMAGES_DIR"
         "${BASE_IMAGE_DIR}:${BASE_IMAGE_DIR}:ro"
         "${SSD_IMAGES_DIR}:${SSD_IMAGES_DIR}"
