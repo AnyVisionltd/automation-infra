@@ -76,10 +76,16 @@ class PythonPacker(object):
             sys.path.remove(bufdir)
         self.badmodules.update(finder.badmodules.keys())
         stdlib = sysconfig.get_python_lib(standard_lib=True)
+        stdlib_local = sysconfig.get_python_lib(standard_lib=True, prefix='/usr/local')
+        dist_packages = sysconfig.get_python_lib()
         for module in finder.modules.values():
             if module.__file__ is None:
                 continue
             elif module.__file__.startswith(stdlib):
+                continue
+            elif module.__file__.startswith(stdlib_local):
+                continue
+            elif module.__file__.startswith(dist_packages):
                 continue
             elif module.__file__ == buffer.name:
                 continue
