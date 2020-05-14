@@ -10,6 +10,7 @@ import requests
 import yaml
 from munch import *
 
+from automation_infra.utils import initializer
 from infra.model.host import Host
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
@@ -263,4 +264,6 @@ def base_config(request):
 
 
 def pytest_runtest_setup(item):
-    logging.info(f"test_name: {item}")
+    hosts = item.funcargs['base_config'].hosts.items()
+    initializer.clean_infra_between_tests(hosts)
+    logging.info(f"entering: {item}")

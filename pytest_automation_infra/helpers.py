@@ -142,6 +142,14 @@ def init_proxy_containers_and_connect(hosts):
         logging.debug(f"[{name}: {host}] success initializing docker and connecting to it")
 
 
+def restart_proxy_container(host):
+    if is_k8s(host.SshDirect):
+        host.SshDirect.execute("kubectl delete po automation_proxy")
+    else:
+        host.SshDirect.execute(f'{use_gravity_exec(host.SshDirect)} docker restart automation_proxy')
+    host.SSH.connect()
+
+
 def remove_proxy_container(connected_ssh_module):
     if is_k8s(connected_ssh_module):
         logging.debug("trying to remove k8s proxy pod")
