@@ -57,7 +57,7 @@ traitlets==4.3.3
 urllib3==1.25.6
 wcwidth==0.1.7
 zipp==0.6.0
-kafka-python==2.0.1
+confluent-kafka==1.2.0
 pytest-html==2.0.1
 PyYAML==5.2
 jinja2==2.10.3
