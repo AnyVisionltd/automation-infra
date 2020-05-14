@@ -84,3 +84,4 @@ sklearn
 lxml
 zeep
 pytest-repeat==0.8.0
+kafka-python==2.0.1
