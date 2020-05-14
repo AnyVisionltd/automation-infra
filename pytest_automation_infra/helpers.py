@@ -83,7 +83,10 @@ def set_up_docker_container(connected_ssh_module):
         logging.warning("Unexpected behavior: removed proxy container despite that I shouldn't have needed to")
     do_docker_login(connected_ssh_module)
 
-    logging.debug("initializing docker")
+    logging.debug("pulling docker")
+    connected_ssh_module.execute(f"docker pull gcr.io/anyvision-training/automation-proxy:master")
+
+    logging.debug("running docker")
     run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --rm ' \
               f'--volume=/tmp/automation_infra/ ' \
               f'--volume=/etc/hosts:/etc/hosts '\
