@@ -109,6 +109,9 @@ def is_blank(connected_ssh_module):
         try:
             connected_ssh_module.execute("docker ps")
         except SSHCalledProcessError:
+            logging.warning("Didn't find docker or k8s on machine, "
+                            "running infra on blank machine without proxy container. "
+                            "All tests will fail unless docker/k8s is installed from within the test.")
             return True
     return False
 
