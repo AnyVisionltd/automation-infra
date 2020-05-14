@@ -86,6 +86,7 @@ def set_up_docker_container(connected_ssh_module):
     logging.debug("initializing docker")
     run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --rm ' \
               f'--volume=/tmp/automation_infra/ ' \
+              f'--volume=/etc/hosts:/etc/hosts '\
               f'--privileged ' \
               f'--network=host ' \
               f'--name=automation_proxy gcr.io/anyvision-training/automation-proxy:master'
