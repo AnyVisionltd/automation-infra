@@ -1,8 +1,6 @@
 FROM ubuntu:18.04
 LABEL maintainer="orielh@anyvision.co"
 
-COPY  ./requirements3.txt /tmp/requirements3.txt
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-dev \
@@ -31,6 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 
+COPY  ./requirements3.txt /tmp/requirements3.txt
 RUN pip3 install -r /tmp/requirements3.txt \
   && rm /tmp/requirements3.txt
 
