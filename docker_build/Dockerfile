@@ -17,6 +17,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     libxext6 \
     libxrender-dev \
     python3-pip \
+    iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
 # prepare root user for ssh login
