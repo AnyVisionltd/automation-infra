@@ -52,6 +52,7 @@ class ResourceManager(BaseObject):
         return s3
 
     def upload_from_filesystem(self, local_path, upload_dir=""):
+        upload_path = None
         if os.path.isfile(local_path):
             upload_path = os.path.join(upload_dir, os.path.basename(local_path))
             try:
@@ -59,8 +60,10 @@ class ResourceManager(BaseObject):
                                               Callback=ProgressPercentage(local_path))
             except ClientError as e:
                 logging.exception(f"error uploading {e}")
+                raise Exception(f"error uploading {e}")
         else:
             raise Exception(f"file {local_path} doesnt exist")
+        return upload_path
 
     def download_to_filesystem(self, remote_path, local_dir="."):
         if not os.path.exists(local_dir):
