@@ -6,6 +6,7 @@ import logging
 from infra.model import plugins
 from automation_infra.plugins import connection
 from automation_infra.utils import snippet
+import tempfile
 
 
 class SshDirect(object):
@@ -101,14 +102,16 @@ class SshDirect(object):
     def run_snippet(self, code_snippet, *args, **kwargs):
         excludes = kwargs.pop('excludes', [])
         code = snippet.Snippet(code_snippet, excludes)
-        code.prepare()
-        instance = code.create_instance(self._host)
+        with tempfile.NamedTemporaryFile(prefix="snippet") as f:
+            code.prepare(f.name)
+            instance = code.create_instance(self._host)
         return instance.run(*args, **kwargs)
 
     def run_background_snippet(self, code_snippet, *args, **kwargs):
         excludes = kwargs.pop('excludes', [])
         code = snippet.Snippet(code_snippet, excludes)
-        code.prepare()
+        with tempfile.NamedTemporaryFile(prefix="snippet") as f:
+            code.prepare(f.name)
         instance = code.create_instance(self._host)
         return instance.run_background(*args, **kwargs)
 
