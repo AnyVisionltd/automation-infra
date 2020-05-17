@@ -83,7 +83,10 @@ def set_up_docker_container(connected_ssh_module):
         logging.warning("Unexpected behavior: removed proxy container despite that I shouldn't have needed to")
     do_docker_login(connected_ssh_module)
 
-    logging.debug("initializing docker")
+    logging.debug("pulling docker")
+    connected_ssh_module.execute(f"docker pull gcr.io/anyvision-training/automation-proxy:master")
+
+    logging.debug("running docker")
     run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --rm ' \
               f'--volume=/tmp/automation_infra/ ' \
               f'--volume=/etc/hosts:/etc/hosts '\
@@ -106,6 +109,9 @@ def is_blank(connected_ssh_module):
         try:
             connected_ssh_module.execute("docker ps")
         except SSHCalledProcessError:
+            logging.warning("Didn't find docker or k8s on machine, "
+                            "running infra on blank machine without proxy container. "
+                            "All tests will fail unless docker/k8s is installed from within the test.")
             return True
     return False
 
@@ -139,6 +145,14 @@ def init_proxy_containers_and_connect(hosts):
         logging.debug(f"[{name}: {host}] success initializing docker and connecting to it")
 
 
+def restart_proxy_container(host):
+    if is_k8s(host.SshDirect):
+        host.SshDirect.execute("kubectl delete po automation_proxy")
+    else:
+        host.SshDirect.execute(f'{use_gravity_exec(host.SshDirect)} docker restart automation_proxy')
+    host.SSH.connect()
+
+
 def remove_proxy_container(connected_ssh_module):
     if is_k8s(connected_ssh_module):
         logging.debug("trying to remove k8s proxy pod")
@@ -149,7 +163,7 @@ def remove_proxy_container(connected_ssh_module):
     else:
         try:
             logging.debug("trying to remove docker container")
-            connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker rm -f automation_proxy')
+            connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker kill --signal=kill automation_proxy')
             logging.debug("removed successfully!")
             return True
         except SSHCalledProcessError as e:

@@ -10,14 +10,14 @@ import requests
 import yaml
 from munch import *
 
+from automation_infra.utils import initializer
 from infra.model.host import Host
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
 from pytest_automation_infra import hardware_initializer, helpers
 
 
-def get_local_config():
-    local_config_path = f'{os.path.expanduser("~")}/.local/hardware.yaml'
+def get_local_config(local_config_path):
     if not os.path.isfile(local_config_path):
         raise Exception("""local hardware_config yaml not found""")
     with open(local_config_path, 'r') as f:
@@ -30,6 +30,8 @@ def pytest_addoption(parser):
     parser.addoption("--fixture-scope", type=str, default='auto', choices={"function", "module", "session", "auto"},
                      help="every how often to setup/tear down fixtures, one of [function, module, session]")
     parser.addoption("--provisioner", type=str, help="use provisioning service to get hardware to run tests on")
+    parser.addoption("--hardware", type=str, default=f'{os.path.expanduser("~")}/.local/hardware.yaml',
+                     help="path to hardware_yaml")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -60,7 +62,7 @@ def pytest_generate_tests(metafunc):
                 raise Exception("Module needs to have hardware_reqs set to run with scope module")
         else:
             logging.debug("initializing module hardware config to local")
-            local_config = get_local_config()
+            local_config = get_local_config(metafunc.config.getoption("--hardware"))
             metafunc.module.__initialized_hardware = local_config
 
 
@@ -153,7 +155,7 @@ def pytest_collection_modifyitems(session, config, items):
 
     else:  # not provisioner:
         # if running locally I will access the session.__initialized hardware even if initializing fixture per function
-        local_config = get_local_config()
+        local_config = get_local_config(config.getoption("--hardware"))
         if fixture_scope == 'function':
             logging.debug("initializing 'function' hardware config to local_config")
             set_config(items, local_config)
@@ -262,4 +264,6 @@ def base_config(request):
 
 
 def pytest_runtest_setup(item):
-    logging.info(f"test_name: {item}")
+    hosts = item.funcargs['base_config'].hosts.items()
+    initializer.clean_infra_between_tests(hosts)
+    logging.info(f"entering: {item}")
