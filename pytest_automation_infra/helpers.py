@@ -152,7 +152,7 @@ def remove_proxy_container(connected_ssh_module):
     else:
         try:
             logging.debug("trying to remove docker container")
-            connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker rm -f automation_proxy')
+            connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker kill --signal=kill automation_proxy')
             logging.debug("removed successfully!")
             return True
         except SSHCalledProcessError as e:
