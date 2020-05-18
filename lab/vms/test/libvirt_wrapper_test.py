@@ -4,7 +4,7 @@ from mock import patch
 import libvirt
 import xmltodict
 from lab.vms import vm
-from plugins._utils import pci
+from infra.utils import pci
 import munch
 import ipaddress
 import netaddr
