@@ -5,3 +5,4 @@ workdir=${PWD}
 DOCKER_GROUP_ID=$(getent group docker | cut -d: -f3)
 color_prompt=yes
 HEARTBEAT_SERVER=${HEARTBEAT_SERVER}
+WORKSPACE_TOP=${WORKSPACE_TOP}
