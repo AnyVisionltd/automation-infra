@@ -3,7 +3,7 @@ from infra.utils import shell, filesystem
 import os
 import glob
 import threading
-from infra.utils import waiter
+from automation_infra.utils import waiter
 import logging
 
 
