@@ -1,7 +1,7 @@
 import pytest
 from lab.vms import allocator
 from lab.vms import vm_manager
-from plugins._utils import pci
+from infra.utils import pci
 from lab.vms import libvirt_wrapper
 from lab.vms import image_store
 from lab.vms import storage
