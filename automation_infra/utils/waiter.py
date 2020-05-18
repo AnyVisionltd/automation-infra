@@ -9,7 +9,7 @@ def wait_for_predicate_nothrow(predicate, timeout=10, interval=1.0, exception_cl
     while True:
         try:
             result = predicate()
-            if result is not None:
+            if result:
                 return result
         except exception_cls as e:
             caught_exceptions = caught_exceptions + str(e) + "\n"
