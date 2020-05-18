@@ -263,9 +263,7 @@ def base_config(request):
         hb_thread.join()
 
 
-@pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_call(item):
+def pytest_runtest_setup(item):
     hosts = item.funcargs['base_config'].hosts.items()
     initializer.clean_infra_between_tests(hosts)
     logging.info(f"entering: {item}")
-    yield
