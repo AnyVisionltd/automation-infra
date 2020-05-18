@@ -89,7 +89,7 @@ class ImageStore(object):
 if __name__ == '__main__':
     import argparse
     import pprint
-    from plugins._utils import anylogging
+    from infra.utils import anylogging
     anylogging.configure_logging(console_level=logging.DEBUG, file_level=logging.NOTSET)
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(title='command', dest="command")

@@ -2,7 +2,7 @@ import subprocess
 import re 
 import logging
 import munch
-from plugins._utils import shell
+from infra.utils import shell
 from builtins import staticmethod
 import os
 

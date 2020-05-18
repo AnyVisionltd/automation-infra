@@ -8,7 +8,7 @@ import concurrent.futures
 import asyncio
 import logging
 import threading
-from plugins._utils import waiter
+from infra.utils import waiter
 # This conf is needed to make dhcp requests, so that responses
 # will be not be checked against our real ip address
 scapy_conf.conf.checkIPaddr = False
