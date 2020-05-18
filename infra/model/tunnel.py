@@ -47,6 +47,10 @@ class Tunnel(object):
     def host_port(self):
         return (self._hostname, self._local_bind_port)
 
+    @property
+    def local_port(self):
+        return self._local_bind_port
+
     def _safe_stop(self):
         try:
             with waiter.time_limit(3):
