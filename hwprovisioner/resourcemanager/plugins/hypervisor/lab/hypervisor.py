@@ -1,6 +1,6 @@
-from infra.utils import shell
-from infra.utils import pci
-from infra.utils import anylogging
+from plugins._utils import shell
+from plugins._utils import pci
+from plugins._utils import anylogging
 import logging
 from lab.vms import rest, cloud_init
 from lab.vms import allocator

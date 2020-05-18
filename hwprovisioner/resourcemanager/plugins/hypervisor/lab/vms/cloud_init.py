@@ -1,6 +1,6 @@
 import tempfile
 import yaml
-from infra.utils import shell
+from plugins._utils import shell
 import os
 import logging
 

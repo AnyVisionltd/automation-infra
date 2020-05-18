@@ -1,4 +1,4 @@
-from infra.utils import shell
+from plugins._utils import shell
 import logging
 import netifaces
 import ipaddress

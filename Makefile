@@ -36,12 +36,6 @@ test-lint-shellcheck: _test-lint-shellcheck =# run only shell/bash linter
 .PHONY: test-lint-docker
 test-lint-docker: _test-lint-docker ## run only docker linter
 
-
-.PHONY: build-hypervisor
-build-hypervisor:
-	docker build -f Dockerfile.hypervisor -t hypervisor:latest .
-	@echo "Built hypervisor:latest" 
-
 .PHONY: test-hypervisor
 test-hypervisor:
 	cd lab/vms && pytest .
