@@ -25,7 +25,7 @@ def get_open_port():
 class Tunnel(object):
     def __init__(self, dns_name, port, transport):
         self.remote_dns_name = dns_name
-        self.remote_port = port
+        self.remote_port = int(port)
         self.transport = transport
         self._forward_server = None
         self._hostname = "localhost"
@@ -43,6 +43,9 @@ class Tunnel(object):
     def local_endpoint(self):
         return f"{self._hostname}:{self._local_bind_port}"
 
+    @property
+    def host_port(self):
+        return (self._hostname, self._local_bind_port)
 
     def _safe_stop(self):
         try:
