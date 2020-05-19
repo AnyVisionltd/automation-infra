@@ -8,18 +8,8 @@ try:
     import SocketServer
 except ImportError:
     import socketserver as SocketServer
-LOCK = threading.Lock()
 
 
-def get_open_port():
-    LOCK.acquire()
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(("", 0))
-    s.listen(1)
-    port = s.getsockname()[1]
-    s.close()
-    return port
 
 
 class Tunnel(object):
@@ -69,7 +59,7 @@ class Tunnel(object):
             self._forward_server, self._local_bind_port = self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport)
 
     @staticmethod
-    def try_start_tunnel(remote_host, remote_port, ssh_transport, local_port=None):
+    def try_start_tunnel(remote_host, remote_port, ssh_transport, local_port=0):
         class SubHander(Handler):
             chain_host = remote_host
             chain_port = remote_port
@@ -84,14 +74,11 @@ class Tunnel(object):
                 logging.debug(f'finishing <<{remote_host}>> subhandler: {self.server.server_address}')
                 return SocketServer.BaseRequestHandler.finish(self)
 
-        if local_port is None:
-            local_port = get_open_port()
         forward_server = ForwardServer(("", local_port), SubHander)
+        selected_port = forward_server.server_address[1]
         server_thread = threading.Thread(target=forward_server.serve_forever, daemon=True)
         server_thread.start()
-        if LOCK.locked():
-            LOCK.release()
-        return forward_server, local_port
+        return forward_server, selected_port
 
 
 class Handler(SocketServer.BaseRequestHandler):
