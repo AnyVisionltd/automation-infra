@@ -81,7 +81,10 @@ class Host(object):
     def remove_plugin(self, name):
         if name in self.__plugins:
             self.__plugins.pop(name)
-        
+
+    def clear_plugins(self):
+        self.__plugins.clear()
+
     def unique(self):
         return next(self._temp_dir_counter)
 
