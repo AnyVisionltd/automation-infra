@@ -10,6 +10,7 @@ from pytest_automation_infra import helpers
 def clean(host):
     logging.debug(f"cleaning host {host.ip}, restarting automation_proxy")
     helpers.restart_proxy_container(host)
+    host.clear_plugins()
     logging.debug("resetting iptables")
     host.Iptables.reset_state()
 
