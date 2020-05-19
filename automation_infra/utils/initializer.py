@@ -2,8 +2,8 @@ import concurrent
 import logging
 import os
 
-from automation_infra.plugins.ip_table import Iptables
 from automation_infra.plugins import tunnel_manager
+from automation_infra.plugins import ip_table
 from automation_infra.utils import concurrently
 from pytest_automation_infra import helpers
 
