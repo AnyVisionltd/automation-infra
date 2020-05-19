@@ -52,11 +52,7 @@ class Tunnel(object):
                          f"it probably was not running...")
 
     def _start_tunnel(self):
-        try:
-            self._forward_server, self._local_bind_port = self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport, self.remote_port)
-        except OSError:
-            # local_bind port is taken so use random free port to communicate:
-            self._forward_server, self._local_bind_port = self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport)
+        self._forward_server, self._local_bind_port = self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport)
 
     @staticmethod
     def try_start_tunnel(remote_host, remote_port, ssh_transport, local_port=0):
