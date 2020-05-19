@@ -27,7 +27,7 @@ class Tunnel(object):
 
     def stop(self):
         logging.debug(f"stopping tunnel from localhost:{self._local_bind_port} -> {self.remote_dns_name}:{self._local_bind_port}")
-        self._safe_stop()
+        self._forward_server.shutdown()
 
     @property
     def local_endpoint(self):
@@ -41,15 +41,6 @@ class Tunnel(object):
     def local_port(self):
         return self._local_bind_port
 
-    def _safe_stop(self):
-        try:
-            with waiter.time_limit(3):
-                self.server.shutdown()
-                self.server.server_close()
-        except TimeoutError:
-            logging.error(f"Caught timeout trying to stop tunnel "
-                         f"localhost:{self._local_bind_port} -> {self.remote_dns_name}:{self.remote_port} "
-                         f"it probably was not running...")
 
     def _start_tunnel(self):
         self._forward_server, self._local_bind_port = self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport)
