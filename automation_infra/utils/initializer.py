@@ -3,11 +3,13 @@ import logging
 import os
 
 from automation_infra.plugins.ip_table import Iptables
+from automation_infra.plugins import tunnel_manager
 from automation_infra.utils import concurrently
 from pytest_automation_infra import helpers
 
 
 def clean(host):
+    host.TunnelManager.clear()
     logging.debug(f"cleaning host {host.ip}, restarting automation_proxy")
     helpers.restart_proxy_container(host)
     host.clear_plugins()
