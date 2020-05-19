@@ -23,6 +23,7 @@ class Iptables(object):
     def activate_automation_chain(self):
         chain = self.AUTOMATION_CHAIN
         commands = [(f"iptables --check OUTPUT --jump {chain}", f"iptables --insert OUTPUT --jump {chain}"),
+                    (f"iptables --check FORWARD --jump {chain}", f"iptables --insert FORWARD --jump {chain}"),
                     (f"iptables --check {chain} --jump RETURN", f"iptables --insert {chain} --jump RETURN")]
         for try_cmd, except_cmd in commands:
             try:
