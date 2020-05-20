@@ -8,8 +8,8 @@ BASEDIR=$(dirname "$SCRIPT")
 # ROOT DIR
 ROOT_DIR=${BASEDIR%/*/*}
 
-RUN_IMAGES_DIR="${RUN_IMAGES_DIR:-/storage/vms/run_images}"
 BASE_IMAGE_DIR="${BASE_IMAGE_DIR:-/storage/vms/images}"
+ROOT_IMAGES_DIR="${ROOT_IMAGES_DIR:-/ssd/vms/root_images}"
 SSD_IMAGES_DIR="${SSD_IMAGES_DIR:-/ssd/vms/ssd_images}"
 HDD_IMAGES_DIR="${HDD_IMAGES_DIR:-/storage/vms/hdd_images}"
 PROJECT_DIR="${PROJECT_DIR:-$ROOT_DIR}"
@@ -33,7 +33,7 @@ if [[ "$(docker images -q "hypervisor:${HYPERVISOR_DOCKER_TAG}" 2> /dev/null)" =
   docker build --network=host -t hypervisor:${HYPERVISOR_DOCKER_TAG} -f "Dockerfile.hypervisor" "${PROJECT_DIR}"
 fi
 
-MOUNTS=("$RUN_IMAGES_DIR:$RUN_IMAGES_DIR"
+MOUNTS=("$ROOT_IMAGES_DIR:$ROOT_IMAGES_DIR"
         "${BASE_IMAGE_DIR}:${BASE_IMAGE_DIR}:ro"
         "${SSD_IMAGES_DIR}:${SSD_IMAGES_DIR}"
         "${HDD_IMAGES_DIR}:${HDD_IMAGES_DIR}"
@@ -49,7 +49,7 @@ do
 done
 mounts_cmd+=" "
 
-params="--config=/root/config.yaml --images-dir=${BASE_IMAGE_DIR} --run-dir=${RUN_IMAGES_DIR} \
+params="--config=/root/config.yaml --images-dir=${BASE_IMAGE_DIR} --run-dir=${ROOT_IMAGES_DIR} \
 --ssd-dir=${SSD_IMAGES_DIR} --hdd-dir=${HDD_IMAGES_DIR} --log-level=${LOG_LEVEL} --max-vms=${MAX_VMS} \
 --paravirt-net-device=${PARAVIRT_NET_DEVICE} --sol-port=${SOL_PORT} --server-name=${HOSTNAME}"
 
