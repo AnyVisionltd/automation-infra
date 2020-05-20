@@ -57,4 +57,4 @@ docker stop --time=30 $(docker ps -aq --filter name=hypervisor) 2> /dev/null || 
 docker rm $(docker ps -aq --filter name=hypervisor) 2> /dev/null || true
 
 docker run -d --net=host --privileged --restart=always --log-driver=syslog --log-opt tag=HYPERVISOR \
-${mounts_cmd} --name hypervisor hypervisor:latest ${params}
+${mounts_cmd} --name hypervisor hypervisor:${HYPERVISOR_DOCKER_TAG} ${params}
