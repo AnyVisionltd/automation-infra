@@ -8,7 +8,7 @@ BASEDIR=$(dirname "$SCRIPT")
 # ROOT DIR
 ROOT_DIR=${BASEDIR%/*/*}
 
-BASE_IMAGE_DIR="${BASE_IMAGE_DIR:-/storage/vms/images}"
+BASE_IMAGE_DIR="${BASE_IMAGE_DIR:-/ssd/vms/images}"
 ROOT_IMAGES_DIR="${ROOT_IMAGES_DIR:-/ssd/vms/root_images}"
 SSD_IMAGES_DIR="${SSD_IMAGES_DIR:-/ssd/vms/ssd_images}"
 HDD_IMAGES_DIR="${HDD_IMAGES_DIR:-/storage/vms/hdd_images}"
