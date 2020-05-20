@@ -5,12 +5,14 @@ set -e
 SCRIPT=$(readlink -f "$0")
 # Absolute path to the script directory
 BASEDIR=$(dirname "$SCRIPT")
+# ROOT DIR
+ROOT_DIR=${BASEDIR%/*/*}
 
 RUN_IMAGES_DIR="${RUN_IMAGES_DIR:-/storage/vms/run_images}"
 BASE_IMAGE_DIR="${BASE_IMAGE_DIR:-/storage/vms/images}"
 SSD_IMAGES_DIR="${SSD_IMAGES_DIR:-/ssd/vms/ssd_images}"
 HDD_IMAGES_DIR="${HDD_IMAGES_DIR:-/storage/vms/hdd_images}"
-PROJECT_DIR="${PROJECT_DIR:-$HOME/automation-infra}"
+PROJECT_DIR="${PROJECT_DIR:-$ROOT_DIR}"
 CONFIG_FILE="${CONFIG_FILE:-$PROJECT_DIR/config/hypervisor.yaml}"
 MAX_VMS="${MAX_VMS:-1}"
 LOG_LEVEL="${LOG_LEVEL:-DEBUG}"
