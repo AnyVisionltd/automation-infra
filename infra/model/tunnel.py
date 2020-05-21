@@ -1,15 +1,16 @@
+import concurrent
+from concurrent import futures
 import logging
 import select
+import socket
 import threading
 
-from automation_infra.utils import waiter
+from paramiko import SSHException
 
 try:
     import SocketServer
 except ImportError:
     import socketserver as SocketServer
-
-
 
 
 class Tunnel(object):
@@ -41,17 +42,23 @@ class Tunnel(object):
     def local_port(self):
         return self._local_bind_port
 
-
     def _start_tunnel(self):
-        self._forward_server, self._local_bind_port = self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport)
+        try:
+            self._forward_server, self._local_bind_port = self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport)
+        except SSHException as e:
+            logging.error(f"unable to start tunnel to {self.remote_dns_name}:{self.remote_port}")
+            raise e
 
     @staticmethod
     def try_start_tunnel(remote_host, remote_port, ssh_transport, local_port=0):
+        fut = concurrent.futures.Future()
+
         class SubHander(Handler):
             chain_host = remote_host
             chain_port = remote_port
             transport = ssh_transport
             local_bind_port = local_port
+            future = fut
 
             def __init__(self, request, client_address, server):
                 logging.debug(f"initing <<{remote_host}>> subhandler: {client_address} -> {server.server_address} ")
@@ -64,7 +71,13 @@ class Tunnel(object):
         forward_server = ForwardServer(("", local_port), SubHander)
         selected_port = forward_server.server_address[1]
         server_thread = threading.Thread(target=forward_server.serve_forever, daemon=True)
+        fut.set_running_or_notify_cancel()
+
         server_thread.start()
+        # this is necessary to make sure someone is listening on other end of tunnel:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect(('localhost', selected_port))
+        res = fut.result(10)
         return forward_server, selected_port
 
 
@@ -79,18 +92,18 @@ class Handler(SocketServer.BaseRequestHandler):
                 (self.chain_host, self.chain_port),
                 self.request.getpeername(),
             )
-        except Exception as e:
-            logging.error(
-                "Error in SocketServer handler trying to open_channel: Incoming request to %s:%d was rejected by the SSH server."
-                % (self.chain_host, self.chain_port)
-            )
+        except SSHException as e:
+            message = "Error in SocketServer handler trying to open_channel: Incoming request to %s:%d was rejected " \
+                      "by the SSH server." % (self.chain_host, self.chain_port)
+            logging.error(message)
+            self.future.set_exception(SSHException(message))
             return
 
         if chan is None:
-            logging.error(
-                "Error in SockerServer handler trying to open_channel: Channel is None"
-                % (self.chain_host, self.chain_port)
-            )
+            message = "Error in SockerServer handler trying to open_channel: %s:%d Channel is None" % (
+                self.chain_host, self.chain_port)
+            logging.error(message)
+            self.future.set_exception(SSHException(message))
             return
 
         logging.debug(
@@ -102,6 +115,7 @@ class Handler(SocketServer.BaseRequestHandler):
                 (self.chain_host, self.chain_port),
             )
         )
+        self.future.set_result(True)
         while True:
             r, w, x = select.select([self.request, chan], [], [])
             if self.request in r:
