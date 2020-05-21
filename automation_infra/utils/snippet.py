@@ -36,12 +36,7 @@ class SnippetRunner(object):
                 raise RuntimeError("script is still running")
             return self._parse_result(background.output)
 
-        def output():
-            result = self.ssh.get_contents(background.remote_output_file)
-            self._parse_result(result)
-
         background.wait_result = wait_result
-        background.read_output = output
         return background
 
     def deploy(self):
