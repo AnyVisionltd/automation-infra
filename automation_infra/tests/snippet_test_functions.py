@@ -25,5 +25,5 @@ def catch_exception(exec_type):
 
 def background_task():
     import time
-    time.sleep(10)
+    time.sleep(3)
     return True
