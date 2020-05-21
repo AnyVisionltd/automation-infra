@@ -6,6 +6,7 @@ import logging
 from infra.model import plugins
 from automation_infra.plugins import connection
 from automation_infra.utils import snippet
+import tempfile
 
 
 class SshDirect(object):
@@ -15,17 +16,23 @@ class SshDirect(object):
         self._connection = None
         self.home_dir = '/home/' + self._host.user  if self._host.user is not 'root' else '/root'
 
+    @property
+    def connection(self):
+        if self._connection is None:
+            self.connect()
+        return self._connection
+
     def connect(self, timeout=10):
         self._connection = connection.Connection(self._host)
         self._connection.connect(timeout)
-        
+
     def get_transport(self):
-        return self._connection._ssh_client.get_transport()
+        return self.connection._ssh_client.get_transport()
 
     def run_script(self, script, timeout=20 * 60):
         temp_ex = None
         try:
-            return self._connection.run.script(script, output_timeout=timeout)
+            return self.connection.run.script(script, output_timeout=timeout)
         except CalledProcessError as ex:
             temp_ex = ex
             logging.debug("Failed ssh cmd %(cmd)s %(output)s %(stderr)s", dict(cmd=script, output=temp_ex.output, stderr=temp_ex.stderr))
@@ -35,7 +42,7 @@ class SshDirect(object):
         """ This method will return subprocess.CompletedProcess object instead of stdout"""
         temp_ex = None
         try:
-            return self._connection.run.script_v2(script, output_timeout=timeout)
+            return self.connection.run.script_v2(script, output_timeout=timeout)
         except CalledProcessError as ex:
             temp_ex = ex
             logging.error(temp_ex.stderr)
@@ -44,7 +51,7 @@ class SshDirect(object):
     def execute(self, program, timeout=20 * 60):
         temp_ex = None
         try:
-            completed_process = self._connection.run.execute(program, output_timeout=timeout)
+            completed_process = self.connection.run.execute(program, output_timeout=timeout)
             return completed_process.stdout
         except CalledProcessError as ex:
             temp_ex = ex
@@ -67,48 +74,50 @@ class SshDirect(object):
     def run_parallel(self, scripts, max_jobs=None):
         temp_ex = None
         try:
-            return self._connection.run.parallel(scripts, max_jobs=max_jobs)
+            return self.connection.run.parallel(scripts, max_jobs=max_jobs)
         except CalledProcessError as ex:
             temp_ex = ex
             logging.error(temp_ex.stderr)
             raise SSHCalledProcessError(temp_ex.returncode, temp_ex.cmd, temp_ex.output, temp_ex.stderr, self._host)
 
     def run_background_parallel(self, scripts, max_jobs=None):
-        return self._connection.run.background_parallel(scripts, max_jobs=max_jobs)
+        return self.connection.run.background_parallel(scripts, max_jobs=max_jobs)
 
     def run_background_script(self, script):
-        return self._connection.run.background_script(script)
+        return self.connection.run.background_script(script)
 
     def daemonize(self, command):
-        return self._connection.run.background_script(command)
+        return self.connection.run.background_script(command)
 
     def put(self, filenames, remotedir):
         filenames = filenames if isinstance(filenames, (list, tuple)) else (filenames, )
-        return self._connection.put(filenames, remotedir)
+        return self.connection.put(filenames, remotedir)
 
     def put_contents(self, contents, remote_path):
-        return self._connection.put_contents(contents, remote_path)
+        return self.connection.put_contents(contents, remote_path)
 
     def append_contents(self, contents, remote_path):
-        return self._connection.append_contents(contents, remote_path)
+        return self.connection.append_contents(contents, remote_path)
 
     def get_contents(self, remote_path):
-        return self._connection.get_contents(remote_path)
+        return self.connection.get_contents(remote_path)
 
     def disconnect(self):
-        self._connection.close()
+        self.connection.close()
 
     def run_snippet(self, code_snippet, *args, **kwargs):
         excludes = kwargs.pop('excludes', [])
         code = snippet.Snippet(code_snippet, excludes)
-        code.prepare()
-        instance = code.create_instance(self._host)
+        with tempfile.NamedTemporaryFile(prefix="snippet") as f:
+            code.prepare(f.name)
+            instance = code.create_instance(self._host)
         return instance.run(*args, **kwargs)
 
     def run_background_snippet(self, code_snippet, *args, **kwargs):
         excludes = kwargs.pop('excludes', [])
         code = snippet.Snippet(code_snippet, excludes)
-        code.prepare()
+        with tempfile.NamedTemporaryFile(prefix="snippet") as f:
+            code.prepare(f.name)
         instance = code.create_instance(self._host)
         return instance.run_background(*args, **kwargs)
 

@@ -18,10 +18,7 @@ class TunneledPlugin(object):
     def start_tunnel(self, remote, port):
         logging.debug(f"starting tunnel to {remote}")
         port = int(port) # ensure port is integer
-        try:
-            self._forward_server, self.local_bind_port = tunnel.Tunnel.try_start_tunnel(remote, port, self._host.SSH.get_transport(), port)
-        except OSError:
-            self._forward_server, self.local_bind_port = tunnel.Tunnel.try_start_tunnel(remote, port, self._host.SSH.get_transport())
+        self._forward_server, self.local_bind_port = tunnel.Tunnel.try_start_tunnel(remote, port, self._host.SSH.get_transport())
         logging.debug(f"tunnel started: {self._forward_server.server_address} -> {remote}:{self.local_bind_port}")
 
     def stop_tunnel(self):
