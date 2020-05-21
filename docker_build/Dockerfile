@@ -17,11 +17,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     libxext6 \
     libxrender-dev \
     python3-pip \
+    iproute2 \
     && rm -rf /var/lib/apt/lists/*
-
-# Install pip3 requirements.txt  
-ADD requirements.txt  /home/user/requirements.txt
-RUN python3 -m pip install -r /home/user/requirements.txt
 
 # prepare root user for ssh login
 RUN mkdir /var/run/sshd \
@@ -49,6 +46,11 @@ RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
 #     && echo "user:password" | chpasswd
 
 # USER user
+
+# Install pip3 requirements.txt
+ADD requirements.txt  /home/user/requirements.txt
+RUN python3 -m pip install -r /home/user/requirements.txt
+
 
 WORKDIR /home/user
 
