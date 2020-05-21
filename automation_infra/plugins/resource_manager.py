@@ -82,6 +82,15 @@ class ResourceManager(BaseObject):
             self._host.Seaweed.upload_fileobj(file_obj, bucket, s3_path)
         return f'{bucket}/{s3_path}'
 
+    def deploy_multiple_resources_to_s3(self, aws_file_list, aws_folder, s3_folder):
+        resources_s3_list = []
+
+        for resource in aws_file_list:
+            resources_s3_list.append(
+            self.deploy_resource_to_s3(os.path.join(aws_folder, resource), os.path.join(s3_folder, resource)))
+
+        return resources_s3_list
+
     def get_raw_resource(self, resource_path):
         with BytesIO() as file_obj:
             self.client.download_fileobj("anyvision-testing", resource_path, file_obj)
