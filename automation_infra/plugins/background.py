@@ -47,16 +47,9 @@ class Background(object):
             if self.running():
                 raise
 
-    def read_output(self):
-        return self.run.execute("cat %s 2>/dev/null || true" % self._out).stdout.strip()
-
-    @property
-    def remote_output_file(self):
-        return self._out
-
     @property
     def output(self):
-        return self.read_output()
+        return self.run.execute("cat %s 2>/dev/null || true" % self._out).stdout.strip()
 
     @property
     def error(self):
