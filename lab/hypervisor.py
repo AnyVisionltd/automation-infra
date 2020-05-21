@@ -1,3 +1,5 @@
+from os import path
+
 from infra.utils import shell
 from infra.utils import pci
 from infra.utils import anylogging
@@ -82,6 +84,12 @@ def _vfio_bind_pci_devices(devices):
     for device in devices:
         # If device is already VFIO and it is in use we wont be able to bind it,
         # but we assume it is in-use by our VM`s and we are just reloading
+
+        drvpath = f"/sys/bus/pci/devices/{device.domain}:{device.bus}:{device.slot}.{device.function}/driver"
+        if not path.exists(drvpath):
+            logging.error("%s does not exist! skipping VFIO bind", drvpath)
+            continue
+
         if pci.device_driver(device) == 'vfio-pci' and pci.enable_count(device) > 0:
             logging.info("Skip binding device %s it is already vfio-pci and in-use", device)
             continue
