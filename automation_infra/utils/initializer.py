@@ -1,6 +1,4 @@
-import concurrent
 import logging
-import os
 
 from automation_infra.plugins import tunnel_manager
 from automation_infra.plugins import ip_table
