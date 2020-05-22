@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -eu
 
@@ -11,20 +11,8 @@ SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
 # Absolute path to the script directory
 script_dir=$(dirname "$SCRIPT")
 
-function _is_debug() {
-   if [ "$V" == "1" ];
-   then
-      echo "1"
-   else
-      echo "0"
-   fi
-}
-
 function debug_print() {
-    if [ "$(_is_debug)" == "1" ]
-    then
-       echo "$1"
-    fi
+    if [ "$V" = "1" ]; then echo "$1"; fi
 }
 
 function docker_tag () {
@@ -41,16 +29,16 @@ function docker_tag () {
 
 function run_ssh_agent () {
     if [ -e $PUBKEY_FILE ] ; then
-	    eval "$(ssh-agent -s | grep SSH)"
-	    ssh-add "${PUBKEY_FILE}" &>/dev/null
-	else
-	    >&2 echo "couldnt PUBKEY_FILE for ssh-agent"
-	    exit 1
-	fi
+        eval "$(ssh-agent -s | grep SSH)"
+        ssh-add "${PUBKEY_FILE}" &>/dev/null
+    else
+        >&2 echo "couldnt PUBKEY_FILE for ssh-agent"
+        exit 1
+    fi
 }
 
 function kill_ssh_agent () {
-	eval "$(ssh-agent -k &>/dev/null)"
+    eval "$(ssh-agent -k &>/dev/null)"
 }
 
 
@@ -119,7 +107,6 @@ function _add_mount() {
     fi
 }
 
-
 function _read_passed_environment() {
     local current_file=${BASH_SOURCE[0]}
     local current_dir=$(dirname "$current_file")
@@ -138,7 +125,6 @@ function _read_passed_environment() {
 function add_subdirs_from_path () {
     local base_path=$1
     if [ -d $base_path ]; then
-
         local res_path=""
         for file in $(ls $base_path);
         do
@@ -148,7 +134,6 @@ function add_subdirs_from_path () {
                 res_path+=":$base_path/$file"
             fi
         done
-
         echo $res_path
     else
         >&2 echo "not valid path directory"
@@ -196,7 +181,7 @@ function run_docker () {
             "${HOME}/.docker:${HOME}/.docker"
             "${HOME}/.aws:${HOME}/.aws"
             "$mount_path:$mount_path"
-	        )
+            )
 
     mount_cmd=""
     for i in "${MOUNTS[@]}"
@@ -248,7 +233,6 @@ if [ "$cmd" == "-h" ] || [ "$cmd" == "--help" ]; then
   echo "Use: V=1 $(basename "$0") for debug printing"
   echo "Just running $(basename "$0") will default to $(basename "$0") bash"
   echo "Or use $(basename "$0") and any args which docker run will accept"
-  exit 0
 fi
 
 # if script is sourced dont run dockerize
