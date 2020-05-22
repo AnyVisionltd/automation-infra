@@ -38,6 +38,9 @@ function docker_tag () {
     elif command -v md5 > /dev/null 2>&1; then
       files_sum="$(md5 -q ${HASH_FILES[@]} | awk {'print $1'})"
       total_sum="$(md5 <<< "$files_sum")"
+    else
+      >&2 echo "ERROR: please install md5 nor md5sum!"
+      exit 1
     fi
     echo $total_sum | awk '{print substr($1,1,12)}'
 }
