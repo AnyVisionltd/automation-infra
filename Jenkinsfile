@@ -61,30 +61,46 @@ pipeline {
                 }
             }
         }
-        stage('Run integration tests') {
-            steps {
-                script {
-                    VM_INFO = SpinUpVM(remote)
-                    VM_IP = sh (
-                        script: "echo '${VM_INFO}' | jq  .info.net_ifaces[0].ip",
-                        returnStdout: true
-                    ).trim()
-                    SetConnection(VM_IP)
+        stage('Create VM for executing tests upon') {
+            stages {
+                stage('Spin up VM') {
+                    steps {
+                        script {
+                            env.vminfo = SpinUpVM(remote)
+                            env.vmip = sh (
+                                script: "echo '${env.vminfo}' | jq  .info.net_ifaces[0].ip",
+                                returnStdout: true
+                            ).trim()
+                        }
+                    }
                 }
-                catchError {
-                    sh label: "ssh tests", script: "./containerize.sh python3 -m pytest -p pytest_automation_infra -o log_cli=true -o log_cli_level=DEBUG ./automation_infra/tests/test_ssh.py --hardware ${WORKSPACE}/hardware.yaml"
+                stage('Create the hardware.yaml') {
+                    steps {
+                        script {
+                            SetConnection(env.vmip)
+                        }
+                    }
                 }
-                script {
-                    VM_NAME = sh (
-                        script: "echo '${VM_INFO}' | jq  .info.name",
-                        returnStdout: true
-                    ).trim()
-                    DeleteVM(remote, VM_NAME)
+                stage('Run integration tests') {
+                    steps {
+                        sh (
+                            script: "./containerize.sh python3 -m pytest -p pytest_automation_infra -o log_cli=true -o log_cli_level=DEBUG ./automation_infra/tests/test_ssh.py --hardware ${WORKSPACE}/hardware.yaml"
+                        )
+                    }
                 }
             }
         }
     } // end of stages
     post {
+        always {
+            script {
+                vmname = sh (
+                    script: "echo '${env.vminfo}' | jq .info.name",
+                    returnStdout: true
+                ).trim()
+                DeleteVM(remote, vmname)
+            }
+        }
         failure {
             echo "${currentBuild.result}, exiting now..."
 
