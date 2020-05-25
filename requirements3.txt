@@ -85,4 +85,5 @@ lxml
 zeep
 pytest-repeat==0.8.0
 kafka-python==2.0.1
-pika=1.1.0
+pika==1.1.0
+pymongo==3.10.1
