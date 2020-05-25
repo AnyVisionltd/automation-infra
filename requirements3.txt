@@ -85,3 +85,4 @@ lxml
 zeep
 pytest-repeat==0.8.0
 kafka-python==2.0.1
+pika=1.1.0
