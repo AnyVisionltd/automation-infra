@@ -11,7 +11,12 @@ class TunnelManager(object):
 
     def get_or_create(self, service_name, dns_name, port, transport=None):
         if service_name not in self.tunnels:
+            logging.error(f"initing tunnel to {dns_name}")
             self._init_tunnel(service_name, dns_name, port, transport)
+        if not self.tunnels[service_name].is_active:
+            logging.error(f"requested inactive tunnel to {dns_name}. restarting!")
+            self.tunnels[service_name].stop()
+            self.tunnels[service_name].start()
         return self.tunnels[service_name]
 
     def _do_stop(self, tunnel):

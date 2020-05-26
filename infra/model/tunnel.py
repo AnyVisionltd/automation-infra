@@ -24,6 +24,11 @@ class Tunnel(object):
         self._forward_server = None
         self._hostname = "localhost"
         self._local_bind_port = None
+        self._active = threading.Event()
+
+    @property
+    def is_active(self):
+        return self._active.wait(1)
 
     def start(self):
         logging.debug(f"starting tunnel to -> {self.remote_dns_name}:{self._local_bind_port}")
@@ -31,6 +36,7 @@ class Tunnel(object):
 
     def stop(self):
         logging.debug(f"stopping tunnel from localhost:{self._local_bind_port} -> {self.remote_dns_name}:{self._local_bind_port}")
+        self._active.clear()
         self._forward_server.shutdown()
 
     @property
@@ -47,19 +53,17 @@ class Tunnel(object):
 
     def _start_tunnel(self):
         self._forward_server, self._local_bind_port = waiter.wait_nothrow(lambda:
-                            self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport))
+                            self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport, self._active))
 
 
     @staticmethod
-    def try_start_tunnel(remote_host, remote_port, ssh_transport, local_port=0):
-        fut = concurrent.futures.Future()
-
+    def try_start_tunnel(remote_host, remote_port, ssh_transport, active_flag=threading.Event(), local_port=0):
         class SubHander(Handler):
             chain_host = remote_host
             chain_port = remote_port
             transport = ssh_transport
             local_bind_port = local_port
-            future = fut
+            active = active_flag
 
             def __init__(self, request, client_address, server):
                 logging.debug(f"initing <<{remote_host}>> subhandler: {client_address} -> {server.server_address} ")
@@ -72,15 +76,16 @@ class Tunnel(object):
         forward_server = ForwardServer(("", local_port), SubHander)
         selected_port = forward_server.server_address[1]
         server_thread = threading.Thread(target=forward_server.serve_forever, daemon=True)
-        fut.set_running_or_notify_cancel()
 
         server_thread.start()
         # this is necessary to make sure someone is listening on other end of tunnel:
         with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
             logging.debug("connecting to socket")
             sock.connect(('localhost', selected_port))
+            sock.send(b'bla')
             logging.debug("getting future result")
-        res = fut.result(10)
+        active_flag.wait(10)
+        logging.warning(f"tunnel is active: {active_flag.wait(0.10)}")
         return forward_server, selected_port
 
 
@@ -99,14 +104,16 @@ class Handler(SocketServer.BaseRequestHandler):
             message = "Error in SocketServer handler trying to open_channel: Incoming request to %s:%d was rejected " \
                       "by the SSH server." % (self.chain_host, self.chain_port)
             logging.error(message)
-            self.future.set_exception(SSHException(message))
+            logging.error(f"deactivating tunnel {self.chain_host} with state: {self.active.wait(0.1)}")
+            self.active.clear()
             return
 
         if chan is None:
             message = "Error in SockerServer handler trying to open_channel: %s:%d Channel is None" % (
                 self.chain_host, self.chain_port)
             logging.error(message)
-            self.future.set_exception(SSHException(message))
+            logging.error(f"deactivating tunnel {self.chain_host} with state: {self.active.wait(0.1)}")
+            self.active.clear()
             return
 
         logging.debug(
@@ -118,7 +125,8 @@ class Handler(SocketServer.BaseRequestHandler):
                 (self.chain_host, self.chain_port),
             )
         )
-        self.future.set_result(True)
+        logging.warning(f"activating tunnel {self.chain_host} with state: {self.active.wait(0.1)}")
+        self.active.set()
         while True:
             r, w, x = select.select([self.request, chan], [], [])
             if self.request in r:
