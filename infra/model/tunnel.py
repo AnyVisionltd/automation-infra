@@ -8,6 +8,8 @@ import threading
 
 from paramiko import SSHException
 
+from automation_infra.utils import waiter
+
 try:
     import SocketServer
 except ImportError:
@@ -44,11 +46,9 @@ class Tunnel(object):
         return self._local_bind_port
 
     def _start_tunnel(self):
-        try:
-            self._forward_server, self._local_bind_port = self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport)
-        except SSHException as e:
-            logging.error(f"unable to start tunnel to {self.remote_dns_name}:{self.remote_port}")
-            raise e
+        self._forward_server, self._local_bind_port = waiter.wait_nothrow(lambda:
+                            self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport))
+
 
     @staticmethod
     def try_start_tunnel(remote_host, remote_port, ssh_transport, local_port=0):
