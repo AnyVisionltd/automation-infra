@@ -174,7 +174,9 @@ def remove_proxy_container(connected_ssh_module):
             logging.debug("removed successfully!")
             return True
         except SSHCalledProcessError as e:
-            if ('No such container' not in e.stderr) and ('No such container' not in e.stdout):
+            if ('No such container' in e.stderr) or ('is not running' in e.stderr):
+                pass
+            else:
                 raise e
             logging.debug("nothing to remove")
 
