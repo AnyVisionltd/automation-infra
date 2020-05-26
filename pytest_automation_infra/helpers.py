@@ -93,7 +93,14 @@ def set_up_docker_container(connected_ssh_module):
               f'--privileged ' \
               f'--network=host ' \
               f'--name=automation_proxy gcr.io/anyvision-training/automation-proxy:master'
-    connected_ssh_module.execute(run_cmd)
+    try:
+        connected_ssh_module.execute(run_cmd)
+    except SSHCalledProcessError as e:
+        if "endpoint with name automation_proxy already exists in network host" in e.stderr:
+            connected_ssh_module.execute("docker network disconnect --force host automation_proxy")
+            connected_ssh_module.execute(run_cmd)
+        else:
+            raise e
     logging.debug("docker is running")
 
 
