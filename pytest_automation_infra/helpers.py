@@ -157,8 +157,17 @@ def restart_proxy_container(host):
         host.SshDirect.execute("kubectl delete po automation_proxy")
     else:
         host.SshDirect.execute(f'{use_gravity_exec(host.SshDirect)} docker restart automation_proxy')
-    host.SSH.connect()
-
+    try:
+        host.SSH.connect()
+    except SSHCalledProcessError as e:
+        if 'Unable to connect to port 2222' in e.stderr:
+            deploy_proxy_container(host.SshDirect)
+            host.SSH.connect()
+    except Exception as e:
+        logging.error(f"exception: {e}, type: {type(e)}")
+        logging.error(f"redeploying proxy container (!)")
+        deploy_proxy_container(host.SshDirect)
+        host.SSH.connect()
 
 def remove_proxy_container(connected_ssh_module):
     if is_k8s(connected_ssh_module):
