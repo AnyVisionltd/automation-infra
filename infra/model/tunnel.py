@@ -1,4 +1,5 @@
 import concurrent
+import contextlib
 from concurrent import futures
 import logging
 import select
@@ -75,8 +76,10 @@ class Tunnel(object):
 
         server_thread.start()
         # this is necessary to make sure someone is listening on other end of tunnel:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(('localhost', selected_port))
+        with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+            logging.debug("connecting to socket")
+            sock.connect(('localhost', selected_port))
+            logging.debug("getting future result")
         res = fut.result(10)
         return forward_server, selected_port
 
