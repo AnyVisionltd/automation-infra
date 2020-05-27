@@ -263,7 +263,7 @@ def base_config(request):
         hb_thread.join()
 
 
-@pytest.hookimpl(hookwrapper=True)
+@pytest.hookimpl(hookwrapper=True, trylast=True)
 def pytest_runtest_setup(item):
     # The yield allows the base_config fixture to be init'ed:
     outcome = yield
