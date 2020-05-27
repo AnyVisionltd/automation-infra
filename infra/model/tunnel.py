@@ -131,10 +131,9 @@ class Handler(SocketServer.BaseRequestHandler):
                 if len(data) == 0:
                     break
                 self.request.send(data)
-        request_peername = self.request.getpeername()
         chan.close()
         self.request.close()
-        logging.debug("Handler client %r closed from (%r) <- %r" % (request_peername, f"localhost:{self.local_bind_port}", (self.chain_host, self.chain_port)))
+        logging.debug("Handler client closed from (%r) <- %r" % (f"localhost:{self.local_bind_port}", (self.chain_host, self.chain_port)))
 
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
