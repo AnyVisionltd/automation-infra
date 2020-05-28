@@ -120,7 +120,8 @@ function kill_container() {
 }
 
 function _add_mount() {
-    if [ -x "$(command -v gravity)" ]; then
+    if command -v gravity > /dev/null 2>&1 && \
+        gravity status | grep -i 'Status:' | grep -i -q 'active'; then
         echo " --volume=/host$1"
     else
         echo " --volume=$1"
