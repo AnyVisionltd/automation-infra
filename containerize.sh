@@ -4,12 +4,17 @@ set -eu
 
 PUBKEY_FILE=/${HOME}/.ssh/docker-builder-key
 DOCKERIZE_FORCE_BUILD=${DOCKERIZE_FORCE_BUILD:-0}
+MOUNT_PATH="${MOUNT_PATH:-$(pwd)}"
 V=${V:=0}
 
-# Absolute path to this script
-SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
-# Absolute path to the script directory
-script_dir=$(dirname "$SCRIPT")
+function _is_debug() {
+   if [ "$V" == "1" ];
+   then
+      echo "1"
+   else
+      echo "0"
+   fi
+}
 
 function debug_print() {
     if [ "$V" = "1" ]; then echo "$1"; fi
@@ -18,13 +23,23 @@ function debug_print() {
 function docker_tag () {
     local current_file=${BASH_SOURCE[0]}
     local current_dir=$(dirname "$current_file")
+    local files_sum
+    local total_sum
 
     HASH_FILES=($current_dir/Dockerfile_local ${BASH_SOURCE[0]})
     HASH_FILES+=($current_dir/requirements3.txt $current_dir/entrypoint.sh)
 
-    local files_sum="$(md5sum -- ${HASH_FILES[@]} | awk {'print $1'})"
-    local total_sum="$(md5sum <<< "$files_sum" | awk '{print substr($1,1,12)}')"
-    echo "$total_sum"
+    if command -v md5sum > /dev/null 2>&1; then
+      files_sum="$(md5sum -- ${HASH_FILES[@]} | awk {'print $1'})"
+      total_sum="$(md5sum <<< "$files_sum")"
+    elif command -v md5 > /dev/null 2>&1; then
+      files_sum="$(md5 -q ${HASH_FILES[@]} | awk {'print $1'})"
+      total_sum="$(md5 <<< "$files_sum")"
+    else
+      >&2 echo "ERROR: please install md5 nor md5sum!"
+      exit 1
+    fi
+    echo $total_sum | awk '{print substr($1,1,12)}'
 }
 
 function run_ssh_agent () {
@@ -171,17 +186,13 @@ function run_docker () {
     # I dont think this is necessary because docker is run with --rm but am leaving it to make sure
     # trap "kill_container ${NAME}" 0
 
-    local mount_path=$(dirname "$script_dir")
-
-    debug_print "mounting up 1 from script_dir: $mount_path"
-
     MOUNTS=("${HOME}/.ssh:${HOME}/.ssh"
             "/var/run/docker.sock:/var/run/docker.sock"
             "${HOME}/.local:${HOME}/.local"
             "${HOME}/.docker:${HOME}/.docker"
             "${HOME}/.aws:${HOME}/.aws"
-            "$mount_path:$mount_path"
-            )
+            "$MOUNT_PATH:$MOUNT_PATH"
+	        )
 
     mount_cmd=""
     for i in "${MOUNTS[@]}"
@@ -190,8 +201,7 @@ function run_docker () {
     done
     mount_cmd+=" "
 
-    python_path=$(build_python_path $mount_path)
-    python_path+=":$script_dir"
+    python_path=$(build_python_path $MOUNT_PATH)
 
     env_cmd+="-e PYTHONPATH=${python_path} "
 
