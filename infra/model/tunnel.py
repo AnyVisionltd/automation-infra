@@ -4,6 +4,7 @@ from concurrent import futures
 import logging
 import select
 import socket
+import time
 import threading
 
 from paramiko import SSHException
@@ -79,61 +80,53 @@ class Tunnel(object):
         with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
             logging.debug("connecting to socket")
             sock.connect(('localhost', selected_port))
+            sock.detach()
             logging.debug("getting future result")
         res = fut.result(10)
         return forward_server, selected_port
 
 
 class Handler(SocketServer.BaseRequestHandler):
-    def handle(self):
+    def handle(self, attempt=0, err=None):
+        attempt = attempt + 1
+        if attempt >= 3:
+            logging.error("Too many attempts made!")
+            self.future.set_exception(err)
+            return err
         try:
-            logging.debug(f"handler request.peername(): {self.request.getpeername()}")
-            logging.debug(
-                f"Handling SocketServer {self.server.server_address} -> ({self.chain_host}:{self.chain_port})")
             chan = self.transport.open_channel(
                 "direct-tcpip",
                 (self.chain_host, self.chain_port),
                 self.request.getpeername(),
             )
-        except SSHException as e:
-            message = "Error in SocketServer handler trying to open_channel: Incoming request to %s:%d was rejected " \
-                      "by the SSH server." % (self.chain_host, self.chain_port)
-            logging.error(message)
-            self.future.set_exception(SSHException(message))
-            return
-
-        if chan is None:
-            message = "Error in SockerServer handler trying to open_channel: %s:%d Channel is None" % (
-                self.chain_host, self.chain_port)
-            logging.error(message)
-            self.future.set_exception(SSHException(message))
-            return
-
-        logging.debug(
-            "Connected! handler client %r functioning for (%r) -> %r -> %r"
-            % (
-                self.request.getpeername(),
-                f"localhost:{self.local_bind_port}",
-                chan.getpeername(),
-                (self.chain_host, self.chain_port),
-            )
-        )
-        self.future.set_result(True)
-        while True:
-            r, w, x = select.select([self.request, chan], [], [])
-            if self.request in r:
-                data = self.request.recv(1024)
-                if len(data) == 0:
-                    break
-                chan.send(data)
-            if chan in r:
-                data = chan.recv(1024)
-                if len(data) == 0:
-                    break
-                self.request.send(data)
-        chan.close()
-        self.request.close()
-        logging.debug("Handler client closed from (%r) <- %r" % (f"localhost:{self.local_bind_port}", (self.chain_host, self.chain_port)))
+            if chan is None:
+                message = "Error in SockerServer handler trying to open_channel: %s:%d Channel is None" % (
+                    self.chain_host, self.chain_port)
+                logging.error(message)
+                self.future.set_exception(SSHException(message))
+                return
+            self.future.set_result(True)
+            while True:
+                r, w, x = select.select([self.request, chan], [], [])
+                if self.request in r:
+                    data = self.request.recv(1024)
+                    if len(data) == 0:
+                        break
+                    chan.send(data)
+                if chan in r:
+                    data = chan.recv(1024)
+                    if len(data) == 0:
+                        break
+                    self.request.send(data)
+            chan.close()
+            self.request.close()
+        except (ConnectionResetError, EOFError, SSHException) as err:
+            time.sleep(1)
+            self.handle(attempt, err)
+        except Exception as err:
+            logging.error("Unknown error: %s", type(err))
+            time.sleep(1)
+            self.handle(attempt, err)
 
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
