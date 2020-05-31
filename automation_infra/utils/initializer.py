@@ -9,9 +9,9 @@ from pytest_automation_infra import helpers
 def clean(host):
     host.TunnelManager.clear()
     logging.debug(f"cleaning host {host.ip}, restarting automation_proxy")
-    helpers.restart_proxy_container(host)
     host.clear_plugins()
     logging.debug("resetting iptables")
+    helpers.restart_proxy_container(host)
     host.Iptables.reset_state()
 
 
