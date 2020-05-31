@@ -4,7 +4,12 @@ set -eu
 
 PUBKEY_FILE=/${HOME}/.ssh/docker-builder-key
 DOCKERIZE_FORCE_BUILD=${DOCKERIZE_FORCE_BUILD:-0}
-MOUNT_PATH="${MOUNT_PATH:-$(pwd)}"
+
+# Absolute path to this script
+SCRIPT=$(readlink -f "${BASH_SOURCE[0]}")
+# Absolute path to the script directory
+script_dir=$(dirname "$SCRIPT")
+MOUNT_PATH="${MOUNT_PATH:-$(dirname "$script_dir")}"
 V=${V:=0}
 
 function _is_debug() {
