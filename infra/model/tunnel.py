@@ -1,4 +1,5 @@
 import concurrent
+import contextlib
 from concurrent import futures
 import logging
 import select
@@ -6,6 +7,8 @@ import socket
 import threading
 
 from paramiko import SSHException
+
+from automation_infra.utils import waiter
 
 try:
     import SocketServer
@@ -43,11 +46,9 @@ class Tunnel(object):
         return self._local_bind_port
 
     def _start_tunnel(self):
-        try:
-            self._forward_server, self._local_bind_port = self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport)
-        except SSHException as e:
-            logging.error(f"unable to start tunnel to {self.remote_dns_name}:{self.remote_port}")
-            raise e
+        self._forward_server, self._local_bind_port = waiter.wait_nothrow(lambda:
+                            self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport))
+
 
     @staticmethod
     def try_start_tunnel(remote_host, remote_port, ssh_transport, local_port=0):
@@ -75,8 +76,10 @@ class Tunnel(object):
 
         server_thread.start()
         # this is necessary to make sure someone is listening on other end of tunnel:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(('localhost', selected_port))
+        with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+            logging.debug("connecting to socket")
+            sock.connect(('localhost', selected_port))
+            logging.debug("getting future result")
         res = fut.result(10)
         return forward_server, selected_port
 
@@ -128,10 +131,9 @@ class Handler(SocketServer.BaseRequestHandler):
                 if len(data) == 0:
                     break
                 self.request.send(data)
-        request_peername = self.request.getpeername()
         chan.close()
         self.request.close()
-        logging.debug("Handler client %r closed from (%r) <- %r" % (request_peername, f"localhost:{self.local_bind_port}", (self.chain_host, self.chain_port)))
+        logging.debug("Handler client closed from (%r) <- %r" % (f"localhost:{self.local_bind_port}", (self.chain_host, self.chain_port)))
 
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
