@@ -123,6 +123,10 @@ class Handler(SocketServer.BaseRequestHandler):
         except (ConnectionResetError, EOFError, SSHException) as err:
             time.sleep(1)
             self.handle(attempt, err)
+        except OSError:
+            # this gets thrown when connection is reset and then when trying to get request.getpeername() thrown again
+            # theres nothing to handle here, just makes logs a bit nicer.
+            pass
         except Exception as err:
             logging.error("Unknown error: %s", type(err))
             time.sleep(1)
