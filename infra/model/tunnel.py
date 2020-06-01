@@ -128,7 +128,7 @@ class Handler(SocketServer.BaseRequestHandler):
             # theres nothing to handle here, just makes logs a bit nicer.
             pass
         except Exception as err:
-            logging.error("Unknown error: %s", type(err))
+            logging.exception("Unknown error: %s", type(err))
             time.sleep(1)
             self.handle(attempt, err)
 
