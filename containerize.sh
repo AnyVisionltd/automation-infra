@@ -167,11 +167,15 @@ function build_python_path () {
     local python_path=""
     for file in $(ls $mount_path);
         do
-            python_path+=":$mount_path/$file/automation"
             if [ $file = "protobuf-contract" ]; then
                 file="$file/build/python"
                 python_path+=":$mount_path/$file"
+            elif [ $file = "automation-infra" ]; then
+                python_path+=":$mount_path/$file"
+            else
+                python_path+=":$mount_path/$file/automation"
             fi
+
     done
     echo $python_path
 }
