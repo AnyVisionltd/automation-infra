@@ -3,6 +3,7 @@ import os
 import logging
 import threading
 import time
+from datetime import datetime
 
 import aiohttp
 import pytest
@@ -15,6 +16,13 @@ from infra.model.host import Host
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
 from pytest_automation_infra import hardware_initializer, helpers
+
+
+class InfraFormatter(logging.Formatter):
+    def __init__(self):
+        msg_fmt = "%(asctime)20.20s.%(msecs)d %(threadName)-10.10s %(levelname)-6.6s %(message)-75s " \
+              "%(funcName)-15.15s %(pathname)-70s:%(lineno)4d"
+        logging.Formatter.__init__(self, msg_fmt, datefmt='%Y-%m-%d %H:%M:%S')
 
 
 def get_local_config(local_config_path):
@@ -270,3 +278,18 @@ def pytest_runtest_setup(item):
     outcome.get_result()
     hosts = item.funcargs['base_config'].hosts.items()
     initializer.clean_infra_between_tests(hosts)
+
+
+def pytest_logger_fileloggers(item):
+    logging.FileHandler.setLevel(logging.getLogger(), level=logging.DEBUG)
+    return [('')]
+
+
+def pytest_logger_logsdir(config):
+    return os.path.join(os.path.dirname(__file__), f'../automation-logs_{datetime.now()}')
+
+
+def pytest_logger_config(logger_config):
+    logger_config.split_by_outcome()
+    logger_config.set_formatter_class(InfraFormatter)
+
