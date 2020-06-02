@@ -286,7 +286,7 @@ def pytest_logger_fileloggers(item):
 
 
 def pytest_logger_logsdir(config):
-    return os.path.join(os.path.dirname(__file__), f'../automation-logs_{datetime.now()}')
+    return os.path.join(os.path.dirname(__file__), f'../logs/{datetime.now()}')
 
 
 def pytest_logger_config(logger_config):
