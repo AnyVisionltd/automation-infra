@@ -238,3 +238,4 @@ output.log
 .vscode/
 
 config/hypervisor.yaml
+automation-logs_*
