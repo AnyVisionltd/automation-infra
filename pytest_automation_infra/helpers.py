@@ -6,6 +6,8 @@ import paramiko
 from automation_infra.plugins.ssh_direct import SSHCalledProcessError
 import os
 
+from automation_infra.utils import waiter
+
 logging.getLogger('paramiko').setLevel(logging.WARN)
 
 
@@ -158,7 +160,7 @@ def restart_proxy_container(host):
     else:
         host.SshDirect.execute(f'{use_gravity_exec(host.SshDirect)} docker restart automation_proxy')
     try:
-        host.SSH.connect()
+        waiter.wait_nothrow(host.SSH.connect, timeout=5)
     except SSHCalledProcessError as e:
         if 'Unable to connect to port 2222' in e.stderr:
             deploy_proxy_container(host.SshDirect)
