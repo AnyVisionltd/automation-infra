@@ -95,6 +95,8 @@ def set_up_docker_container(connected_ssh_module):
               f'--privileged ' \
               f'--network=host ' \
               f'--name=automation_proxy gcr.io/anyvision-training/automation-proxy:master'
+    assert not connected_ssh_module.execute("docker ps -q --filter 'name=automation_proxy'"), \
+        "you want to run automation_proxy but it is already running"
     try:
         connected_ssh_module.execute(run_cmd)
     except SSHCalledProcessError as e:
@@ -166,8 +168,7 @@ def restart_proxy_container(host):
             deploy_proxy_container(host.SshDirect)
             host.SSH.connect()
     except Exception as e:
-        logging.error(f"exception: {e}, type: {type(e)}")
-        logging.error(f"redeploying proxy container (!)")
+        logging.exception(f"failed restarting proxy container.. trying to redeploy (?)")
         deploy_proxy_container(host.SshDirect)
         host.SSH.connect()
 
