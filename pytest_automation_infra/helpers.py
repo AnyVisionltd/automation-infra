@@ -127,6 +127,11 @@ def is_blank(connected_ssh_module):
     return False
 
 
+def prune_legacy_containers(ssh):
+    if not is_k8s(ssh):
+        ssh.execute('docker container prune -f')
+
+
 def init_proxy_container_and_connect(host):
     logging.debug(f"[{host}] connecting to ssh directly")
     host.SshDirect.connect()
@@ -134,6 +139,7 @@ def init_proxy_container_and_connect(host):
 
     if is_blank(host.SshDirect):
         return
+    # prune_legacy_containers(host.SshDirect)
     deploy_proxy_container(host.SshDirect)
 
     logging.debug(f"[{host}] connecting to ssh container")
