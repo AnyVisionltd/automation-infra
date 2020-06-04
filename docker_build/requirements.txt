@@ -9,3 +9,4 @@ grpcio==1.21.1
 PyMySQL==0.9.3
 python-consul
 kafka-python==2.0.1
+munch==2.5.0
