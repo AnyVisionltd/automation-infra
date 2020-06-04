@@ -6,6 +6,8 @@ import paramiko
 from automation_infra.plugins.ssh_direct import SSHCalledProcessError
 import os
 
+from automation_infra.utils import waiter
+
 logging.getLogger('paramiko').setLevel(logging.WARN)
 
 
@@ -88,11 +90,13 @@ def set_up_docker_container(connected_ssh_module):
 
     logging.debug("running docker")
     run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --rm ' \
-              f'--volume=/tmp/automation_infra/ ' \
+              f'--volume=/tmp/automation_infra/:/tmp/automation_infra ' \
               f'--volume=/etc/hosts:/etc/hosts '\
               f'--privileged ' \
               f'--network=host ' \
               f'--name=automation_proxy gcr.io/anyvision-training/automation-proxy:master'
+    assert not connected_ssh_module.execute("docker ps -q --filter 'name=automation_proxy'"), \
+        "you want to run automation_proxy but it is already running"
     try:
         connected_ssh_module.execute(run_cmd)
     except SSHCalledProcessError as e:
@@ -158,14 +162,13 @@ def restart_proxy_container(host):
     else:
         host.SshDirect.execute(f'{use_gravity_exec(host.SshDirect)} docker restart automation_proxy')
     try:
-        host.SSH.connect()
+        waiter.wait_nothrow(host.SSH.connect, timeout=5)
     except SSHCalledProcessError as e:
         if 'Unable to connect to port 2222' in e.stderr:
             deploy_proxy_container(host.SshDirect)
             host.SSH.connect()
     except Exception as e:
-        logging.error(f"exception: {e}, type: {type(e)}")
-        logging.error(f"redeploying proxy container (!)")
+        logging.exception(f"failed restarting proxy container.. trying to redeploy (?)")
         deploy_proxy_container(host.SshDirect)
         host.SSH.connect()
 

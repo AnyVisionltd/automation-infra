@@ -98,9 +98,15 @@ class PythonPacker(object):
 
     def _get_module_archpath(self, module):
         if module.__file__.startswith(self.rootdir):
-            return module.__file__[len(self.rootdir):]
+            return self._truncated_module_path(module)
         relpath = module.__name__.replace('.', os.sep)
         return module.__file__[module.__file__.find(relpath):]
+
+    def _truncated_module_path(self, module):
+        path = module.__file__[len(self.rootdir):]
+        if path.startswith('automation/'):
+            path = path[len('automation/'):]
+        return path
 
 
 if __name__ == '__main__':
