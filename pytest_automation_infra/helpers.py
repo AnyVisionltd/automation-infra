@@ -127,6 +127,18 @@ def is_blank(connected_ssh_module):
     return False
 
 
+def check_for_legacy_containers(ssh):
+    if is_k8s(ssh):
+        return
+    container_names = ssh.execute("docker ps | tail -n +2 | awk '{print $NF}'").split()
+    if not container_names:
+        return
+    common_prefix = os.path.commonprefix(container_names)
+    if not common_prefix or common_prefix[-1] not in '_-':
+        raise Exception(f"Found containers with different prefixes: {container_names}. "
+                        f"Please prune accordingly and rerun test.")
+
+
 def init_proxy_container_and_connect(host):
     logging.debug(f"[{host}] connecting to ssh directly")
     host.SshDirect.connect()
@@ -134,6 +146,7 @@ def init_proxy_container_and_connect(host):
 
     if is_blank(host.SshDirect):
         return
+    check_for_legacy_containers(host.SshDirect)
     deploy_proxy_container(host.SshDirect)
 
     logging.debug(f"[{host}] connecting to ssh container")
