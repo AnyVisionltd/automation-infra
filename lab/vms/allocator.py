@@ -1,4 +1,7 @@
 import logging
+import socket
+import errno
+
 from lab import NotEnoughResourceException
 from . import vm
 import asyncio
@@ -105,8 +108,20 @@ class Allocator(object):
             machine = vm.VM(**vm_data)
             await self.vm_manager.destroy_vm(machine)
 
-    def _sol_port(self):
-        return self.sol_base_port + len(self.vms)
+    def _get_free_port(self, port, attempts=100):
+        if attempts == 0:
+            raise socket.error("Could not find any free ports")
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.bind(("127.0.0.1", port))
+            logging.debug(f"port {port} seems free")
+            sock.close()
+            return port
+        except socket.error as err:
+            if err.errno == errno.EADDRINUSE:
+                return self._get_free_port(port + 1, attempts - 1)
+            else:
+                raise err
 
     def _reserve_gpus(self, num_gpus):
         gpus = self.gpus_list[:num_gpus]
@@ -171,7 +186,7 @@ class Allocator(object):
             vm_index = vm_index + 1
             vm_name = "%s-vm-%d" % (self.server_name, vm_index)
         machine = vm.VM(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
-                         net_ifaces=networks, sol_port=self._sol_port(),
+                         net_ifaces=networks, sol_port=self._get_free_port(self.sol_base_port + len(self.vms)),
                          pcis=gpus, base_image=base_image,
                          disks=disks, base_image_size=base_image_size)
         self.vms[vm_name] = machine
