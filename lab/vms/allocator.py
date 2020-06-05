@@ -165,7 +165,11 @@ class Allocator(object):
 
         gpus = self._reserve_gpus(num_gpus)
         networks = self._reserve_networks(networks)
-        vm_name = "%s-vm-%d" % (self.server_name, len(self.vms))
+        vm_index = len(self.vms)
+        vm_name = "%s-vm-%d" % (self.server_name, vm_index)
+        while vm_name in self.vms:
+            vm_index = vm_index + 1
+            vm_name = "%s-vm-%d" % (self.server_name, vm_index)
         machine = vm.VM(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
                          net_ifaces=networks, sol_port=self._sol_port(),
                          pcis=gpus, base_image=base_image,
