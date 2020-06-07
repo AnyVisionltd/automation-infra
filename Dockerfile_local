@@ -23,7 +23,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
   && ln -s /usr/bin/python3 /usr/local/bin/python \
   && pip3 install --upgrade pip \
-  && apt-get clean && apt-get autoremove && rm -rf /var/lib/apt/lists/*
+  && apt-get clean && apt-get autoremove && rm -rf /var/lib/apt/lists/* \
+  && curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash - \
+  && apt-get install nodejs -y --no-install-recommends
 
 # Set the locale
 ENV LANG C.UTF-8
