@@ -91,25 +91,20 @@ class Host(object):
     def __str__(self):
         return self.ip
 
+    @classmethod
+    def from_args(cls, ip, user, password=None, pem_path=None, port=22):
+        return cls(Munch.fromDict({"ip": ip,
+        "port": port,
+        "user": user,
+        "password": password,
+        "key_file_path": pem_path}))
 
 plugins.register('Host', Host)
-
-
-def create_host(ip, u, p=None, pem_path=None, port=22):
-    host_config = {
-        "ip": ip,
-        "port": port,
-        "user": u,
-        "password": p,
-        "key_file_path": pem_path
-    }
-    host = Host(Munch.fromDict(host_config))
-    return host
 
 
 def test_functionality():
     host1 = Host(Munch.fromDict(host_config_example1))
     host2 = Host(Munch.fromDict(host_config_example2))
     host3 = Host(Munch.fromDict(host_config_example3))
-    host4 = create_host('0.0.0.0', 'user', p='pass')
-    host5 = create_host('0.0.0.0', 'user', pem_path='/path/to/pem')
+    host4 = Host.from_args('0.0.0.0', 'user', 'pass')
+    host5 = Host.from_args('0.0.0.0', 'user', pem_path='/path/to/pem')
