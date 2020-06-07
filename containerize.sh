@@ -198,7 +198,7 @@ function run_docker () {
 
     MOUNTS=("${HOME}/.ssh:${HOME}/.ssh"
             "/var/run/docker.sock:/var/run/docker.sock"
-            "${HOME}/.local:${HOME}/.local"
+            "${HOME}/.local/hardware.yaml:${HOME}/.local/hardware.yaml"
             "${HOME}/.docker:${HOME}/.docker"
             "${HOME}/.aws:${HOME}/.aws"
             "$MOUNT_PATH:$MOUNT_PATH"
