@@ -130,7 +130,7 @@ def is_blank(connected_ssh_module):
 def check_for_legacy_containers(ssh):
     if is_k8s(ssh):
         return
-    container_names = ssh.execute("docker ps | tail -n +2 | awk '{print $NF}'").split()
+    container_names = ssh.execute("docker ps | awk '{print $NF}' | grep compose || true ").split()
     if not container_names:
         return
     common_prefix = os.path.commonprefix(container_names)
