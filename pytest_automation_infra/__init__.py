@@ -286,10 +286,23 @@ def pytest_logger_fileloggers(item):
 
 
 def pytest_logger_logsdir(config):
-    return os.path.join(os.path.dirname(__file__), f'../logs/{datetime.now()}')
+    return config.option.logger_logsdir
 
 
 def pytest_logger_config(logger_config):
     logger_config.split_by_outcome()
     logger_config.set_formatter_class(InfraFormatter)
 
+
+def pytest_configure(config):
+    log_fmt = '%(asctime)15.15s %(threadName)-10.10s %(levelname)-6.6s %(message)-75s %(funcName)-15.15s %(pathname)-70s:%(lineno)4d'
+    date_fmt = '%Y-%m-%d %H:%M:%S'
+
+    config.option.showcapture = 'no'
+    config.option.logger_logsdir = os.path.join(os.path.dirname(__file__), f'../logs/{datetime.now()}')
+    config.option.log_cli = True
+    config.option.log_cli_level = 'INFO'
+    config.option.log_cli_format = log_fmt
+    config.option.log_format = log_fmt
+    config.option.log_cli_date_format = date_fmt
+    config.option.log_file_date_format = date_fmt
