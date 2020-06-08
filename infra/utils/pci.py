@@ -80,8 +80,11 @@ def vfio_bind_pci_device(device):
 
 def device_driver(device):
     path = f'/sys/bus/pci/devices/{device.full_address}/driver'
-    driver_path = os.readlink(path)
-    return driver_path.split('/')[-1]
+    try:
+        driver_path = os.readlink(path)
+        return driver_path.split('/')[-1]
+    except OSError:
+        return None
 
 def enable_count(device):
     path = f'/sys/bus/pci/devices/{device.full_address}/enable'
