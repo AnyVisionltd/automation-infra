@@ -95,8 +95,8 @@ def set_up_docker_container(connected_ssh_module):
               f'--privileged ' \
               f'--network=host ' \
               f'--name=automation_proxy gcr.io/anyvision-training/automation-proxy:master'
-    assert not connected_ssh_module.execute("docker ps -q --filter 'name=automation_proxy'"), \
-        "you want to run automation_proxy but it is already running"
+    assert not connected_ssh_module.execute("docker ps -aq --filter 'name=automation_proxy'"), \
+        "you want to run automation_proxy but it already exists, please remove it beforehand!"
     try:
         connected_ssh_module.execute(run_cmd)
     except SSHCalledProcessError as e:
@@ -127,6 +127,18 @@ def is_blank(connected_ssh_module):
     return False
 
 
+def check_for_legacy_containers(ssh):
+    if is_k8s(ssh):
+        return
+    container_names = ssh.execute("docker ps | tail -n +2 | awk '{print $NF}'").split()
+    if not container_names:
+        return
+    common_prefix = os.path.commonprefix(container_names)
+    if not common_prefix or common_prefix[-1] not in '_-':
+        raise Exception(f"Found containers with different prefixes: {container_names}. "
+                        f"Please prune accordingly and rerun test.")
+
+
 def init_proxy_container_and_connect(host):
     logging.debug(f"[{host}] connecting to ssh directly")
     host.SshDirect.connect()
@@ -134,6 +146,7 @@ def init_proxy_container_and_connect(host):
 
     if is_blank(host.SshDirect):
         return
+    check_for_legacy_containers(host.SshDirect)
     deploy_proxy_container(host.SshDirect)
 
     logging.debug(f"[{host}] connecting to ssh container")
@@ -160,17 +173,12 @@ def restart_proxy_container(host):
     if is_k8s(host.SshDirect):
         host.SshDirect.execute("kubectl delete po automation_proxy")
     else:
-        host.SshDirect.execute(f'{use_gravity_exec(host.SshDirect)} docker restart automation_proxy')
-    try:
-        waiter.wait_nothrow(host.SSH.connect, timeout=5)
-    except SSHCalledProcessError as e:
-        if 'Unable to connect to port 2222' in e.stderr:
+        if not host.SshDirect.execute("docker ps -aq --filter 'name=automation_proxy'"):
+            logging.warning("wanted to restart automation_proxy but it didnt exist (unexpected)! deploying..")
             deploy_proxy_container(host.SshDirect)
-            host.SSH.connect()
-    except Exception as e:
-        logging.exception(f"failed restarting proxy container.. trying to redeploy (?)")
-        deploy_proxy_container(host.SshDirect)
-        host.SSH.connect()
+        host.SshDirect.execute(f'{use_gravity_exec(host.SshDirect)} docker restart automation_proxy')
+    waiter.wait_nothrow(host.SSH.connect, timeout=5)
+
 
 def remove_proxy_container(connected_ssh_module):
     if is_k8s(connected_ssh_module):
@@ -183,6 +191,9 @@ def remove_proxy_container(connected_ssh_module):
         try:
             logging.debug("trying to remove docker container")
             connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker kill automation_proxy')
+            if connected_ssh_module.execute("docker ps -aq --filter 'name=automation_proxy'"):
+                logging.warning("proxy container was killed without being removed (unexpected)! removing...")
+                connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker rm automation_proxy')
             logging.debug("removed successfully!")
             return True
         except SSHCalledProcessError as e:
