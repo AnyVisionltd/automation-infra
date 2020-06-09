@@ -84,7 +84,7 @@ pipeline {
                 stage('Run integration tests') {
                     steps {
                         sh (
-                            script: "./containerize.sh python3 -m pytest -p pytest_automation_infra -o log_cli=true -o log_cli_level=DEBUG ./automation_infra/tests/test_ssh.py --hardware ${WORKSPACE}/hardware.yaml"
+                            script: "./containerize.sh python3 -m pytest -p pytest_automation_infra -o log_cli=true -o log_cli_level=DEBUG ./automation_infra/tests/ --hardware ${WORKSPACE}/hardware.yaml"
                         )
                     }
                 }
