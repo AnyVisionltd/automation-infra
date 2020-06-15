@@ -296,10 +296,10 @@ def pytest_logger_config(logger_config):
 
 def pytest_configure(config):
     log_fmt = '%(asctime)15.15s %(threadName)-10.10s %(levelname)-6.6s %(message)-75s %(funcName)-15.15s %(pathname)-70s:%(lineno)4d'
-    date_fmt = '%Y-%m-%d %H:%M:%S'
+    date_fmt = '%Y-%m-%d_%H:%M:%S'
 
     config.option.showcapture = 'no'
-    config.option.logger_logsdir = os.path.join(os.path.dirname(__file__), f'../logs/{datetime.now()}')
+    config.option.logger_logsdir = os.path.join(os.path.dirname(__file__), f'../logs/{datetime.now().strftime(date_fmt)}')
     config.option.log_cli = True
     config.option.log_cli_level = 'INFO'
     config.option.log_cli_format = log_fmt
