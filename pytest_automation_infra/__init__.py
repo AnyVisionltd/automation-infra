@@ -280,6 +280,16 @@ def pytest_runtest_setup(item):
     initializer.clean_infra_between_tests(hosts)
 
 
+def pytest_runtest_teardown(item):
+    host = item.funcargs['base_config'].hosts['host']
+
+    log_datetime=item.config.option.logger_logsdir.split("/")[-1]
+    dst = f'./logs/{log_datetime}'
+
+    # TODO: edit dst path to the path of specific test i.e:  "./logs/{log_datetime}/automation_infra/tests/test_ssh.py/test_ssh/"
+    host.SshDirect.download(dst, '/storage/logs/pipeng/*')
+
+
 def pytest_logger_fileloggers(item):
     logging.FileHandler.setLevel(logging.getLogger(), level=logging.DEBUG)
     return [('')]
@@ -296,10 +306,10 @@ def pytest_logger_config(logger_config):
 
 def pytest_configure(config):
     log_fmt = '%(asctime)15.15s %(threadName)-10.10s %(levelname)-6.6s %(message)-75s %(funcName)-15.15s %(pathname)-70s:%(lineno)4d'
-    date_fmt = '%Y-%m-%d %H:%M:%S'
+    date_fmt = '%Y-%m-%d_%H:%M:%S'
 
     config.option.showcapture = 'no'
-    config.option.logger_logsdir = os.path.join(os.path.dirname(__file__), f'../logs/{datetime.now()}')
+    config.option.logger_logsdir = os.path.join(os.path.dirname(__file__), f'../logs/{datetime.now().strftime(date_fmt)}')
     config.option.log_cli = True
     config.option.log_cli_level = 'INFO'
     config.option.log_cli_format = log_fmt
