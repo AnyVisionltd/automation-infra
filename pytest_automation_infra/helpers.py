@@ -163,7 +163,12 @@ def init_proxy_containers_and_connect(hosts):
 
 def restart_proxy_container(host):
     if is_k8s(host.SshDirect):
-        host.SshDirect.execute("kubectl delete po automation_proxy")
+        try:
+            host.SshDirect.execute("kubectl delete po automation_proxy")
+        except SSHCalledProcessError as e:
+            if 'not found' in e.stderr:
+                deploy_proxy_container(host.SshDirect)
+                host.SSH.connect()
     else:
         if not host.SshDirect.execute("docker ps -aq --filter 'name=automation_proxy'"):
             logging.warning("wanted to restart automation_proxy but it didnt exist (unexpected)! deploying..")
