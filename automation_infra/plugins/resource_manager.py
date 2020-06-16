@@ -1,6 +1,5 @@
 import logging
 import os
-import time
 from io import BytesIO
 
 import boto3
@@ -9,19 +8,16 @@ import sys
 import threading
 
 from automation_infra.plugins.ssh_direct import SSHCalledProcessError
-
-try:
-    from devops_automation_infra.plugins.seaweed import Seaweed as BaseObject
-except ImportError:
-    from automation_infra.plugins.base_plugin import TunneledPlugin as BaseObject
 from infra.model import plugins
 
 logging.getLogger('botocore').setLevel(logging.WARN)
 
-class ResourceManager(BaseObject):
+
+class ResourceManager(object):
     def __init__(self, host):
-        super().__init__(host)
+        self._host = host
         self._client = None
+        self._resource = None
 
     def config_aws(self):
         if not os.path.exists(f'{os.path.expanduser("~")}/.aws'):
@@ -48,6 +44,16 @@ class ResourceManager(BaseObject):
         self.config_aws()
         s3 = boto3.client('s3')  # Configure locally access keys on local machine in ~/.aws, this will use them
         return s3
+
+    @property
+    def resource(self):
+        if self._resource is None:
+            self._resource = self._s3_resource()
+        return self._resource
+
+    def _s3_resource(self):
+        self.config_aws()
+        return boto3.resource('s3')
 
     def upload_from_filesystem(self, local_path, upload_dir=""):
         upload_path = None
@@ -109,6 +115,79 @@ class ResourceManager(BaseObject):
             return True
         except Exception:
             raise ConnectionError
+
+    def get_bucket_files(self, bucket_name, recursive=True):
+        return self.get_files_by_prefix(bucket_name, '', recursive)
+
+    def get_all_buckets(self):
+        return list(self.resource.buckets.all())
+
+    def get_files_by_prefix(self, bucket_name, prefix, recursive=True):
+        res = self.client.list_objects(Bucket=bucket_name, Prefix=prefix)
+        res_code = res['ResponseMetadata']['HTTPStatusCode']
+        assert res_code == 200
+        files = [x['Key'] for x in res.get('Contents', [])]
+        if not recursive:
+            return files
+        for x in res.get('CommonPrefixes', []):
+            prefix = x['Prefix']
+            files.extend(self.get_files_by_prefix(bucket_name, prefix))
+        return files
+
+    def create_bucket(self, bucket_name):
+        res = self.client.create_bucket(Bucket=bucket_name)
+        res_code = res['ResponseMetadata']['HTTPStatusCode']
+        assert res_code == 200
+
+    def delete_bucket(self, bucket_name):
+        res = self.client.delete_bucket(Bucket=bucket_name)
+        res_code = res['ResponseMetadata']['HTTPStatusCode']
+        assert res_code == 204
+
+    def upload_file_to_bucket(self, src_file_path, dst_bucket, ds_file_name):
+        res = self.client.upload_file(src_file_path, dst_bucket, ds_file_name)
+        assert res is None
+
+    def upload_fileobj(self, file_obj, dst_bucket, dst_filepath):
+        res = self.client.upload_fileobj(file_obj, dst_bucket, dst_filepath)
+        assert res is None
+
+    def upload_files_from(self, path, dst_bucket):
+        self.create_bucket(dst_bucket)
+        src_files = os.listdir(path)
+        dst_files = self.get_bucket_files(dst_bucket)
+        missing_files = [item for item in src_files if item not in dst_files]
+        for _file in missing_files:
+            self.upload_file_to_bucket(path + _file, dst_bucket, _file)
+
+    def file_exists(self, bucket_name, file_name):
+        try:
+            self.client.head_object(Bucket=bucket_name, Key=file_name)
+        except ClientError:
+            return False
+        else:
+            return True
+
+    def file_content(self, bucket_name, key):
+        res = self.client.get_object(Bucket=bucket_name, Key=key)
+        assert res['ResponseMetadata']['HTTPStatusCode'] == 200
+        return res['Body'].read()
+
+    def check_video_path(self, bucket_name, key):
+        res = self.client.get_object(Bucket=bucket_name, Key=key)
+        assert res['ResponseMetadata']['HTTPStatusCode'] == 200
+        return res
+
+    def get_files_in_dir(self, bucket_name, dir_path):
+        result = []
+        resp = self.client.list_objects_v2(Bucket=bucket_name, Prefix=dir_path, Delimiter='/')
+        if 'Contents' not in resp.keys():
+            return
+        return [obj['Key'] for obj in resp['Contents']]
+
+    def delete_file(self, bucket_name, file_name):
+        self.client.delete_object(Bucket=bucket_name, Key=file_name)
+        assert not self.file_exists(bucket_name, file_name)
 
     def verify_functionality(self):
         logging.info("verifying resource_manager functionality")
