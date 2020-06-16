@@ -150,15 +150,7 @@ def init_proxy_container_and_connect(host):
     deploy_proxy_container(host.SshDirect)
 
     logging.debug(f"[{host}] connecting to ssh container")
-    for i in range(15):
-        # Need this because the kubectl run daemonset returns when the container is starting
-        # but sometimes can take a few seconds for the container to be running....
-        try:
-            host.SSH.connect(port=host.tunnelport)
-            break
-        except paramiko.ssh_exception.NoValidConnectionsError:
-            logging.debug(f"ssh connect attempt {i}: no valid connections to {host.ip}")
-            time.sleep(1)
+    waiter.wait_nothrow(lambda: host.SSH.connect(port=host.tunnelport), timeout=60)
     logging.debug(f"[{host}] connected successfully")
 
 
