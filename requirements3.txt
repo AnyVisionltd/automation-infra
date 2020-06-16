@@ -89,3 +89,4 @@ pytest-rerunfailures==9.0
 pytest-logger==0.5.1
 pyexecjs==1.5.1
 pyzmq==19.0.1
+pika
