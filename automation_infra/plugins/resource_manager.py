@@ -1,3 +1,4 @@
+import base64
 import logging
 import os
 from io import BytesIO
@@ -95,11 +96,12 @@ class ResourceManager(object):
 
         return resources_s3_list
 
-    def get_raw_resource(self, resource_path):
+    def get_raw_resource(self, resource_path,bucket="anyvision-testing",as_base64=False):
         with BytesIO() as file_obj:
-            self.client.download_fileobj("anyvision-testing", resource_path, file_obj)
+            self.client.download_fileobj(bucket, resource_path, file_obj)
             file_obj.seek(0)
-            return file_obj.read()
+            file_bytes = file_obj.read()
+            return base64.b64encode(file_bytes).decode("utf-8") if as_base64 else file_bytes
 
     def get_s3_files(self, bucket='anyvision-testing', prefix=''):
         """Get a list of files in an S3 bucket."""
