@@ -35,11 +35,11 @@ spec:
         # args: ["-D","-e"]
         # command: ["sleep"]
         # args: ["1d"]
-        # securityContext:
+        securityContext:
+          privileged: true
         #   capabilities:
         #     add: ["NET_ADMIN"]
         #   allowPrivilegeEscalation: true
-        #   privileged: true
         ports:
           - containerPort: 2222
             hostPort: 2222
