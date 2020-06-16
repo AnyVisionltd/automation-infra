@@ -4,14 +4,17 @@ metadata:
   name: automation-proxy
   labels:
     k8s-app: ssh
+    app: automation-proxy
 spec:
   selector:
     matchLabels:
       name: automation-proxy
+      app: automation-proxy
   template:
     metadata:
       labels:
-        name: automation-proxy         
+        name: automation-proxy
+        app: automation-proxy
     spec:
       hostname: automation-proxy
       restartPolicy: Always
