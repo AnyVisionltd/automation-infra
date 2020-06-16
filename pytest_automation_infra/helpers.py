@@ -76,6 +76,7 @@ def set_up_k8s_pod(connected_ssh_module):
     logging.debug("deploying proxy pod in k8s")
     connected_ssh_module.put('./docker_build/daemonset.yaml', '/tmp/')
     connected_ssh_module.execute("kubectl apply -f /tmp/daemonset.yaml")
+    waiter.wait_nothrow(lambda: connected_ssh_module.execute("kubectl wait --for=condition=ready --timeout=1s pod -l app=automation-proxy"), timeout=60)
     logging.debug("success deploying proxy pod in k8s!")
 
 
@@ -181,7 +182,7 @@ def remove_proxy_container(connected_ssh_module):
     if is_k8s(connected_ssh_module):
         logging.debug("trying to remove k8s proxy pod")
         try:
-            connected_ssh_module.execute("kubectl delete -f /tmp/daemonset.yaml")
+            connected_ssh_module.execute("kubectl delete --force --grace-period=0 -f /tmp/daemonset.yaml")
         except SSHCalledProcessError:
             logging.debug(f"caught expected exception error when deleting /tmp/daemonset.yaml: daemonsets.apps automation-proxy not found")
     else:
