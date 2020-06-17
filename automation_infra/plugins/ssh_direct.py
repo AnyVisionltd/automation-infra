@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 from subprocess import CalledProcessError
 import logging
@@ -156,10 +157,10 @@ class SshDirect(object):
         cmd_template = '%(prefix)s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\
                         -r %(localpath)s %(username)s@%(hostname)s:%(remotepath)s'
         cmd = cmd_template % dict(prefix=prefix,
-                                  localpath=src,
+                                  localpath=re.escape(src),
                                   username=self._host.user,
                                   hostname=self._host.ip,
-                                  remotepath=dest)
+                                  remotepath=re.escape(dest))
         subprocess.check_call(cmd, shell=True)
 
     def download(self, localdir, *remote_pathes):
@@ -174,8 +175,8 @@ class SshDirect(object):
             cmd = cmd_template % dict(prefix=prefix,
                                       username=self._host.user,
                                       hostname=self._host.ip,
-                                      remotepath=dest_path,
-                                      localpath=localdir)
+                                      remotepath=re.escape(dest_path),
+                                      localpath=re.escape(localdir))
             subprocess.check_call(cmd, shell=True)
 
 
