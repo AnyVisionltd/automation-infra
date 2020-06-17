@@ -310,6 +310,10 @@ def pytest_configure(config):
     config.option.log_file_date_format = date_fmt
 
 
+def pytest_report_teststatus(report, config):
+    logging.debug(report.longreprtext)
+
+
 def pytest_runtest_teardown(item):
     base_config = item.funcargs['base_config']
     if is_k8s(base_config.hosts.host.SshDirect):
