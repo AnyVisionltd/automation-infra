@@ -16,7 +16,6 @@ from infra.model.host import Host
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
 from pytest_automation_infra import hardware_initializer, helpers
-from pytest_automation_infra.helpers import is_k8s
 
 
 class InfraFormatter(logging.Formatter):
@@ -307,22 +306,3 @@ def pytest_configure(config):
     config.option.log_format = log_fmt
     config.option.log_cli_date_format = date_fmt
     config.option.log_file_date_format = date_fmt
-
-
-def pytest_runtest_teardown(item):
-    base_config = item.funcargs['base_config']
-    if is_k8s(base_config.hosts.host.SshDirect):
-        # TODO: implement download_logs for k8s
-        return
-    dst = os.path.join(get_log_dir(item), 'docker_logs')
-    paths_to_download = ['/storage/logs/']
-    base_config.hosts.host.SshDirect.download(dst, *paths_to_download)
-
-
-def get_log_dir(item):
-    handlers = logging.RootLogger.root.handlers
-    for handler in handlers:
-        if type(handler) == logging.FileHandler:
-            path = handler.baseFilename
-            return os.path.dirname(path)
-    return item.config.option.logger_logsdir
