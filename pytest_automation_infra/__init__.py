@@ -297,7 +297,7 @@ def pytest_logger_config(logger_config):
 
 
 def pytest_configure(config):
-    log_fmt = '%(asctime)15.15s %(threadName)-10.10s %(levelname)-6.6s %(message)-75s %(funcName)-15.15s %(pathname)-70s:%(lineno)4d'
+    log_fmt = '%(asctime)s.%(msecs)0.3d %(threadName)-10.10s %(levelname)-6.6s %(message)s %(funcName)-15.15s %(pathname)s:%(lineno)d'
     date_fmt = '%Y-%m-%d %H:%M:%S'
 
     config.option.showcapture = 'no'
