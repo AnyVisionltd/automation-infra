@@ -45,6 +45,7 @@ class Host(object):
             "password and key are mutually exclusive (password=%s, key=%s)" % (_pass, _pem)
         self.ip = host_config.pop('ip')
         self.user = host_config.pop('user')
+        self.alias = host_config.pop('alias')
         try:
             self.port = host_config.pop('port')
         except KeyError:
@@ -92,8 +93,9 @@ class Host(object):
         return self.ip
 
     @classmethod
-    def from_args(cls, ip, user, password=None, pem_path=None, port=22):
+    def from_args(cls, alias, ip, user, password=None, pem_path=None, port=22):
         return cls(Munch.fromDict({"ip": ip,
+        "alias": alias,
         "port": port,
         "user": user,
         "password": password,
