@@ -12,7 +12,7 @@ import requests
 import yaml
 from munch import *
 
-from automation_infra.utils import initializer
+from automation_infra.utils import initializer, concurrently
 from infra.model.host import Host
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
@@ -317,16 +317,21 @@ def pytest_configure(config):
 def pytest_report_teststatus(report, config):
     logging.debug(report.longreprtext)
 
+def download_host_logs(host, logs_dir):
+    dest_dir = os.path.join(logs_dir, host.alias)
+    paths_to_download = ['/storage/logs/', '/var/log/journal']
+    logging.info(f"Downloading logs from {host.alias}")
+    host.SshDirect.download(re.escape(dest_dir), *paths_to_download)
+
 
 def pytest_runtest_teardown(item):
     base_config = item.funcargs['base_config']
     if is_k8s(base_config.hosts.host.SshDirect):
         # TODO: implement download_logs for k8s
         return
-    dst = os.path.join(get_log_dir(item.config), 'docker_logs')
-    paths_to_download = ['/storage/logs/']
-    host = next(iter(item.funcargs['base_config'].hosts.values()))
-    host.SshDirect.download(re.escape(dst), *paths_to_download)
+    hosts = item.funcargs['base_config'].hosts.values()
+    concurrently.run({host.ip: (download_host_logs, host, get_log_dir(item.config))
+                      for host in hosts})
 
 
 def get_log_dir(config):
