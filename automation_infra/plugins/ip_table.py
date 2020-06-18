@@ -6,7 +6,7 @@ class Iptables(object):
 
     def __init__(self, host):
         self._host = host
-        self._ssh = host.SSH
+        self._ssh = host.SshDirect
 
     def flush(self):
         self._ssh.execute(f'iptables --flush {self.AUTOMATION_CHAIN}')
@@ -22,20 +22,20 @@ class Iptables(object):
 
     def activate_automation_chain(self):
         chain = self.AUTOMATION_CHAIN
-        commands = [(f"iptables --check OUTPUT --jump {chain}", f"iptables --insert OUTPUT --jump {chain}"),
-                    (f"iptables --check FORWARD --jump {chain}", f"iptables --insert FORWARD --jump {chain}"),
-                    (f"iptables --check {chain} --jump RETURN", f"iptables --insert {chain} --jump RETURN")]
+        commands = [(f"iptables -w --check OUTPUT --jump {chain}", f"iptables --insert OUTPUT --jump {chain}"),
+                    (f"iptables -w --check FORWARD --jump {chain}", f"iptables --insert FORWARD --jump {chain}"),
+                    (f"iptables -w --check {chain} --jump RETURN", f"iptables --insert {chain} --jump RETURN")]
         for try_cmd, except_cmd in commands:
             try:
-                self._host.SSH.execute(try_cmd)
+                self._ssh.execute(try_cmd)
             except:
-                self._host.SSH.execute(except_cmd)
+                self._ssh.execute(except_cmd)
 
     def block(self, service_name):
-        self._host.SSH.execute(f"iptables --insert {self.AUTOMATION_CHAIN} --dest {service_name} -j REJECT")
+        self._ssh.execute(f"iptables -w --insert {self.AUTOMATION_CHAIN} --dest {service_name} -j REJECT")
 
     def unblock(self, service_name):
-        self._host.SSH.execute(f"iptables --delete {self.AUTOMATION_CHAIN} --dest {service_name} -j REJECT")
+        self._ssh.execute(f"iptables -w --delete {self.AUTOMATION_CHAIN} --dest {service_name} -j REJECT")
 
     def reset_state(self):
         self.flush_or_create()
