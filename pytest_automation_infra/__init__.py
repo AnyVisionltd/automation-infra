@@ -18,6 +18,7 @@ from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
 from pytest_automation_infra import hardware_initializer, helpers
 from pytest_automation_infra.helpers import is_k8s
+import copy
 
 
 class InfraFormatter(logging.Formatter):
@@ -235,7 +236,9 @@ def try_initing_hosts_intelligently(request, hardware, base):
         # This happens when running with module/session scope
         for machine_name in hardware.keys():
             logging.debug(f"Constructing host {machine_name}")
-            base.hosts[machine_name] = Host(Munch(hardware[machine_name]))
+            host_config = Munch(copy.copy(hardware[machine_name]))
+            host_config['alias'] = machine_name
+            base.hosts[machine_name] = Host(host_config)
     except KeyError as err:
         raise Exception(f"not enough hosts defined in hardware.yaml to run test {request.function}")
 
