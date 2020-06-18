@@ -18,6 +18,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     libxrender-dev \
     python3-pip \
     iproute2 \
+    && curl -sL https://deb.nodesource.com/setup_10.x | bash \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # prepare root user for ssh login
@@ -50,7 +52,6 @@ RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
 # Install pip3 requirements.txt
 ADD requirements.txt  /home/user/requirements.txt
 RUN python3 -m pip install -r /home/user/requirements.txt
-
 
 WORKDIR /home/user
 
