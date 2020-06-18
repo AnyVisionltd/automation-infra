@@ -201,6 +201,7 @@ function run_docker () {
             "${HOME}/.local/hardware.yaml:${HOME}/.local/hardware.yaml"
             "${HOME}/.docker:${HOME}/.docker"
             "${HOME}/.aws:${HOME}/.aws"
+            "${HOME}/.npmrc:${HOME}/.npmrc"
             "$MOUNT_PATH:$MOUNT_PATH"
 	        )
 
