@@ -321,7 +321,8 @@ def pytest_runtest_teardown(item):
         return
     dst = os.path.join(get_log_dir(item.config), 'docker_logs')
     paths_to_download = ['/storage/logs/']
-    base_config.hosts.host.SshDirect.download(re.escape(dst), *paths_to_download)
+    host = next(iter(item.funcargs['base_config'].hosts.values()))
+    host.SshDirect.download(re.escape(dst), *paths_to_download)
 
 
 def get_log_dir(config):
