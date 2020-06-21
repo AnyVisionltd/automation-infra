@@ -12,12 +12,13 @@ import requests
 import yaml
 from munch import *
 
-from automation_infra.utils import initializer
+from automation_infra.utils import initializer, concurrently
 from infra.model.host import Host
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
 from pytest_automation_infra import hardware_initializer, helpers
 from pytest_automation_infra.helpers import is_k8s
+import copy
 
 
 class InfraFormatter(logging.Formatter):
@@ -235,7 +236,9 @@ def try_initing_hosts_intelligently(request, hardware, base):
         # This happens when running with module/session scope
         for machine_name in hardware.keys():
             logging.debug(f"Constructing host {machine_name}")
-            base.hosts[machine_name] = Host(Munch(hardware[machine_name]))
+            host_config = Munch(copy.copy(hardware[machine_name]))
+            host_config['alias'] = machine_name
+            base.hosts[machine_name] = Host(host_config)
     except KeyError as err:
         raise Exception(f"not enough hosts defined in hardware.yaml to run test {request.function}")
 
@@ -297,11 +300,12 @@ def pytest_logger_config(logger_config):
 
 
 def pytest_configure(config):
-    log_fmt = '%(asctime)15.15s %(threadName)-10.10s %(levelname)-6.6s %(message)-75s %(funcName)-15.15s %(pathname)-70s:%(lineno)4d'
+    log_fmt = '%(asctime)s.%(msecs)0.3d %(threadName)-10.10s %(levelname)-6.6s %(message)s %(funcName)-15.15s %(pathname)s:%(lineno)d'
     date_fmt = '%Y-%m-%d %H:%M:%S'
 
     config.option.showcapture = 'no'
-    config.option.logger_logsdir = os.path.join(os.path.dirname(__file__), f'../logs/{datetime.now()}')
+    log_dir = datetime.now().strftime('%Y_%m_%d:%H:%M:%S')
+    config.option.logger_logsdir = os.path.join(os.path.dirname(__file__), f'../logs/{log_dir}')
     config.option.log_cli = True
     config.option.log_cli_level = 'INFO'
     config.option.log_cli_format = log_fmt
@@ -313,15 +317,21 @@ def pytest_configure(config):
 def pytest_report_teststatus(report, config):
     logging.debug(report.longreprtext)
 
+def download_host_logs(host, logs_dir):
+    dest_dir = os.path.join(logs_dir, host.alias)
+    paths_to_download = ['/storage/logs/', '/var/log/journal']
+    logging.info(f"Downloading logs from {host.alias}")
+    host.SshDirect.download(re.escape(dest_dir), *paths_to_download)
+
 
 def pytest_runtest_teardown(item):
     base_config = item.funcargs['base_config']
     if is_k8s(base_config.hosts.host.SshDirect):
         # TODO: implement download_logs for k8s
         return
-    dst = os.path.join(get_log_dir(item.config), 'docker_logs')
-    paths_to_download = ['/storage/logs/']
-    base_config.hosts.host.SshDirect.download(re.escape(dst), *paths_to_download)
+    hosts = item.funcargs['base_config'].hosts.values()
+    concurrently.run({host.ip: (download_host_logs, host, get_log_dir(item.config))
+                      for host in hosts})
 
 
 def get_log_dir(config):
