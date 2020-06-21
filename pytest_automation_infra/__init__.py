@@ -321,6 +321,7 @@ def download_host_logs(host, logs_dir):
     dest_dir = os.path.join(logs_dir, host.alias)
     paths_to_download = ['/storage/logs/', '/var/log/journal']
     logging.info(f"Downloading logs from {host.alias}")
+    os.system(f"mkdir -p {dest_dir}")
     host.SshDirect.download(re.escape(dest_dir), *paths_to_download)
 
 
