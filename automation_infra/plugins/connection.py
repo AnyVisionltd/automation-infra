@@ -45,6 +45,30 @@ class Connection(object):
                 for i in range(0, len(contents), BLOCK_SIZE):
                     f.write(contents[i: i + BLOCK_SIZE])
 
+    @staticmethod
+    def _mkdir_p(sftp, remote_directory):
+        dir_path = str()
+        for dir_folder in remote_directory.split("/"):
+            if dir_folder == "":
+                continue
+            dir_path += r"/{0}".format(dir_folder)
+            try:
+                sftp.listdir(dir_path)
+            except IOError:
+                sftp.mkdir(dir_path)
+
+    def put_contents_from_fileobj(self, file_obj, remote_path):
+        remote_dir = os.path.dirname(remote_path)
+        with self._ssh_client.open_sftp() as sftp:
+            Connection._mkdir_p(sftp, remote_dir)
+            BLOCK_SIZE = 128 * 1024
+            with sftp.file(remote_path, mode="wb") as f:
+                while True:
+                    buffer = file_obj.read(BLOCK_SIZE)
+                    if not buffer:
+                        break
+                    f.write(buffer)
+
     def put_contents(self, contents, remote_path):
         self._write_contents(contents, remote_path, "wb")
 
