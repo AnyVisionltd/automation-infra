@@ -96,6 +96,22 @@ class ResourceManager(object):
 
         return resources_s3_list
 
+    def deloy_resource_to_proxy_container(self, resource_path, remote_path):
+        with BytesIO() as file_obj:
+            self.client.download_fileobj("anyvision-testing", resource_path, file_obj)
+            file_obj.seek(0)
+            self._host.SSH.put_content_from_fileobj(file_obj, remote_path)
+
+    def deploy_multiple_resources_to_proxy_container(self, aws_file_list, remote_dir):
+        resources_s3_list = []
+
+        for resource in aws_file_list:
+            resource_name = os.path.basename(resource)
+            remote_path = os.path.join(remote_dir, resource_name)
+            self.deloy_resource_to_proxy_container(resource, remote_path)
+
+        return resources_s3_list
+
     def get_raw_resource(self, resource_path,bucket="anyvision-testing",as_base64=False):
         with BytesIO() as file_obj:
             self.client.download_fileobj(bucket, resource_path, file_obj)
@@ -199,6 +215,14 @@ class ResourceManager(object):
         assert self.file_exists(anv_testing_bucket, "temp/high_level_design.xml")
         self.delete_file(anv_testing_bucket, 'temp/high_level_design.xml')
         assert not self.file_exists(anv_testing_bucket, "temp/high_level_design.xml")
+        resource_to_test = files[0]
+        test_content = self.get_raw_resource(resource_to_test)
+        self.deloy_resource_to_proxy_container(resource_to_test, "/tmp/resource")
+        fs_content = self._host.SSH.get_contents("/tmp/resource")
+        assert fs_content == test_content
+        self.deploy_multiple_resources_to_proxy_container(files[0:2], "/tmp/resource_multiple")
+        filesnum = int(self._host.SSH.execute("ls -1 /tmp/resource_multiple | wc -l").strip())
+        assert filesnum == 2
         logging.info("<<<<<<<<<RESOURCE_MANAGER PLUGIN FUNCTIONING PROPERLY>>>>>>>>>>>>>>>>>>")
         return True
 

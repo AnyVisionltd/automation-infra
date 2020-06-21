@@ -96,6 +96,9 @@ class SshDirect(object):
     def put_contents(self, contents, remote_path):
         return self.connection.put_contents(contents, remote_path)
 
+    def put_content_from_fileobj(self, file_object, remote_path):
+        return self.connection.put_contents_from_fileobj(file_object, remote_path)
+
     def append_contents(self, contents, remote_path):
         return self.connection.append_contents(contents, remote_path)
 
