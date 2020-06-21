@@ -2,6 +2,7 @@ from munch import Munch
 
 from infra.model import plugins
 from infra.model.host import Host
+import copy
 
 cluster_config_example = {
     "alias": "cluster1",
@@ -52,7 +53,9 @@ class Cluster(object):
 
     def init_host_sshs(self, hosts_munch):
         for name, host_config in hosts_munch.items():
-            host = Host(host_config)
+            config = copy.copy(host_config)
+            config['alias'] = name
+            host = Host(config)
             host.init_ssh()
             print(f"successfully initialized ssh for host: {host}")
             self.hosts.append(host)
