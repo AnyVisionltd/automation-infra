@@ -53,6 +53,9 @@ RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
 ADD requirements.txt  /home/user/requirements.txt
 RUN python3 -m pip install -r /home/user/requirements.txt
 
+# Configure npm registry
+RUN npm config set registry https://anyvision.jfrog.io/anyvision/api/npm/npm/
+
 WORKDIR /home/user
 
 EXPOSE 2222
