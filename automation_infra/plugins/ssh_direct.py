@@ -110,7 +110,7 @@ class SshDirect(object):
 
     def run_snippet(self, code_snippet, *args, **kwargs):
         excludes = kwargs.pop('excludes', [])
-        code = snippet.Snippet(code_snippet, excludes)
+        code = snippet.Snippet(self._host, code_snippet, excludes)
         with tempfile.NamedTemporaryFile(prefix="snippet") as f:
             code.prepare(f.name)
             instance = code.create_instance(self._host)
@@ -118,7 +118,7 @@ class SshDirect(object):
 
     def run_background_snippet(self, code_snippet, *args, **kwargs):
         excludes = kwargs.pop('excludes', [])
-        code = snippet.Snippet(code_snippet, excludes)
+        code = snippet.Snippet(self._host, code_snippet, excludes)
         with tempfile.NamedTemporaryFile(prefix="snippet") as f:
             code.prepare(f.name)
         instance = code.create_instance(self._host)
