@@ -66,17 +66,29 @@ pipeline {
                 stage('Spin up VM') {
                     steps {
                         script {
-                            env.vminfo = SpinUpVM(remote)
-                            env.vmip = sh (
-                                script: "echo '${env.vminfo}' | jq  .info.net_ifaces[0].ip",
-                                returnStdout: true
-                            ).trim()
+                            try {
+                                env.vminfo = SpinUpVM(remote)
+                            } catch (Exception e) {
+                                echo " ------ FAILED TO CREATE VM -------"
+                                echo e.getMessage()
+                                echo " ------ journalctl SYSLOG_IDENTIFIER=HYPERVISOR -n 300 -------"
+                                sshCommand (
+                                    remote: remote,
+                                    command: 'journalctl SYSLOG_IDENTIFIER=HYPERVISOR -n 300'
+                                )
+                                echo " ------ end journalctl -------"
+                                error(e.getMessage())
+                            }
                         }
                     }
                 }
                 stage('Create the hardware.yaml') {
                     steps {
                         script {
+                            env.vmip = sh (
+                                script: "echo '${env.vminfo}' | jq  .info.net_ifaces[0].ip",
+                                returnStdout: true
+                            ).trim()
                             SetConnection(env.vmip)
                         }
                     }
