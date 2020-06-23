@@ -1,10 +1,10 @@
 #!/usr/bin/env groovy
 def remote = [:]
 
-def SpinUpVM(remote) {
+def SpinUpVM(remote, base_image) {
     VM_INFO = sshCommand (
         remote: remote,
-        command: '/home/user/automation-infra/hypervisor_cli.py --allocator=localhost:8080 create --image=ubuntu-compose_v2 --cpu=10 --ram=20 --size=150 --gpus=1 --networks bridge'
+        command: String.format('/home/user/automation-infra/hypervisor_cli.py --allocator=localhost:8080 create --image=%s --cpu=10 --ram=20 --size=150 --gpus=1 --networks bridge', base_image)
     )
     return VM_INFO
 }
@@ -61,13 +61,13 @@ pipeline {
                 }
             }
         }
-        stage('Create VM for executing tests upon') {
+        stage('Tests on docker') {
             stages {
                 stage('Spin up VM') {
                     steps {
                         script {
                             try {
-                                env.vminfo = SpinUpVM(remote)
+                                env.docker_vminfo = SpinUpVM(remote, "ubuntu-compose_v2")
                             } catch (Exception e) {
                                 echo " ------ FAILED TO CREATE VM -------"
                                 echo e.getMessage()
@@ -86,7 +86,7 @@ pipeline {
                     steps {
                         script {
                             env.vmip = sh (
-                                script: "echo '${env.vminfo}' | jq  .info.net_ifaces[0].ip",
+                                script: "echo '${env.docker_vminfo}' | jq  .info.net_ifaces[0].ip",
                                 returnStdout: true
                             ).trim()
                             SetConnection(env.vmip)
@@ -101,18 +101,72 @@ pipeline {
                     }
                 }
             }
+            post {
+                always {
+                    script {
+                        vmname = sh (
+                            script: "echo '${env.docker_vminfo}' | jq .info.name",
+                            returnStdout: true
+                        ).trim()
+                        DeleteVM(remote, vmname)
+                    }
+                }
+            }
+        }
+        stage('Tests on k8s') {
+            stages {
+                stage('Spin up VM') {
+                    steps {
+                        script {
+                            try {
+                                env.k8s_vminfo = SpinUpVM(remote, "ubuntu-k8s-1804")
+                            } catch (Exception e) {
+                                echo " ------ FAILED TO CREATE VM -------"
+                                echo e.getMessage()
+                                echo " ------ journalctl SYSLOG_IDENTIFIER=HYPERVISOR -n 300 -------"
+                                sshCommand (
+                                    remote: remote,
+                                    command: 'journalctl SYSLOG_IDENTIFIER=HYPERVISOR -n 300'
+                                )
+                                echo " ------ end journalctl -------"
+                                error(e.getMessage())
+                            }
+                        }
+                    }
+                }
+                stage('Create the hardware.yaml') {
+                    steps {
+                        script {
+                            env.vmip = sh (
+                                script: "echo '${env.k8s_vminfo}' | jq  .info.net_ifaces[0].ip",
+                                returnStdout: true
+                            ).trim()
+                            SetConnection(env.vmip)
+                        }
+                    }
+                }
+                stage('Run integration tests') {
+                    steps {
+                        sh (
+                            script: "./containerize.sh python3 -m pytest -p pytest_automation_infra -o log_cli=true -o log_cli_level=DEBUG ./automation_infra/tests/ --hardware ${WORKSPACE}/hardware.yaml"
+                        )
+                    }
+                }
+            }
+            post {
+                always {
+                    script {
+                        vmname = sh (
+                            script: "echo '${env.k8s_vminfo}' | jq .info.name",
+                            returnStdout: true
+                        ).trim()
+                        DeleteVM(remote, vmname)
+                    }
+                }
+            }
         }
     } // end of stages
     post {
-        always {
-            script {
-                vmname = sh (
-                    script: "echo '${env.vminfo}' | jq .info.name",
-                    returnStdout: true
-                ).trim()
-                DeleteVM(remote, vmname)
-            }
-        }
         failure {
             echo "${currentBuild.result}, exiting now..."
 
