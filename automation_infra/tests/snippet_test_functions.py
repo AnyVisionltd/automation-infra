@@ -1,3 +1,7 @@
+def get_first_item_list(received_list):
+    return received_list[0]
+
+
 def get_pyobject(length):
     return list(range(length))
 
