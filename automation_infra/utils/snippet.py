@@ -11,23 +11,23 @@ from .pypacker import PythonPacker
 
 class SnippetRunner(object):
 
-    def __init__(self, snippet, ssh, interpreter):
+    def __init__(self, snippet, ssh, interpreter, snippet_params_file_path):
         self.interpreter = interpreter
         self.snippet = snippet
         self.ssh = ssh
         self.script_path = None
+        self.snippet_dir = '/tmp'
+        self.snippet_params_file_path = snippet_params_file_path
 
     def run(self, *args, **kwargs):
-        self.deploy()
-        params = self._prepare_input(args, kwargs)
-        cmd = '{0} {1} {2}'.format(self.interpreter, self.script_path, params)
+        self.deploy(args, kwargs)
+        cmd = '{0} {1}'.format(self.interpreter, self.script_path)
         result = self.ssh.run_script(cmd)
         return self._parse_result(result)
 
     def run_background(self, *args, **kwargs):
-        self.deploy()
-        params = self._prepare_input(args, kwargs)
-        cmd = '{0} {1} {2}'.format(self.interpreter, self.script_path, params)
+        self.deploy(args, kwargs)
+        cmd = '{0} {1}'.format(self.interpreter, self.script_path)
         background = self.ssh.run_background_script(cmd)
 
         def wait_result(timeout=None):
@@ -39,17 +39,19 @@ class SnippetRunner(object):
         background.wait_result = wait_result
         return background
 
-    def deploy(self):
+    def deploy(self, args, kwargs):
         if not self.snippet.archive_path:
             self.snippet.prepare()
         basename = os.path.basename(self.snippet.archive_path)
-        self.script_path = os.path.join('/tmp', basename)
-        self.ssh.put(self.snippet.archive_path, '/tmp')
+        self.script_path = os.path.join(self.snippet_dir, basename)
+        self.ssh.put(self.snippet.archive_path, self.snippet_dir)
 
-    @staticmethod
-    def _prepare_input(args, kwargs):
-        pickled_params = pickle.dumps((args, kwargs), pickle.HIGHEST_PROTOCOL)
-        return base64.b64encode(pickled_params).decode().strip()
+        self._prepare_params_file(args, kwargs)
+        self.ssh.put(self.snippet_params_file_path, self.snippet_dir)
+
+    def _prepare_params_file(self, args, kwargs):
+        with open(self.snippet_params_file_path, 'wb') as f:
+            pickle.dump((args, kwargs), f, pickle.HIGHEST_PROTOCOL)
 
     @staticmethod
     def _parse_result(result):
@@ -61,10 +63,12 @@ class SnippetRunner(object):
 
 class Snippet(object):
 
-    def __init__(self, target, excludes=()):
+    def __init__(self, host, target, excludes=()):
+        self._host = host
         self.target = target
         self.excludes = excludes
         self.archive_path = None
+        self.snippet_params_file_path = None
 
     _wrapper_script = """
 import sys
@@ -84,10 +88,8 @@ def print_result(success, result):
     
 try:
     import {module}
-    if len(sys.argv) > 1:
-        args, kwargs = pickle.loads(base64.b64decode(sys.argv[1]))
-    else:
-        args, kwargs = tuple(), dict()
+    with open('{params_file}', 'rb') as f:
+        args, kwargs = pickle.load(f)
     res = {module}.{target}(*args, **kwargs)
 except Exception as e:
     print_result(False, e)
@@ -98,9 +100,10 @@ else:
     def prepare(self, outfile=None):
         module = self.target.__module__
         name = self.target.__name__
-        script = self._wrapper_script.format(module=module, target=name)
+        self.snippet_params_file_path = self._host.mktemp(prefix=f'{name}_params', suffix='.pkl')
+        script = self._wrapper_script.format(module=module, target=name, params_file=self.snippet_params_file_path)
         packed = PythonPacker.from_script(script, outfile or name, excludes=self.excludes)
         self.archive_path = packed.outfile
 
     def create_instance(self, host, interpreter='python3'):
-        return SnippetRunner(self, host.SSH, interpreter)
+        return SnippetRunner(self, host.SSH, interpreter, self.snippet_params_file_path)
