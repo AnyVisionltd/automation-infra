@@ -305,7 +305,9 @@ def pytest_configure(config):
 
     config.option.showcapture = 'no'
     log_dir = datetime.now().strftime('%Y_%m_%d:%H:%M:%S')
-    config.option.logger_logsdir = os.path.join(os.path.dirname(__file__), f'../logs/{log_dir}')
+    logs_dir = os.path.join(os.getcwd(), f'logs/{log_dir}')
+    os.system(f"mkdir -p {logs_dir}")
+    config.option.logger_logsdir = logs_dir
     config.option.log_cli = True
     config.option.log_cli_level = 'INFO'
     config.option.log_cli_format = log_fmt
