@@ -276,13 +276,30 @@ def base_config(request):
         hb_thread.join()
 
 
+def init_cluster_structure(base_config, cluster_config):
+    if cluster_config is None:
+        return
+    base_config.clusters = Munch.fromDict(cluster_config)
+    for cluster in base_config.clusters.values():
+        for key, val_list in cluster.items():
+            try:
+                cluster[key] = Munch()
+                for host_name in val_list:
+                    cluster[key][host_name] = base_config.hosts[host_name]
+            except (KeyError, TypeError):
+                cluster[key] = val_list
+
+
 @pytest.hookimpl(hookwrapper=True, trylast=True)
 def pytest_runtest_setup(item):
     # The yield allows the base_config fixture to be init'ed:
     outcome = yield
     outcome.get_result()
-    hosts = item.funcargs['base_config'].hosts.items()
+    base_config = item.funcargs['base_config']
+    hosts = base_config.hosts.items()
     initializer.clean_infra_between_tests(hosts)
+    init_cluster_structure(base_config, item.function.__cluster_config)
+
 
 
 def pytest_logger_fileloggers(item):
