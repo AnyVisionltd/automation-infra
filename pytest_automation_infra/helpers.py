@@ -11,9 +11,10 @@ from automation_infra.utils import waiter
 logging.getLogger('paramiko').setLevel(logging.WARN)
 
 
-def hardware_config(hardware):
+def hardware_config(hardware, grouping=None):
     def wrapper(func):
         func.__hardware_reqs = hardware
+        func.__cluster_config = grouping
         return func
     return wrapper
 
