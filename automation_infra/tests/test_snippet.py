@@ -39,6 +39,7 @@ def test_snippet(base_config, target, args, kwargs, expected, run_background):
         check_snippet_result(result, expected)
 
 
+@hardware_config(hardware={'host': {}})
 def test_snippet_with_big_params(base_config):
     host = base_config.hosts.host
     run_in_background = False
