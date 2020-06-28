@@ -186,8 +186,12 @@ pipeline {
                         "Build Log:<br>${currentBuild.rawBuild.getLog(50).join("<br>")}<br><br>" +
                         "<img class='cartoon' src='https://jenkins.io/images/226px-Jenkins_logo.svg.png' width='42' height='42' align='middle'/><br>"
         }
+        always{
+            archiveArtifacts artifacts: '**/logs/**/*', fingerprint: true
+        }
         success {
             cleanWs()
         }
+
     }
 } // end of pipeline
