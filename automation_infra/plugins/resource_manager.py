@@ -96,6 +96,12 @@ class ResourceManager(object):
 
         return resources_s3_list
 
+    def deploy_moderate4_faces_to_s3(self, s3_folder):
+        aws_path = "resources/moderate4_faces"
+        paths = self.get_files_in_dir("anyvision-testing", aws_path, delimiter="")
+        aws_moderate4_file_list = [os.path.basename(path) for path in paths]
+        return self.deploy_multiple_resources_to_s3(aws_moderate4_file_list, aws_path, s3_folder)
+
     def deloy_resource_to_proxy_container(self, resource_path, remote_path):
         with BytesIO() as file_obj:
             self.client.download_fileobj("anyvision-testing", resource_path, file_obj)
@@ -196,9 +202,8 @@ class ResourceManager(object):
         assert res['ResponseMetadata']['HTTPStatusCode'] == 200
         return res
 
-    def get_files_in_dir(self, bucket_name, dir_path):
-        result = []
-        resp = self.client.list_objects_v2(Bucket=bucket_name, Prefix=dir_path, Delimiter='/')
+    def get_files_in_dir(self, bucket_name, dir_path, delimiter='/'):
+        resp = self.client.list_objects_v2(Bucket=bucket_name, Prefix=dir_path, Delimiter=delimiter)
         if 'Contents' not in resp.keys():
             return
         return [obj['Key'] for obj in resp['Contents']]
