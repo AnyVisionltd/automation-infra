@@ -84,13 +84,13 @@ template = '''
 
     {% for iface in machine.net_ifaces %}
     {% if iface.mode == "isolated" %}
-    <interface type='network'>
+    <interface type='network' trustGuestRxFilters='yes'>
       <mac address='{{ iface.macaddress }}'/>
       <source network='{{ iface.source }}'/>
       <model type='virtio'/>
     </interface>
     {% else %}
-    <interface type='direct'>
+    <interface type='direct' trustGuestRxFilters='yes'>
       <mac address='{{ iface.macaddress }}'/>
       <source dev='{{ iface.source }}' mode='bridge'/>
       <model type='virtio'/>
