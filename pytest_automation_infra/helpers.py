@@ -1,6 +1,6 @@
 import logging
 import time
-
+import yaml
 import paramiko
 
 from automation_infra.plugins.ssh_direct import SSHCalledProcessError
@@ -32,6 +32,20 @@ def is_k8s(connected_ssh_module):
         return True
     except SSHCalledProcessError:
         return False
+
+def get_catalog_credentials(url):
+    home = os.getenv('HOME')
+    helm_repo_config = f'{home}/.helm/repository/repositories.yaml'
+    if not os.path.exists(helm_repo_config):
+        raise FileNotFoundError(f"Couldnt find: {helm_repo_config}. run 'helm init --clien-only' to initiate helm config")
+    with open(helm_repo_config, "r") as file:
+        yaml_content = yaml.safe_load(file)
+        for repo in yaml_content["repositories"]:
+            if repo["url"] == url:
+                creds_dict = {"username": repo["username"], "password": repo["password"]}
+                return creds_dict
+        raise AttributeError("Couldn't find catalog url in helm config, run 'helm repo add' to add catalog to helm config")
+
 
 
 def do_docker_login(connected_ssh_module):
