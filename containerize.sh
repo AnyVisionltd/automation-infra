@@ -202,6 +202,7 @@ function run_docker () {
             "${HOME}/.docker:${HOME}/.docker"
             "${HOME}/.aws:${HOME}/.aws"
             "${HOME}/.npmrc:${HOME}/.npmrc"
+            "${HOME}/.helm:${HOME}/.helm"
             "$MOUNT_PATH:$MOUNT_PATH"
 	        )
 
