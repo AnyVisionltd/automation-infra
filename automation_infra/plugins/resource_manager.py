@@ -79,22 +79,6 @@ class ResourceManager(object):
 
         return local_file_path
 
-    def deploy_resource_to_s3(self, resource_path, s3_path):
-        bucket = "automation_infra"
-        with BytesIO() as file_obj:
-            self.client.download_fileobj("anyvision-testing", resource_path, file_obj)
-            file_obj.seek(0)
-            self._host.Seaweed.upload_fileobj(file_obj, bucket, s3_path)
-        return f'{bucket}/{s3_path}'
-
-    def deploy_multiple_resources_to_s3(self, aws_file_list, aws_folder, s3_folder):
-        resources_s3_list = []
-
-        for resource in aws_file_list:
-            resources_s3_list.append(
-            self.deploy_resource_to_s3(os.path.join(aws_folder, resource), os.path.join(s3_folder, resource)))
-
-        return resources_s3_list
 
     def deloy_resource_to_proxy_container(self, resource_path, remote_path):
         with BytesIO() as file_obj:
@@ -112,7 +96,7 @@ class ResourceManager(object):
 
         return resources_s3_list
 
-    def get_raw_resource(self, resource_path,bucket="anyvision-testing",as_base64=False):
+    def get_raw_resource(self, resource_path, bucket="anyvision-testing", as_base64=False):
         with BytesIO() as file_obj:
             self.client.download_fileobj(bucket, resource_path, file_obj)
             file_obj.seek(0)
