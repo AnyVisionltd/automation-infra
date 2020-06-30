@@ -2,6 +2,7 @@
 import os
 import logging
 import re
+import subprocess
 import threading
 import time
 from datetime import datetime
@@ -350,8 +351,11 @@ def pytest_runtest_teardown(item):
         # TODO: implement download_logs for k8s
         return
     hosts = item.funcargs['base_config'].hosts.values()
-    concurrently.run({host.ip: (download_host_logs, host, get_log_dir(item.config))
-                      for host in hosts})
+    try:
+        concurrently.run({host.ip: (download_host_logs, host, get_log_dir(item.config))
+                          for host in hosts})
+    except subprocess.CalledProcessError:
+        logging.info("was unable to download logs from a host")
 
 
 def get_log_dir(config):
