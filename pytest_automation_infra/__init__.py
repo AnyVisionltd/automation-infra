@@ -347,7 +347,7 @@ def download_host_logs(host, logs_dir):
 
 def pytest_runtest_teardown(item):
     base_config = item.funcargs['base_config']
-    if is_k8s(base_config.hosts.host.SshDirect):
+    if is_k8s(next(iter(base_config.hosts.values())).SshDirect):
         # TODO: implement download_logs for k8s
         return
     hosts = item.funcargs['base_config'].hosts.values()
