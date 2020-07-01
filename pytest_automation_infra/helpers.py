@@ -171,10 +171,9 @@ def restart_proxy_container(host):
             if 'not found' in e.stderr:
                 deploy_proxy_container(host.SshDirect)
     else:
-        if not host.SshDirect.execute("docker ps -aq --filter 'name=automation_proxy'"):
-            logging.warning("wanted to restart automation_proxy but it didnt exist (unexpected)! deploying..")
-            deploy_proxy_container(host.SshDirect)
-        host.SshDirect.execute(f'{use_gravity_exec(host.SshDirect)} docker restart automation_proxy')
+        remove_proxy_container(host.SshDirect)
+        waiter.wait_for_predicate(lambda: not host.SshDirect.execute("docker ps -aq --filter 'name=automation_proxy'"))
+        deploy_proxy_container(host.SshDirect)
     waiter.wait_nothrow(host.SSH.connect, timeout=30)
 
 
