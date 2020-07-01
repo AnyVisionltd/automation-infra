@@ -9,8 +9,10 @@ def SpinUpVM(remote, base_image) {
     return VM_INFO
 }
 
-def SetConnection(ip) {
-    sh "make -f Makefile-env set-connection-file HOST_IP=${ip} USERNAME=root PASS=root CONN_FILE_PATH=${WORKSPACE}/hardware.yaml"
+def SetConnection(ips) {
+    cmd = String.format("make -f Makefile-env set-connection-file HOST_IP=%s USERNAME=root PASS=root CONN_FILE_PATH=${WORKSPACE}/hardware.yaml", ips.join(','))
+    echo cmd
+    sh cmd
     sh "cat ${WORKSPACE}/hardware.yaml"
 }
 
@@ -89,7 +91,7 @@ pipeline {
                                 script: "echo '${env.docker_vminfo}' | jq  .info.net_ifaces[0].ip",
                                 returnStdout: true
                             ).trim()
-                            SetConnection(env.vmip)
+                            SetConnection([env.vmip])
                         }
                     }
                 }
@@ -141,7 +143,7 @@ pipeline {
                                 script: "echo '${env.k8s_vminfo}' | jq  .info.net_ifaces[0].ip",
                                 returnStdout: true
                             ).trim()
-                            SetConnection(env.vmip)
+                            SetConnection([env.vmip])
                         }
                     }
                 }
@@ -161,6 +163,79 @@ pipeline {
                             returnStdout: true
                         ).trim()
                         DeleteVM(remote, vmname)
+                    }
+                }
+            }
+        }
+        stage('Cluster tests') {
+            stages {
+                stage('Spin up VMs') {
+                    steps {
+                        script {
+                            try {
+                                env.vm1 = SpinUpVM(remote, "ubuntu-k8s-cluster-ready")
+                                env.vm2 = SpinUpVM(remote, "ubuntu-k8s-cluster-ready")
+                                env.vm3 = SpinUpVM(remote, "ubuntu-k8s-cluster-ready")
+                            } catch (Exception e) {
+                                echo " ------ FAILED TO CREATE VM -------"
+                                echo e.getMessage()
+                                echo " ------ journalctl SYSLOG_IDENTIFIER=HYPERVISOR -n 300 -------"
+                                sshCommand (
+                                    remote: remote,
+                                    command: 'journalctl SYSLOG_IDENTIFIER=HYPERVISOR -n 300'
+                                )
+                                echo " ------ end journalctl -------"
+                                error(e.getMessage())
+                            }
+                        }
+                    }
+                }
+                stage('Create the hardware.yaml') {
+                    steps {
+                        script {
+                            env.vm1ip = sh (
+                                script: "echo '${env.vm1}' | jq  .info.net_ifaces[0].ip",
+                                returnStdout: true
+                            ).trim()
+                            env.vm2ip = sh (
+                                script: "echo '${env.vm2}' | jq  .info.net_ifaces[0].ip",
+                                returnStdout: true
+                            ).trim()
+                            env.vm3ip = sh (
+                                script: "echo '${env.vm3}' | jq  .info.net_ifaces[0].ip",
+                                returnStdout: true
+                            ).trim()
+                            SetConnection([env.vm1ip, env.vm2ip, env.vm3ip])
+                        }
+                    }
+                }
+                stage('Run integration tests') {
+                    steps {
+                        sh (
+                            script: "./containerize.sh python3 -m pytest -p pytest_automation_infra -o log_cli=true -o log_cli_level=DEBUG ./automation_infra/tests/k8s_tests --hardware ${WORKSPACE}/hardware.yaml"
+                        )
+                    }
+                }
+            }
+            post {
+                always {
+                    script {
+                        vmname = sh (
+                            script: "echo '${env.vm1}' | jq .info.name",
+                            returnStdout: true
+                        ).trim()
+                        DeleteVM(remote, vmname)
+                        vmname = sh (
+                            script: "echo '${env.vm2}' | jq .info.name",
+                            returnStdout: true
+                        ).trim()
+                        DeleteVM(remote, vmname)
+                        vmname = sh (
+                            script: "echo '${env.vm3}' | jq .info.name",
+                            returnStdout: true
+                        ).trim()
+                        DeleteVM(remote, vmname)
+                        sh "rm -f ${WORKSPACE}/hardware.yaml"
                     }
                 }
             }
