@@ -221,25 +221,22 @@ def try_initing_hosts_intelligently(request, hardware, base):
             # This is the trivial case, the required key exists in the hardware:
             if key in hardware.keys():
                 details = hardware[key]
-                base.hosts[key] = Host(Munch(details))
+                base.hosts[key] = Host.from_args(key, **details)
             else:
                 # This is the 'intelligent' part, trying to match keys from hardware.yaml to test reqs:
                 for name, details in hardware.items():
                     if name in request.function.__hardware_reqs.keys():
-                        base.hosts[name] = Host(Munch(details))
+                        base.hosts[name] = Host.from_args(name, **details)
                     else:
-                        base.hosts[key] = Host(Munch(details))
+                        base.hosts[key] = Host.from_args(key, **details)
                         break
 
-                base.hosts[key] = Host(Munch(details))
+                base.hosts[key] = Host.from_args(key, **details)
 
     except AttributeError:
         # This happens when running with module/session scope
         for machine_name in hardware.keys():
-            logging.debug(f"Constructing host {machine_name}")
-            host_config = Munch(copy.copy(hardware[machine_name]))
-            host_config['alias'] = machine_name
-            base.hosts[machine_name] = Host(host_config)
+            base.hosts[machine_name] = Host.from_args(machine_name, **hardware[machine_name])
     except KeyError as err:
         raise Exception(f"not enough hosts defined in hardware.yaml to run test {request.function}")
 
