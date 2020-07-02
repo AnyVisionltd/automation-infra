@@ -6,6 +6,7 @@ from munch import Munch
 
 from automation_infra.utils.timer import timeitdecorator
 from infra.model import plugins
+import threading
 
 EXAMPLE_IP = '35.231.0.137'
 
@@ -59,15 +60,23 @@ class Host(object):
         self.extra_config = host_config
         self.__plugins = {}
         self._temp_dir_counter = itertools.count()
+        self._plugins_init_lock = threading.Lock()
+
+    def _init_plugin_locked(self, name):
+        if name in self.__plugins:
+            return self.__plugins[name]
+        try:
+            self.__plugins[name] = plugins.plugins[name](self)
+            return self.__plugins[name]
+        except KeyError:
+            print(f"plugin {name} wasnt found!")
+            raise AttributeError
 
     def __getattr__(self, name):
         if name not in self.__plugins:
-            # Access by key but if there's a problem raise an AttributeError to be consistent with expected behavior
-            try:
-                self.__plugins[name] = plugins.plugins[name](self)
-            except KeyError:
-                print(f"plugin {name} wasnt found!")
-                raise AttributeError
+            with self._plugins_init_lock:
+                self.__plugins[name] = self._init_plugin_locked(name)
+                return self.__plugins[name]
         return self.__plugins[name]
 
     def mktemp(self, basedir=None, prefix=None, suffix=None):
