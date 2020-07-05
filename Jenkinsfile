@@ -22,7 +22,6 @@ def DeleteVM(remote, name) {
         remote: remote,
         command: "/home/user/automation-infra/hypervisor_cli.py --allocator=localhost:8080 delete --name ${name}"
     )
-    sh "rm -f ${WORKSPACE}/hardware.yaml"
 }
 
 pipeline {
@@ -111,6 +110,8 @@ pipeline {
                             returnStdout: true
                         ).trim()
                         DeleteVM(remote, vmname)
+                        sh "rm -f ${WORKSPACE}/hardware.yaml"
+
                     }
                 }
             }
@@ -163,6 +164,7 @@ pipeline {
                             returnStdout: true
                         ).trim()
                         DeleteVM(remote, vmname)
+                        sh "rm -f ${WORKSPACE}/hardware.yaml"
                     }
                 }
             }
