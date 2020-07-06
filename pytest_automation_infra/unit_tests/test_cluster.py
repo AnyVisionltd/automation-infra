@@ -7,10 +7,10 @@ from pytest_automation_infra import init_cluster_structure
 
 def test_init_clusters():
     base_config = DefaultFactoryMunch(Munch)
-    base_config.hosts.host1 = Host.from_args('h1', '1.2.3.1', 'u', 'p')
-    base_config.hosts.host2 = Host.from_args('h2', '1.2.3.2', 'u', 'p')
-    base_config.hosts.host3 = Host.from_args('h3', '1.2.3.3', 'u', 'p')
-    base_config.hosts.host4 = Host.from_args('h4', '1.2.3.4', 'u', 'p')
+    base_config.hosts.host1 = Host.from_args('1.2.3.1', 'u', 'p', alias='h1')
+    base_config.hosts.host2 = Host.from_args('1.2.3.2', 'u', 'p', alias='h2')
+    base_config.hosts.host3 = Host.from_args('1.2.3.3', 'u', 'p', alias='h3')
+    base_config.hosts.host4 = Host.from_args('1.2.3.4', 'u', 'p', alias='h4')
 
     # To check that this doesnt break any existing tests...
     init_cluster_structure(base_config, None)

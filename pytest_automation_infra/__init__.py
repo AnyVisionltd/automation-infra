@@ -203,7 +203,7 @@ def find_provisioner_hardware(request):
 
 def init_hosts(hardware, base):
     for machine_name in hardware.keys():
-        base.hosts[machine_name] = Host.from_args(machine_name, **hardware[machine_name])
+        base.hosts[machine_name] = Host(**hardware[machine_name])
 
 
 def start_heartbeat_thread(hardware, request):

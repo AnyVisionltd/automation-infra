@@ -46,9 +46,9 @@ def test_k8s_cluster(base_config):
 
 def unittest_create_cluster_fn():
     base_config = DefaultFactoryMunch(Munch)
-    base_config.hosts.host1 = Host.from_args('h1', '1.2.3.1', 'u', 'p')
-    base_config.hosts.host2 = Host.from_args('h2', '1.2.3.2', 'u', 'p')
-    base_config.hosts.host3 = Host.from_args('h3', '1.2.3.3', 'u', 'p')
+    base_config.hosts.host1 = Host.from_args('1.2.3.1', 'u', 'p', alias='h1')
+    base_config.hosts.host2 = Host.from_args('1.2.3.2', 'u', 'p', alias='h2')
+    base_config.hosts.host3 = Host.from_args('1.2.3.3', 'u', 'p', alias='h3')
     created_node_ips = ['1.2.3.1', '1.2.3.2', '1.2.3.3']
     templated_file = create_cluster_yaml(CLUSTER_TEMPLATE, base_config)
     yaml = YAML()

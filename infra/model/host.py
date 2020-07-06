@@ -1,5 +1,5 @@
 import itertools
-
+import random
 
 from infra.model import plugins
 import threading
@@ -35,22 +35,16 @@ host_config_example3 = {
 
 class Host(object):
 
-    def __init__(self, host_config):
+    def __init__(self, **host_config):
         _pem = host_config.pop('key_file_path', None)
         _pass = host_config.pop('password', None)
         assert (_pass and not _pem) or (_pem and not _pass), \
             "password and key are mutually exclusive (password=%s, key=%s)" % (_pass, _pem)
         self.ip = host_config.pop('ip')
         self.user = host_config.pop('user')
-        self.alias = host_config.pop('alias')
-        try:
-            self.port = host_config.pop('port')
-        except KeyError:
-            self.port = 22
-        try:
-            self.tunnelport = host_config.pop('tunnelport')
-        except KeyError:
-            self.tunnelport = 2222
+        self.alias = host_config.pop('alias', str(random.randint(0, 999)))
+        self.port = host_config.pop('port', 22)
+        self.tunnelport = host_config.pop('tunnelport', 2222)
         self.password = _pass
         self.keyfile = _pem
         self.extra_config = host_config
@@ -98,20 +92,20 @@ class Host(object):
         return self.ip
 
     @classmethod
-    def from_args(cls, alias, ip, user, password=None, key_file_path=None, port=22):
-        return cls(Munch.fromDict({"ip": ip,
-        "alias": alias,
-        "port": port,
+    def from_args(cls, ip, user, password=None, key_file_path=None, **kwargs):
+        basic = {"ip": ip,
         "user": user,
         "password": password,
-        "key_file_path": key_file_path}))
+        "key_file_path": key_file_path}
+        basic.update(**kwargs)
+        return cls(**basic)
 
 plugins.register('Host', Host)
 
 
 def test_functionality():
-    host1 = Host(Munch.fromDict(host_config_example1))
-    host2 = Host(Munch.fromDict(host_config_example2))
-    host3 = Host(Munch.fromDict(host_config_example3))
+    host1 = Host(**host_config_example1)
+    host2 = Host(**host_config_example2)
+    host3 = Host(**host_config_example3)
     host4 = Host.from_args('0.0.0.0', 'user', 'pass')
     host5 = Host.from_args('0.0.0.0', 'user', key_file_path='/path/to/pem')
