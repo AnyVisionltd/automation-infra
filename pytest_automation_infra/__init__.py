@@ -2,6 +2,7 @@
 import os
 import logging
 import re
+import subprocess
 import threading
 import time
 from datetime import datetime
@@ -200,47 +201,9 @@ def find_provisioner_hardware(request):
         return request.function.__initialized_hardware
 
 
-def try_initing_hosts_intelligently(request, hardware, base):
-    """This function tries matching initialized hardware with function hardware requirements intelligently. In the
-     provisioner case the matching is trivial. In the un-provisioner, the function matches hardware keys with
-     available keys, and then assigns the rest of the keys.
-     More detailed explanation:
-     If provisioner, hardware will hold each and every key in function hardware requirements, and therefore never enter
-     the first else (trivial case).
-     If running un-provisioner, hardware will hold the contents of the hardware.yaml file, which will have none/some/all
-     of the tests requirements (in terms of alias). So what the else does if the function key (required hardware)
-     isnt in hardware keys, takes a random key, if it isnt required by the test, matches it to the alias which the
-     function requires.
-     """
-    try:
-        for key in request.function.__hardware_reqs.keys():
-            if key in base.hosts.keys():
-                # already initialized, can happen because of the folllowing 'for' loop
-                continue
-            # This is the trivial case, the required key exists in the hardware:
-            if key in hardware.keys():
-                details = hardware[key]
-                base.hosts[key] = Host(Munch(details))
-            else:
-                # This is the 'intelligent' part, trying to match keys from hardware.yaml to test reqs:
-                for name, details in hardware.items():
-                    if name in request.function.__hardware_reqs.keys():
-                        base.hosts[name] = Host(Munch(details))
-                    else:
-                        base.hosts[key] = Host(Munch(details))
-                        break
-
-                base.hosts[key] = Host(Munch(details))
-
-    except AttributeError:
-        # This happens when running with module/session scope
-        for machine_name in hardware.keys():
-            logging.debug(f"Constructing host {machine_name}")
-            host_config = Munch(copy.copy(hardware[machine_name]))
-            host_config['alias'] = machine_name
-            base.hosts[machine_name] = Host(host_config)
-    except KeyError as err:
-        raise Exception(f"not enough hosts defined in hardware.yaml to run test {request.function}")
+def init_hosts(hardware, base):
+    for machine_name in hardware.keys():
+        base.hosts[machine_name] = Host.from_args(machine_name, **hardware[machine_name])
 
 
 def start_heartbeat_thread(hardware, request):
@@ -265,7 +228,7 @@ def base_config(request):
         hb_thread = start_heartbeat_thread(hardware, request)
     base = DefaultMunch(Munch)
     base.hosts = Munch()
-    try_initing_hosts_intelligently(request, hardware, base)
+    init_hosts(hardware, base)
     helpers.init_proxy_containers_and_connect(base.hosts.items())
     logging.info("sucessfully initialized base_config fixture")
     yield base
@@ -290,16 +253,35 @@ def init_cluster_structure(base_config, cluster_config):
                 cluster[key] = val_list
 
 
+def match_base_config_hosts_with_hwreqs(hardware_reqs, base_config):
+    if len(hardware_reqs) > len(base_config.hosts):
+        raise Exception("Not enough hosts to fulfil test requirements")
+    for key in hardware_reqs.keys():
+        if key in base_config.hosts:
+            continue
+        else:
+            bc_host_keys = list(base_config.hosts.keys())
+            for host in bc_host_keys:
+                if host in hardware_reqs:
+                    continue
+                else:
+                    base_config.hosts[key] = base_config.hosts.pop(host)
+                    break
+        assert key in base_config.hosts
+    return base_config
+
+
 @pytest.hookimpl(hookwrapper=True, trylast=True)
 def pytest_runtest_setup(item):
     # The yield allows the base_config fixture to be init'ed:
     outcome = yield
     outcome.get_result()
     base_config = item.funcargs['base_config']
+    reqs = item.function.__hardware_reqs
+    item.funcargs['base_config'] = match_base_config_hosts_with_hwreqs(reqs, base_config)
     hosts = base_config.hosts.items()
     initializer.clean_infra_between_tests(hosts)
     init_cluster_structure(base_config, item.function.__cluster_config)
-
 
 
 def pytest_logger_fileloggers(item):
@@ -346,12 +328,15 @@ def download_host_logs(host, logs_dir):
 
 def pytest_runtest_teardown(item):
     base_config = item.funcargs['base_config']
-    if is_k8s(base_config.hosts.host.SshDirect):
+    if is_k8s(next(iter(base_config.hosts.values())).SshDirect):
         # TODO: implement download_logs for k8s
         return
     hosts = item.funcargs['base_config'].hosts.values()
-    concurrently.run({host.ip: (download_host_logs, host, get_log_dir(item.config))
-                      for host in hosts})
+    try:
+        concurrently.run({host.ip: (download_host_logs, host, get_log_dir(item.config))
+                          for host in hosts})
+    except subprocess.CalledProcessError:
+        logging.info("was unable to download logs from a host")
 
 
 def get_log_dir(config):
@@ -361,3 +346,5 @@ def get_log_dir(config):
             path = handler.baseFilename
             return os.path.dirname(path)
     return config.option.logger_logsdir
+
+
