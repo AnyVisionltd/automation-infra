@@ -195,7 +195,7 @@ def init_cluster_structure(base_config, cluster_config):
 
 def match_base_config_hosts_with_hwreqs(hardware_reqs, base_config):
     if len(hardware_reqs) > len(base_config.hosts):
-        raise Exception("Not enough hosts to fulfil test requirements")
+        raise Exception(f"Expected {len(hardware_reqs)} but only {len(base_config.hosts)} allocated")
     for key in hardware_reqs.keys():
         if key in base_config.hosts:
             base_config.hosts[key].alias = key
