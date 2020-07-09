@@ -17,13 +17,13 @@ except ImportError:
 
 
 class Tunnel(object):
-    def __init__(self, dns_name, port, transport):
+    def __init__(self, dns_name, port, transport, local_bind_port=None):
         self.remote_dns_name = dns_name
         self.remote_port = int(port)
         self.transport = transport
         self._forward_server = None
         self._hostname = "localhost"
-        self._local_bind_port = None
+        self._local_bind_port = local_bind_port or 0
 
     def start(self):
         logging.debug(f"starting tunnel to -> {self.remote_dns_name}:{self._local_bind_port}")
@@ -47,7 +47,7 @@ class Tunnel(object):
 
     def _start_tunnel(self):
         self._forward_server, self._local_bind_port = waiter.wait_nothrow(lambda:
-                            self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport))
+                            self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport, self._local_bind_port))
 
 
     @staticmethod
