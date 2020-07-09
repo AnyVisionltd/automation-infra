@@ -218,7 +218,7 @@ function run_docker () {
     env_cmd+="-e PYTHONPATH=${python_path} "
 
     # mount source code in same location as in host
-    cmd="docker run -t --name ${NAME} --privileged  --rm $mount_cmd $env_cmd"
+    cmd="docker run -t --name ${NAME} --privileged  --rm --cap-add=SYS_PTRACE --security-opt seccomp=unconfined $mount_cmd $env_cmd"
 
     cmd+=" $(_read_passed_environment)"
 
