@@ -53,14 +53,12 @@ class Tunnel(object):
 
     @staticmethod
     def try_start_tunnel(remote_host, remote_port, ssh_transport, local_port=0):
-        fut = concurrent.futures.Future()
 
         class SubHander(Handler):
             chain_host = remote_host
             chain_port = remote_port
             transport = ssh_transport
             local_bind_port = local_port
-            future = fut
 
             def __init__(self, request, client_address, server):
                 logging.debug(f"initing <<{remote_host}>> subhandler: {client_address} -> {server.server_address} ")
@@ -73,16 +71,8 @@ class Tunnel(object):
         forward_server = ForwardServer(("", local_port), SubHander)
         selected_port = forward_server.server_address[1]
         server_thread = threading.Thread(target=forward_server.serve_forever, daemon=True)
-        fut.set_running_or_notify_cancel()
 
         server_thread.start()
-        # this is necessary to make sure someone is listening on other end of tunnel:
-        with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
-            logging.debug("connecting to socket")
-            sock.connect(('localhost', selected_port))
-            sock.detach()
-            logging.debug("getting future result")
-        res = fut.result(10)
         return forward_server, selected_port
 
 
