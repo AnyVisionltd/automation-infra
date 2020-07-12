@@ -1,6 +1,5 @@
 import concurrent
 import contextlib
-from concurrent import futures
 import logging
 import select
 import socket
@@ -81,7 +80,6 @@ class Handler(SocketServer.BaseRequestHandler):
         attempt = attempt + 1
         if attempt >= 3:
             logging.error("Too many attempts made!")
-            self.future.set_exception(err)
             return err
         try:
             chan = self.transport.open_channel(
@@ -93,9 +91,8 @@ class Handler(SocketServer.BaseRequestHandler):
                 message = "Error in SockerServer handler trying to open_channel: %s:%d Channel is None" % (
                     self.chain_host, self.chain_port)
                 logging.error(message)
-                self.future.set_exception(SSHException(message))
                 return
-            self.future.set_result(True)
+
             while True:
                 r, w, x = select.select([self.request, chan], [], [])
                 if self.request in r:
