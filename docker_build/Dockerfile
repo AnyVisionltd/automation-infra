@@ -35,6 +35,8 @@ RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
     && sed -i 's/#ClientAliveInterval 0/ClientAliveInterval 300/' /etc/ssh/sshd_config \
     && sed -i 's/#UseDNS no/UseDNS yes/' /etc/ssh/sshd_config \
     && sed -i 's/#PermitTunnel no/PermitTunnel yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#MaxStartups.*/MaxStartups 512:30:1024/' /etc/ssh/sshd_config \
+    && sed -i 's/#MaxSessions.*/MaxSessions 1024/' /etc/ssh/sshd_config \
     # SSH login fix. Otherwise user is kicked off after login
     && sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 
