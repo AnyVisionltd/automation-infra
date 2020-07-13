@@ -84,7 +84,7 @@ async def test_allocate_machine_happy_case(event_loop, mock_libvirt, mock_image_
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
     mock_dhcp_handler.allocate_ip = mock.AsyncMock(return_value = "1.1.1.1")
     mock_cloud_init.generate_iso.return_value = "my_iso.iso"
-    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
 
     await tested.allocate_vm("sasha_image1", memory_gb=1, base_image_size=10, networks=["bridge"], num_cpus=2, num_gpus=1)
     assert len(tested.vms) == 1
@@ -121,7 +121,7 @@ async def test_allocate_machine_with_disks(event_loop, mock_libvirt, mock_image_
     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
     mock_image_store.create_qcow = mock.AsyncMock(side_effect=["/home/disk1.qcow", "/home/disk2.qcow"])
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
-    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
 
     await tested.allocate_vm("sasha_image1", base_image_size=None, memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1,
                              disks=[{"type": "ssd", "size" : 10, "fs": "xfs"},
@@ -162,7 +162,7 @@ async def test_kill_non_existing_vm(event_loop, mock_libvirt, mock_image_store, 
     macs = _generate_macs(1)
     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
-    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
 
     await tested.allocate_vm("sasha_image1", memory_gb=1, base_image_size=10, networks=["bridge"], num_cpus=2, num_gpus=1)
     assert len(tested.vms) == 1
@@ -179,7 +179,7 @@ async def test_allocate_machine_no_gpus(event_loop, mock_libvirt, mock_image_sto
     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
 
-    tested = allocator.Allocator(macs, gpus, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    tested = allocator.Allocator(macs, gpus, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
 
     await tested.allocate_vm("sasha_image1", base_image_size=None, memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=0)
     assert len(tested.vms) == 1
@@ -211,7 +211,7 @@ async def test_allocate_more_vms_than_we_can(event_loop, mock_libvirt, mock_imag
     macs = _generate_macs(1)
     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
-    tested = allocator.Allocator(macs, gpus, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    tested = allocator.Allocator(macs, gpus, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
 
     await tested.allocate_vm("sasha_image1", memory_gb=1, base_image_size=None, networks=["bridge"], num_cpus=2, num_gpus=0)
     assert len(tested.vms) == 1
@@ -238,7 +238,7 @@ async def test_allocate_multiple(event_loop, mock_libvirt, mock_image_store, moc
     macs = _generate_macs(10)
     mock_image_store.clone_qcow = mock.AsyncMock(side_effect=["1.qcow", "2.qcow"])
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
-    tested = allocator.Allocator(macs, gpus, manager, "sasha", max_vms=3, paravirt_device="eth0", sol_base_port=1000)
+    tested = allocator.Allocator(macs, gpus, manager, "sasha", max_vms=3, paravirt_device="eth0", sol_base_port=5000)
 
     await tested.allocate_vm("sasha_image1", memory_gb=1, base_image_size=None, networks=["bridge"], num_cpus=2, num_gpus=2)
     assert len(tested.vms) == 1
@@ -276,7 +276,7 @@ async def test_start_stop_machine(event_loop, mock_libvirt, mock_image_store, mo
     macs = _generate_macs(1)
     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
-    alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
 
     await alloc.allocate_vm("sasha_image1", memory_gb=1, base_image_size=None, networks=["bridge"], num_cpus=2, num_gpus=1)
     assert len(alloc.vms) == 1
@@ -300,7 +300,7 @@ async def test_machine_info(event_loop, mock_libvirt, mock_image_store, mock_nbd
     mock_libvirt.status.return_value = "on"
 
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
-    alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
 
     await alloc.allocate_vm("sasha_image1", memory_gb=1, base_image_size=None, networks=["isolated", "isolated"], num_cpus=2, num_gpus=1,
                             disks=[{"type": "ssd", "size" : 10, "fs" : "ext4"},
@@ -321,7 +321,7 @@ async def test_delete_machines_on_start(event_loop, mock_libvirt, mock_image_sto
     gpu1 = _generate_device(1)
     macs = _generate_macs(2)
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
-    alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
 
     existing_vms = [vm.VM(name="name1", num_cpus=1, memsize=1,
                          net_ifaces=[], sol_port=2,
@@ -353,7 +353,7 @@ async def test_create_machine_and_restore_machine(event_loop, mock_libvirt, mock
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
     mock_image_store.clone_qcow.return_value = "/tmp/image.qcow"
     mock_dhcp_handler.allocate_ip = mock.AsyncMock(return_value = "1.1.1.1")
-    old_allocator = allocator.Allocator(copy.copy(macs), copy.copy(gpu1), manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    old_allocator = allocator.Allocator(copy.copy(macs), copy.copy(gpu1), manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
     await old_allocator.allocate_vm("sasha_image1", memory_gb=1, base_image_size=None, networks=["bridge"], num_cpus=2, num_gpus=1)
     assert len(old_allocator.vms) == 1
     assert 'sasha-vm-0' in old_allocator.vms
@@ -365,7 +365,7 @@ async def test_create_machine_and_restore_machine(event_loop, mock_libvirt, mock
     mock_libvirt.load_lab_vms.return_value = [vm_metadata_to_restore]
 
     # Now recreate the allocator
-    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
     await tested.restore_vms()
     assert len(tested.vms) == 1
     assert 'sasha-vm-0' in tested.vms
@@ -381,7 +381,7 @@ async def test_restore_machine_fail_to_restore_network(event_loop, mock_libvirt,
     mock_dhcp_handler.allocate_ip = mock.AsyncMock(return_value = "1.1.1.1")
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
     mock_image_store.clone_qcow.return_value = "/tmp/image.qcow"
-    old_allocator = allocator.Allocator(copy.copy(macs), copy.copy(gpu1), manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    old_allocator = allocator.Allocator(copy.copy(macs), copy.copy(gpu1), manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
     await old_allocator.allocate_vm("sasha_image1", memory_gb=1, base_image_size=None, networks=["bridge"], num_cpus=2, num_gpus=1)
     assert len(old_allocator.vms) == 1
     assert 'sasha-vm-0' in old_allocator.vms
@@ -393,7 +393,7 @@ async def test_restore_machine_fail_to_restore_network(event_loop, mock_libvirt,
 
     # Now recreate the allocator
     mock_dhcp_handler.reallocate_ip = mock.AsyncMock(side_effect = Exception("Failed to allocate ip"))
-    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
     await tested.restore_vms()
     assert len(tested.vms) == 0
     # We still must have all resources that allocator was initializes with
@@ -408,7 +408,7 @@ async def test_restore_machine_fail_to_restore_network_timeout_success(event_loo
     mock_dhcp_handler.allocate_ip = mock.AsyncMock(return_value = "1.1.1.1")
     manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
     mock_image_store.clone_qcow.return_value = "/tmp/image.qcow"
-    old_allocator = allocator.Allocator(copy.copy(macs), copy.copy(gpu1), manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    old_allocator = allocator.Allocator(copy.copy(macs), copy.copy(gpu1), manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
     await old_allocator.allocate_vm("sasha_image1", memory_gb=1, base_image_size=None, networks=["bridge"], num_cpus=2, num_gpus=1)
     assert len(old_allocator.vms) == 1
     assert 'sasha-vm-0' in old_allocator.vms
@@ -421,7 +421,7 @@ async def test_restore_machine_fail_to_restore_network_timeout_success(event_loo
 
     # Now recreate the allocator
     mock_dhcp_handler.reallocate_ip = mock.AsyncMock(side_effect = TimeoutError("Failed to allocate ip"))
-    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
     await tested.restore_vms()
     assert len(tested.vms) == 1
     assert 'sasha-vm-0' in tested.vms
