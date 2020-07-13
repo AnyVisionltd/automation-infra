@@ -29,6 +29,7 @@ class Allocator(object):
         self.private_network = private_network
         self.sol_base_port = sol_base_port
         self.sol_used_ports = []
+        self.lock = asyncio.Lock()
 
     async def _try_restore_ip(self, vm_data, net_iface, max_retries):
         last_error = None
@@ -163,35 +164,41 @@ class Allocator(object):
         @memory_gb - memory in GB for vm
         @disks   - dict of {"size" : X, 'type' : [ssd or hdd]} to allocate disks
         '''
-        disks = disks or []
-        logging.debug("Allocate vm image %(base_image)s memory %(memory_gb)s networks\
-                       %(networks)s cpus %(num_cpus)s gpus %(num_gpus)s disks %(disks)s",
-                      dict(base_image=base_image, memory_gb=memory_gb, num_gpus=num_gpus, num_cpus=num_cpus, networks=networks, disks=disks))
+        async with self.lock:
+            disks = disks or []
+            logging.debug("Allocate vm image %(base_image)s memory %(memory_gb)s networks\
+                           %(networks)s cpus %(num_cpus)s gpus %(num_gpus)s disks %(disks)s",
+                          dict(base_image=base_image, memory_gb=memory_gb, num_gpus=num_gpus, num_cpus=num_cpus, networks=networks, disks=disks))
 
-        # check that i have enough networks in pool 
-        if len(networks) > len(self.mac_addresses):
-            raise NotEnoughResourceException(f"Not nrough mac addresses in pool requested: {networks} has {self.mac_addresses}")
-        # Check that i have enough gpus 
-        if num_gpus > len(self.gpus_list):
-            raise NotEnoughResourceException(f"Not enough gpus requested : {num_gpus} has {self.gpus_list}")
+            # check that i have enough networks in pool
+            if len(networks) > len(self.mac_addresses):
+                raise NotEnoughResourceException(f"Not nrough mac addresses in pool requested: {networks} has {self.mac_addresses}")
+            # Check that i have enough gpus
+            if num_gpus > len(self.gpus_list):
+                raise NotEnoughResourceException(f"Not enough gpus requested : {num_gpus} has {self.gpus_list}")
 
-        Allocator._validate_networks_params(networks)
+            Allocator._validate_networks_params(networks)
 
-        if self.max_vms == len(self.vms):
-            raise NotEnoughResourceException(f"Cannot allocate more vms currently {self.vms}")
+            if self.max_vms == len(self.vms):
+                raise NotEnoughResourceException(f"Cannot allocate more vms currently {self.vms}")
 
-        gpus = self._reserve_gpus(num_gpus)
-        networks = self._reserve_networks(networks)
+            gpus = self._reserve_gpus(num_gpus)
+            networks = self._reserve_networks(networks)
         vm_index = len(self.vms)
         vm_name = "%s-vm-%d" % (self.server_name, vm_index)
         while vm_name in self.vms:
             vm_index = vm_index + 1
             vm_name = "%s-vm-%d" % (self.server_name, vm_index)
-        machine = vm.VM(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
-                         net_ifaces=networks, sol_port=self._get_free_port(self.sol_base_port + len(self.vms)),
-                         pcis=gpus, base_image=base_image,
-                         disks=disks, base_image_size=base_image_size)
-        self.vms[vm_name] = machine
+        try:
+            machine = vm.VM(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
+                             net_ifaces=networks, sol_port=self._get_free_port(self.sol_base_port + len(self.vms)),
+                             pcis=gpus, base_image=base_image,
+                             disks=disks, base_image_size=base_image_size)
+            self.vms[vm_name] = machine
+        except:
+            logging.exception(f"caught exception creating machine {vm_name}")
+            self._free_vm_resources(gpus, networks)
+            raise
 
         async with machine.lock:
             try:
