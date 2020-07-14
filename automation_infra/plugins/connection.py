@@ -12,9 +12,9 @@ class Connection(object):
         assert (host.keyfile or host.password) and not (host.keyfile and host.password)
         self._ip = host.ip
         self._username = host.user
-        self._password = host.password
+        self.password = host.password
         self._keyfile = host.keyfile
-        self._port = host.port
+        self.port = host.port
         self._ssh_client = None
 
     @property
@@ -90,8 +90,8 @@ class Connection(object):
         self._ssh_client = None
 
     def _credentials(self):
-        if self._password:
-            return dict(password=self._password)
+        if self.password:
+            return dict(password=self.password)
 
         return dict(key_filename=self._keyfile)
 
@@ -100,7 +100,7 @@ class Connection(object):
         self._ssh_client.known_hosts = None
         self._ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self._ssh_client.connect(
-            hostname=self._ip, port=self._port,
+            hostname=self._ip, port=self.port,
             username=self._username,
             look_for_keys=False, allow_agent=False,
             timeout=timeout,

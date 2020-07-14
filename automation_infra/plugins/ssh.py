@@ -11,5 +11,9 @@ class SSH(SshDirect):
         self._connection = connection.Connection(host)
         self._connection.connect(timeout)
 
+    @property
+    def _using_keyfile(self):
+        return False
+
 
 plugins.register("SSH", SSH)
