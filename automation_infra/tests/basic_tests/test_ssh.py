@@ -30,6 +30,32 @@ def _test_upload_download(host):
         contents = f.read().strip()
     assert contents == 'this is a test'
 
+
+def _test_rsync_ssh(host_ssh):
+    logging.info("create some files")
+    os.system("mkdir -p /tmp/rsync/1 /tmp/rsync/2")
+    os.system('echo "file 1" > /tmp/rsync/1/file')
+    os.system('echo "file 2" > /tmp/rsync/2/file')
+
+    logging.info("rsync")
+    host_ssh.rsync('/tmp/rsync', '/tmp/rsync_from_test')
+    files = host_ssh.execute('find /tmp/rsync_from_test/rsync/ -type f').split()
+    assert files == ['/tmp/rsync_from_test/rsync/1/file', '/tmp/rsync_from_test/rsync/2/file']
+
+    logging.info("add one more file")
+    os.system('echo "file 3" > /tmp/rsync/2/file3')
+    host_ssh.rsync('/tmp/rsync', '/tmp/rsync_from_test')
+    files = host_ssh.execute('find /tmp/rsync_from_test/rsync/ -type f').split()
+    assert files == ['/tmp/rsync_from_test/rsync/1/file', '/tmp/rsync_from_test/rsync/2/file', '/tmp/rsync_from_test/rsync/2/file3']
+
+    logging.info("Delete a file on sorce")
+    os.system('rm /tmp/rsync/2/file3')
+    host_ssh.rsync('/tmp/rsync', '/tmp/rsync_from_test')
+    files = host_ssh.execute('find /tmp/rsync_from_test/rsync/ -type f').split()
+    assert files == ['/tmp/rsync_from_test/rsync/1/file', '/tmp/rsync_from_test/rsync/2/file']
+
+
+
 @hardware_config(hardware={"host": {}})
 def test_ssh(base_config):
     logging.info(f"PID of test_Ssh: {os.getpid()}")
@@ -50,3 +76,7 @@ def test_ssh(base_config):
     _test_fileobj_upload(base_config.hosts.host)
     logging.info("Testing upload and download of files")
     _test_upload_download(base_config.hosts.host)
+    logging.info("Test rsync on ssh direct")
+    _test_rsync_ssh(base_config.hosts.host.SshDirect)
+    logging.info("Test rsync on ssh")
+    _test_rsync_ssh(base_config.hosts.host.SSH)
