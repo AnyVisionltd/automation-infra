@@ -132,6 +132,10 @@ class SshDirect(object):
             install_to_host.ssh.run_script("chmod 600 %s" % filepath)
         return filepath
 
+    @property
+    def _using_keyfile(self):
+        return self._host.keyfile
+
     def copy_to(self, source_file_or_dir, dest_host, dest_file_or_dir):
         """ This method will copy from self._host to dest_host the source to
             dest folder specified
@@ -151,10 +155,10 @@ class SshDirect(object):
 
     def upload(self, src, dest):
         """ will copy src files and folders to dest dir on self._host """
-        if self._host.keyfile:
+        if self._using_keyfile:
             prefix = "scp -i %s" % self._host.keyfile
         else:
-            prefix = "sshpass -p '%s' scp -o PubkeyAuthentication=no" % self._host.password
+            prefix = "sshpass -p '%s' scp -P %d -o PubkeyAuthentication=no" % (self._connection.password, self._connection.port)
 
         cmd_template = '%(prefix)s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\
                         -r %(localpath)s %(username)s@%(hostname)s:%(remotepath)s'
@@ -166,10 +170,10 @@ class SshDirect(object):
         subprocess.check_call(cmd, shell=True)
 
     def download(self, localdir, *remote_pathes):
-        if self._host.keyfile:
+        if self._using_keyfile:
             prefix = "scp -i %s" % self._host.keyfile
         else:
-            prefix = "sshpass -p '%s' scp -o PubkeyAuthentication=no" % self._host.password
+            prefix = "sshpass -p '%s' scp -P %d -o PubkeyAuthentication=no" % (self._connection.password, self._connection.port)
 
         cmd_template = '%(prefix)s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\
                         -r %(username)s@%(hostname)s:%(remotepath)s %(localpath)s'

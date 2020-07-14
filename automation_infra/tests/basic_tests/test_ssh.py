@@ -22,6 +22,14 @@ def _test_fileobj_upload(host):
     content_to_verify = host.SSH.get_contents("/tmp/test_obj/large_content").decode()
     assert content_to_verify == large_content
 
+def _test_upload_download(host):
+    os.system("echo this is a test > /tmp/temp.txt")
+    host.SSH.upload('/tmp/temp.txt', '/tmp/test_upload.txt')
+    host.SSH.download('/tmp/test_download.txt', '/tmp/test_upload.txt')
+    with open('/tmp/test_download.txt', 'r') as f:
+        contents = f.read().strip()
+    assert contents == 'this is a test'
+
 @hardware_config(hardware={"host": {}})
 def test_ssh(base_config):
     logging.info(f"PID of test_Ssh: {os.getpid()}")
@@ -40,3 +48,5 @@ def test_ssh(base_config):
     time.sleep(1)
     logging.info("Uploading content from fileobj")
     _test_fileobj_upload(base_config.hosts.host)
+    logging.info("Testing upload and download of files")
+    _test_upload_download(base_config.hosts.host)
