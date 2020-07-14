@@ -18,6 +18,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     libxrender-dev \
     python3-pip \
     iproute2 \
+    rsync \
     && curl -sL https://deb.nodesource.com/setup_10.x | bash \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
