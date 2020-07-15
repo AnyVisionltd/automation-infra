@@ -28,8 +28,8 @@ def create_cluster_yaml(template_file, base_config):
         yaml.dump(config, config_file)
     return templated_cluster_file
 
-@hardware_config(hardware={"host1": {}, "host2": {}, "host3": {}},
-                 grouping={"cluster1": {"hosts": ["host1", "host2", "host3"]}})
+@hardware_config(hardware={"host1": {}, "host2": {}},
+                 grouping={"cluster1": {"hosts": ["host1", "host2"]}})
 def test_k8s_cluster(base_config):
     # TODO: add support for multiple clusters?
 
