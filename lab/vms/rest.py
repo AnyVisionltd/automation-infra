@@ -35,9 +35,9 @@ class HyperVisor(object):
                                        num_gpus=num_gpus,
                                        num_cpus=num_cpus,
                                        disks=disks)
-        except:
+        except Exception as e:
             logging.exception("Failed to create VM")
-            return web.json_response({'status' : 'Failed'}, status=500)
+            return web.json_response({'status': 'Failed', 'error': str(e)}, status=500)
         else:
             return web.json_response({'status' : 'Success', 'name': vm.name, 'info' : vm.json}, status=200)
 
@@ -46,10 +46,10 @@ class HyperVisor(object):
         try:
             await self.allocator.destroy_vm(vm_name)
         except KeyError:
-            return web.json_response(status=404)
-        except:
+            return web.json_response({"error": f'vm {vm_name} doesnt exist'}, status=404)
+        except Exception as e:
             logging.exception("Failed to destroy VM")
-            return web.json_response({'status' : 'Failed'}, status=500)
+            return web.json_response({'status': 'Failed', 'error': str(e)}, status=500)
         else:
             return web.json_response({'status' : 'Success'}, status=200)
 
@@ -76,14 +76,14 @@ class HyperVisor(object):
         logging.info("Asked to change vm %s status to %s", vm_name, data)
         vm = self.allocator.vms.get(vm_name)
         if vm is None:
-            return web.json_response(status=404)
+            return web.json_response({'error': f'couldnt find vm {vm_name}'}, status=404)
 
         power_status = data['power']
 
         async with vm.lock:
             # double check after lock
             if vm_name not in self.allocator.vms:
-                return web.json_response(status=404)
+                return web.json_response({'error': f'couldnt find vm {vm_name} after lock'}, status=404)
             if power_status == "on":
                 await self.allocator.vm_manager.start_vm(vm)
             elif power_status == "off":
@@ -95,10 +95,10 @@ class HyperVisor(object):
         logging.debug("Requested vm info for vm %s", vm_name)
         vm = self.allocator.vms.get(vm_name)
         if vm is None:
-            return web.json_response(status=404)
+            return web.json_response({'error': f'couldnt find vm {vm_name}'}, status=404)
         async with vm.lock:
             # double check after lock
             if vm_name not in self.allocator.vms:
-                return web.json_response(status=404)
+                return web.json_response({'error': f'couldnt find vm {vm_name} after lock'}, status=404)
             info = await self.allocator.vm_manager.info(vm)
         return web.json_response({'info' : info}, status=200)
