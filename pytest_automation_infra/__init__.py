@@ -307,7 +307,7 @@ def pytest_configure(config):
     config.option.showcapture = 'no'
     log_dir = datetime.now().strftime('%Y_%m_%d:%H:%M:%S')
     logs_dir = os.path.join(os.getcwd(), f'logs/{log_dir}')
-    os.system(f"mkdir -p {logs_dir}")
+    os.makedirs(logs_dir, exist_ok=True)
     config.option.logger_logsdir = logs_dir
     config.option.log_cli = True
     config.option.log_cli_level = 'INFO'
@@ -324,7 +324,7 @@ def download_host_logs(host, logs_dir):
     dest_dir = os.path.join(logs_dir, host.alias)
     paths_to_download = ['/storage/logs/', '/var/log/journal']
     logging.info(f"Downloading logs from {host.alias}")
-    os.system(f"mkdir -p {dest_dir}")
+    os.makedirs(dest_dir, exist_ok=True)
     host.SshDirect.download(re.escape(dest_dir), *paths_to_download)
 
 
