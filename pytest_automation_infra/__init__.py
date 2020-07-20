@@ -258,6 +258,7 @@ def match_base_config_hosts_with_hwreqs(hardware_reqs, base_config):
         raise Exception("Not enough hosts to fulfil test requirements")
     for key in hardware_reqs.keys():
         if key in base_config.hosts:
+            base_config.hosts[key].alias = key
             continue
         else:
             bc_host_keys = list(base_config.hosts.keys())
@@ -266,6 +267,7 @@ def match_base_config_hosts_with_hwreqs(hardware_reqs, base_config):
                     continue
                 else:
                     base_config.hosts[key] = base_config.hosts.pop(host)
+                    base_config.hosts[key].alias = key
                     break
         assert key in base_config.hosts
     return base_config
