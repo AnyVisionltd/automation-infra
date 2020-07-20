@@ -50,7 +50,7 @@ class Host(object):
         self.extra_config = host_config
         self.__plugins = {}
         self._temp_dir_counter = itertools.count()
-        self._plugins_init_lock = threading.Lock()
+        self._plugins_init_lock = threading.RLock()
 
     def _init_plugin_locked(self, name):
         if name in self.__plugins:
