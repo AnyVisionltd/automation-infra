@@ -41,6 +41,8 @@ class Host(object):
         assert (_pass and not _pem) or (_pem and not _pass), \
             "password and key are mutually exclusive (password=%s, key=%s)" % (_pass, _pem)
         self.ip = host_config.pop('ip')
+        if self.ip is None:
+            raise ValueError("Host ip cannot be None")
         self.user = host_config.pop('user')
         self.alias = host_config.pop('alias', str(random.randint(0, 999)))
         self.port = host_config.pop('port', 22)
