@@ -47,6 +47,8 @@ class Host(object):
         self.alias = host_config.pop('alias', str(random.randint(0, 999)))
         self.port = host_config.pop('port', 22)
         self.tunnelport = host_config.pop('tunnelport', 2222)
+        self.resource_manager_ep = host_config.pop('resource_manager_ep', None)
+        self.vm_id = host_config.pop('vm_id', None)
         self.password = _pass
         self.keyfile = _pem
         self.extra_config = host_config
