@@ -26,3 +26,9 @@ set-connection-file:
 		i=$$(($$i+1)) ;\
 		$(call _write_host_block,$$i,$$ip); \
 	done
+
+.PHONY: set-jenkins-connection-file
+set-jenkins-connection-file:
+	python3 dev_environment/jenkins_yaml_creator.py $(CONN_FILE_PATH) $(HOST_IP) $(VM_ID) $(RESOURCE_MANAGER_EP)
+
+
