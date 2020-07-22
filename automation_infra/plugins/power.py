@@ -3,7 +3,6 @@ import requests
 from automation_infra.plugins.ssh_direct import SshDirect
 from infra.model import plugins
 
-BASE_URL = "http://%s"
 
 class Power(object):
     def __init__(self, host):
