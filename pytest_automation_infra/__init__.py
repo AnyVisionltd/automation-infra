@@ -47,11 +47,6 @@ def pytest_addoption(parser):
     parser.addoption("--extra-tests", action="store", default="",
                      help="tests to run in addition to specified tests and marks. eg. 'test_sanity.py test_extra.py'")
 
-def pytest_collection_modifyitems(config, items):
-    extra_tests = config.getoption("--extra-tests").split(",")
-    for item in items:
-        if item.parent.name in extra_tests:
-            item.add_marker(pytest.mark.extra)
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_generate_tests(metafunc):
@@ -141,6 +136,12 @@ def pytest_collection_modifyitems(session, config, items):
     'module' scope was initialized in function pytest_generate_tests already.
     At the end of this function, hardware has been initialized for all cases of provisioning and fixture-scope.
     """
+
+    # Add markers on the fly for extra tests
+    extra_tests = config.getoption("--extra-tests").split(",")
+    for item in items:
+        if item.parent.name in extra_tests:
+            item.add_marker(pytest.mark.extra)
 
     fixture_scope = determine_scope(None, config)
     provisioner = config.getoption("--provisioner")
