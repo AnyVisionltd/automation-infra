@@ -156,6 +156,43 @@ paths:
                     type: string
                   demands:
                     type: string
+  /resource_manager/heartbeat:
+    put:
+      operationId: webapp.resourcemanager.heartbeat
+      summary: >-
+        Resource managers send heartbeats to this route in order for the allocator to know they exist and enable him
+        to query them for fulfilling jobs.
+      requestBody:
+        description: a dict of resource_manager properties
+        content:
+          application/json:
+            schema:
+              properties:
+                data:
+                  type: object
+                  required: ["alias", "endpoint", "rm_type", "last_hb"]
+                  properties:
+                    alias:
+                      type: string
+                    endpoint:
+                      type: string
+                    rm_type:
+                      type: string
+                    last_hb:
+                      type: integer
+                      example: 1595759915
+      responses:
+        200:
+          description: Operation success indicator
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+
   /resourcemanager/{resourcemanager_id}:
     post:
       tags: [Prospector]
