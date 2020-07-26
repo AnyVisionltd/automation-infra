@@ -10,6 +10,18 @@ from .redisclient import REDIS
 from .settings import log
 
 
+async def heartbeat(request, body):
+    """
+    a resource manager has sent a heartbeat (this could be the first hb received ie rm just woke up
+    or a continuation hb from a rm which is already working. It doesnt matter because the rm always sends
+    all relevant data. So just insert the body to the relevant redis hkey
+    """
+    r_conn = await request.app["redis"].asyncconn
+    rm_alias = body.get('alias')
+    await r_conn.hset('resource_managers', rm_alias, json.dumps(body))
+    return web.json_response({"status": 200})
+
+
 async def volunteer(request, body, resourcemanager_id):
     """
     a resource manager has volunteered to process matched job(s) with it's
