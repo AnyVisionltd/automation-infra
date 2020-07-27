@@ -22,6 +22,7 @@ SOL_PORT="${SOL_PORT:-10000}"
 HOSTNAME=$(hostname)
 KERNEL_LIBS=/lib/modules/$(uname -r)
 LIBVIRT_SOCK=/var/run/libvirt/libvirt-sock
+HABERTEST_PROVISIONER="localhost:8080"
 
 python3 ${PROJECT_DIR}/tools/config_hypervisor.py --max-vms ${MAX_VMS}
 
@@ -57,4 +58,4 @@ docker stop --time=30 $(docker ps -aq --filter name=hypervisor) 2> /dev/null || 
 docker rm $(docker ps -aq --filter name=hypervisor) 2> /dev/null || true
 
 docker run -d --net=host --privileged --restart=always --log-driver=syslog --log-opt tag=HYPERVISOR \
-${mounts_cmd} --name hypervisor hypervisor:${HYPERVISOR_DOCKER_TAG} ${params}
+${mounts_cmd} --name hypervisor -e HABERTEST_PROVISIONER=${HABERTEST_PROVISIONER} hypervisor:${HYPERVISOR_DOCKER_TAG} ${params}
