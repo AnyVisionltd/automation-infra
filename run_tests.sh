@@ -30,6 +30,10 @@ function update_received_cmd () {
         cmd="$cmd -p pytest_automation_infra"
     fi
 
+    if [[ $cmd != *" -s "* ]] ; then
+        cmd="$cmd -s "
+    fi
+
     if [[ $cmd = *" -n"?(\ )[0-9]* ]] && [[ $cmd != *" --provisioned"* ]] ; then
         cmd="$cmd --provisioned"
     fi
