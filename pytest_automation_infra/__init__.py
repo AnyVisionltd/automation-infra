@@ -331,7 +331,7 @@ def pytest_report_teststatus(report, config):
 def download_host_logs(host, logs_dir):
     dest_dir = os.path.join(logs_dir, host.alias)
     paths_to_download = ['/storage/logs/', '/var/log/journal']
-    logging.info(f"Downloading logs from {host.alias}")
+    logging.info(f"Downloading logs from {host.alias} to {dest_dir}")
     os.makedirs(dest_dir, exist_ok=True)
     logging.info(f"files in /storage/logs: \n{host.SshDirect.execute('du -sch /storage/logs/*')}")
     host.SshDirect.download(re.escape(dest_dir), *paths_to_download)
@@ -339,6 +339,11 @@ def download_host_logs(host, logs_dir):
     logging.info(f"files in {dest_dir}/logs:\n{subprocess.check_output(f'du -sch {dest_dir}/logs/*', shell=True).decode('utf-8')}")
     logging.info(f"files in {dest_dir}/journal:\n{subprocess.check_output(f'du -sch {dest_dir}/journal/*', shell=True).decode('utf-8')}")
 
+def _sanitize_nodeid(filename):
+    filename = filename.replace('::()::', '/')
+    filename = filename.replace('::', '/')
+    filename = re.sub(r'\[(.+)\]', r'-\1', filename)
+    return filename
 
 def pytest_runtest_teardown(item):
     base_config = item.funcargs['base_config']
@@ -347,7 +352,8 @@ def pytest_runtest_teardown(item):
         return
     hosts = item.funcargs['base_config'].hosts.values()
     try:
-        concurrently.run({host.ip: (download_host_logs, host, get_log_dir(item.config))
+        logs_dir = os.path.join(item.config.option.logger_logsdir, _sanitize_nodeid(item.nodeid))
+        concurrently.run({host.ip: (download_host_logs, host, logs_dir)
                           for host in hosts})
     except subprocess.CalledProcessError:
         logging.info("was unable to download logs from a host")
