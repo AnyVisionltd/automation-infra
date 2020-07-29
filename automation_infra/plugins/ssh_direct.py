@@ -183,7 +183,10 @@ class SshDirect(object):
                                       hostname=self._host.ip,
                                       remotepath=dest_path,
                                       localpath=localdir)
-            subprocess.check_call(cmd, shell=True)
+            try:
+                subprocess.check_call(cmd, shell=True)
+            except:
+                logging.exception(f"exceptiong trying to download with command: {cmd}")
 
     def rsync(self, src, dst, exclude_dirs=None):
         if self._using_keyfile:
