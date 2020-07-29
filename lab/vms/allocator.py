@@ -110,7 +110,7 @@ class Allocator(object):
             machine = vm.VM(**vm_data)
             await self.vm_manager.destroy_vm(machine)
 
-    def _get_free_port(self, port, attempts=100):
+    def _get_free_port(self, port, attempts=500):
         if attempts == 0:
             raise socket.error("Could not find any free ports")
         if port not in self.sol_used_ports:
