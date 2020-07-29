@@ -179,6 +179,7 @@ class Allocator(object):
                           dict(base_image=base_image, memory_gb=memory_gb, num_gpus=num_gpus, num_cpus=num_cpus, networks=networks, disks=disks))
 
             # check that i have enough networks in pool
+            networks = networks if type(networks) == list else [networks]
             if len(networks) > len(self.mac_addresses):
                 raise NotEnoughResourceException(f"Not nrough mac addresses in pool requested: {networks} has {self.mac_addresses}")
             # Check that i have enough gpus
