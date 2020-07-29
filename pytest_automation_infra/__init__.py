@@ -333,7 +333,11 @@ def download_host_logs(host, logs_dir):
     paths_to_download = ['/storage/logs/', '/var/log/journal']
     logging.info(f"Downloading logs from {host.alias}")
     os.makedirs(dest_dir, exist_ok=True)
+    logging.info(f"files in /storage/logs: \n{host.SshDirect.execute('du -sch /storage/logs/*')}")
     host.SshDirect.download(re.escape(dest_dir), *paths_to_download)
+    logging.info(f"Downloaded logs successfully to: {dest_dir}")
+    logging.info(f"files in {dest_dir}/logs:\n{subprocess.check_output(f'du -sch {dest_dir}/logs/*', shell=True).decode('utf-8')}")
+    logging.info(f"files in {dest_dir}/journal:\n{subprocess.check_output(f'du -sch {dest_dir}/journal/*', shell=True).decode('utf-8')}")
 
 
 def pytest_runtest_teardown(item):
