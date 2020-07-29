@@ -2,14 +2,19 @@ HOST_IP ?= $(shell bash -c 'read -e -p "HOST IP: " ip; echo $$ip')
 USERNAME ?= $(shell bash -c 'read -e -p "USER: " user; echo $$user')
 PASS ?= $(shell bash -c 'read -e -p "PASSWORD (leave empty if use pem key file): " password; echo $$password')
 key_file_path ?= $(shell bash -c 'read -e -p "KEY PEM PATH (leave empty if use password): " key; echo $$key')
+RESOURCE_MANAGER_EP ?= $(shell bash -c 'read -e -p "RESOURCE_MANAGER_EP: " rm_ep; echo $$rm_ep')
+VM_ID ?= $(shell bash -c 'read -e -p "VM_ID: " vm_id; echo $$vm_id')
 CONN_FILE_PATH ?= "$${HOME}/.local/hardware.yaml"
+
 
 define _write_host_block
 	echo "host$1:" >> $(CONN_FILE_PATH); \
 	echo "  ip: $2" >> $(CONN_FILE_PATH); \
 	echo "  user: $(USERNAME)" >> $(CONN_FILE_PATH); \
 	echo "  password: $(PASS)" >> $(CONN_FILE_PATH); \
-	echo "  key_file_path: $(key_file_path)" >> $(CONN_FILE_PATH)
+	echo "  key_file_path: $(key_file_path)" >> $(CONN_FILE_PATH); \
+	echo "  resource_manager_ep: $(RESOURCE_MANAGER_EP)" >> $(CONN_FILE_PATH); \
+	echo "  vm_id: $(VM_ID)" >> $(CONN_FILE_PATH)
 endef
 
 
@@ -21,3 +26,9 @@ set-connection-file:
 		i=$$(($$i+1)) ;\
 		$(call _write_host_block,$$i,$$ip); \
 	done
+
+.PHONY: set-jenkins-connection-file
+set-jenkins-connection-file:
+	python3 dev_environment/jenkins_yaml_creator.py $(CONN_FILE_PATH) $(HOST_IP) $(VM_ID) $(RESOURCE_MANAGER_EP)
+
+

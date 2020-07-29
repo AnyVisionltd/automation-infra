@@ -9,8 +9,8 @@ def SpinUpVM(remote, base_image) {
     return VM_INFO
 }
 
-def SetConnection(ips) {
-    cmd = String.format("make -f Makefile-env set-connection-file HOST_IP=%s USERNAME=root PASS=root CONN_FILE_PATH=${WORKSPACE}/hardware.yaml", ips.join(','))
+def SetConnection(ips, ids) {
+    cmd = String.format("make -f Makefile-env set-jenkins-connection-file HOST_IP=%s RESOURCE_MANAGER_EP=${KVM_MACHINE_IP}:8080 VM_ID=%s CONN_FILE_PATH=${WORKSPACE}/hardware.yaml", ips.join(','), ids.join(','))
     echo cmd
     sh cmd
     sh "cat ${WORKSPACE}/hardware.yaml"
@@ -86,11 +86,15 @@ pipeline {
                 stage('Create the hardware.yaml') {
                     steps {
                         script {
-                            env.vmip = sh (
+                            env.vm_ip = sh (
                                 script: "echo '${env.docker_vminfo}' | jq  .info.net_ifaces[0].ip",
                                 returnStdout: true
                             ).trim()
-                            SetConnection([env.vmip])
+                            env.vm_id = sh (
+                                script: "echo '${env.docker_vminfo}' | jq  .info.name",
+                                returnStdout: true
+                            ).trim()
+                            SetConnection([env.vm_ip], [env.vm_id])
                         }
                     }
                 }
@@ -140,11 +144,15 @@ pipeline {
                 stage('Create the hardware.yaml') {
                     steps {
                         script {
-                            env.vmip = sh (
+                            env.vm_ip = sh (
                                 script: "echo '${env.k8s_vminfo}' | jq  .info.net_ifaces[0].ip",
                                 returnStdout: true
                             ).trim()
-                            SetConnection([env.vmip])
+                            env.vm_id = sh (
+                                script: "echo '${env.k8s_vminfo}' | jq  .info.name",
+                                returnStdout: true
+                            ).trim()
+                            SetConnection([env.vm_ip], [env.vm_id])
                         }
                     }
                 }
@@ -199,15 +207,27 @@ pipeline {
                                 script: "echo '${env.vm1}' | jq  .info.net_ifaces[0].ip",
                                 returnStdout: true
                             ).trim()
+                            env.vm1_id = sh (
+                                script: "echo '${env.vm1}' | jq  .info.name",
+                                returnStdout: true
+                            ).trim()
                             env.vm2ip = sh (
                                 script: "echo '${env.vm2}' | jq  .info.net_ifaces[0].ip",
+                                returnStdout: true
+                            ).trim()
+                            env.vm2_id = sh (
+                                script: "echo '${env.vm2}' | jq  .info.name",
                                 returnStdout: true
                             ).trim()
                             env.vm3ip = sh (
                                 script: "echo '${env.vm3}' | jq  .info.net_ifaces[0].ip",
                                 returnStdout: true
                             ).trim()
-                            SetConnection([env.vm1ip, env.vm2ip, env.vm3ip])
+                            env.vm3_id = sh (
+                                script: "echo '${env.vm3}' | jq  .info.name",
+                                returnStdout: true
+                            ).trim()
+                            SetConnection([env.vm1ip, env.vm2ip, env.vm3ip], [env.vm1_id, env.vm2_id, env.vm3_id])
                         }
                     }
                 }

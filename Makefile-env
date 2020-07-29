@@ -2,6 +2,8 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 PARENT_ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 OS ?= $(shell hostnamectl status | grep "Operating System" | cut -d ':' -f 2 | sed 's/ //' | cut -d ' ' -f 1 | awk '{print tolower($$1)}')
 
+.PHONY: set-jenkins-connection-file
+set-jenkins-connection-file:
 .PHONY: set-connection-file
 set-connection-file:
 include $(ROOT_DIR)/dev_environment/makefiles/Makefile.hardware
