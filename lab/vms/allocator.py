@@ -165,7 +165,7 @@ class Allocator(object):
 
     async def allocate_vm(self, base_image, base_image_size, memory_gb, networks, num_gpus=0, num_cpus=4, disks=None):
         ''' 
-        @networks - list of networks that we want to allocate, possible 
+        @networks - list or 1 network name of networks that we want to allocate, possible
         values are "isolated, bridge"
         @num_gpus - number of GPU`s to allocate 
         @num_cpus - number of CPU`s to allocate
@@ -179,6 +179,7 @@ class Allocator(object):
                           dict(base_image=base_image, memory_gb=memory_gb, num_gpus=num_gpus, num_cpus=num_cpus, networks=networks, disks=disks))
 
             # check that i have enough networks in pool
+            networks = networks if type(networks) == list else [networks]
             if len(networks) > len(self.mac_addresses):
                 raise NotEnoughResourceException(f"Not nrough mac addresses in pool requested: {networks} has {self.mac_addresses}")
             # Check that i have enough gpus
