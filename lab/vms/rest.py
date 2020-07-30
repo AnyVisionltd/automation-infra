@@ -22,9 +22,9 @@ class HyperVisor(object):
                                   web.post('/fulfill/now', self.fulfill),
                                   web.delete('/deallocate/{name}', self.handle_destroy_vm)])
 
-    def translate_to_vm_params(self, hardware_reqs):
+    def translate_to_vm_params(self, request):
         vm_request_details = list()
-        for host, reqs in hardware_reqs.items():
+        for host, reqs in request['demands'].items():
             vm_args = dict(
                 networks=reqs.get('networks', ['bridge']),
                 num_cpus=int(reqs.get('cpus', 1)),
@@ -33,6 +33,7 @@ class HyperVisor(object):
                 base_image_size=reqs.get('base_image_size', None),
                 memory_gb=int(reqs.get('ram', 2)),
                 disks=reqs.get('disks', None),
+                allocation_id=request.get('allocation_id', None)
             )
             vm_request_details.append(vm_args)
         return vm_request_details
@@ -52,7 +53,9 @@ class HyperVisor(object):
             return web.json_response({"status": "Unable"}, status=406)
 
     async def fulfill(self, request):
-        """request: {"host": {"cpus": "value", "foo": "bar"}"""
+        """request: demands: {{"host1": {"cpus": "value", "foo": "bar"},
+                    "host2": {"cpus": "value", "foo": "bar"}},
+                    "allocation_id":"1234-234523-2342-23424"}"""
         data = await request.json()
         vm_requests = self.translate_to_vm_params(data)
         tasks = set()
