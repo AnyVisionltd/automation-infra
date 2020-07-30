@@ -61,5 +61,5 @@ REDIS = RedisClient(
     port=os.getenv("REDIS_PORT", "6379"),
     username="",  # os.getenv("REDIS_USER"),
     password="",  # os.getenv("REDIS_PASSWORD"),
-    db=os.getenv("REDIS_DB"),
+    db=os.getenv("REDIS_DB", 0),
 )
