@@ -20,7 +20,9 @@ class Allocator(object):
     def __init__(self, mac_addresses, gpus_list, vm_manager, server_name, max_vms,
                  sol_base_port, paravirt_device, private_network="default"):
         self.mac_addresses = mac_addresses
+        self.total_mac_addresses = len(mac_addresses)
         self.gpus_list = gpus_list
+        self.total_gpus = len(gpus_list)
         self.vms = {}
         self.vm_manager = vm_manager
         self.server_name = server_name
@@ -163,11 +165,27 @@ class Allocator(object):
             if net not in ('bridge', 'isolated'):
                 raise ValueError(f"Invalid network parameter {networks}")
 
-    async def allocate_vm(self, base_image, base_image_size, memory_gb, networks, num_gpus=0, num_cpus=4, disks=None):
-        ''' 
+    async def check_allocate(self, base_image, base_image_size, memory_gb, networks, num_gpus=0, num_cpus=4, disks=None,
+                          allocation_id=None, requestor=None):
+        """This function checks only if this hypervisor can theoretically create a vm with the required specs"""
+        networks = networks if type(networks) == list else [networks]
+        if len(networks) > self.total_mac_addresses:
+            return False
+        if num_gpus > self.total_gpus:
+            return False
+        try:
+            Allocator._validate_networks_params(networks)
+        except ValueError:
+            return False
+
+        return True
+
+    async def allocate_vm(self, base_image, base_image_size, memory_gb, networks, num_gpus=0, num_cpus=4, disks=None,
+                          allocation_id=None, requestor=None):
+        '''
         @networks - list or 1 network name of networks that we want to allocate, possible
         values are "isolated, bridge"
-        @num_gpus - number of GPU`s to allocate 
+        @num_gpus - number of GPU`s to allocate
         @num_cpus - number of CPU`s to allocate
         @memory_gb - memory in GB for vm
         @disks   - dict of {"size" : X, 'type' : [ssd or hdd]} to allocate disks
