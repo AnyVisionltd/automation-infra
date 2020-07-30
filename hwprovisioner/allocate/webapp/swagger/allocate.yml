@@ -110,7 +110,7 @@ paths:
     get:
       tags: [Jobs, WebSocket]
       operationId: webapp.jobs.sub
-      summary: Get all jobs from the inventory
+      summary: Testing infrastructure connects to this ws, sends demands over it, and
       responses:
         200:
           description: Return all jobs from the inventory
