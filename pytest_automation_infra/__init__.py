@@ -7,10 +7,8 @@ import threading
 import time
 from datetime import datetime
 
-import aiohttp
 import pytest
 import requests
-import yaml
 from munch import *
 
 from automation_infra.utils import initializer, concurrently
@@ -19,7 +17,6 @@ from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
 from pytest_automation_infra import hardware_initializer, helpers
 from pytest_automation_infra.helpers import is_k8s
-import copy
 
 
 class InfraFormatter(logging.Formatter):
@@ -29,19 +26,10 @@ class InfraFormatter(logging.Formatter):
         logging.Formatter.__init__(self, msg_fmt, datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def get_local_config(local_config_path):
-    if not os.path.isfile(local_config_path):
-        raise Exception("""local hardware_config yaml not found""")
-    with open(local_config_path, 'r') as f:
-        local_config = yaml.full_load(f)
-    logging.debug(f"local_config: {local_config}")
-    return local_config
-
-
 def pytest_addoption(parser):
     parser.addoption("--fixture-scope", type=str, default='auto', choices={"function", "module", "session", "auto"},
                      help="every how often to setup/tear down fixtures, one of [function, module, session]")
-    parser.addoption("--provisioner", type=str, help="use provisioning service to get hardware to run tests on")
+    parser.addoption("--provisioner", type=str, default='', help="use provisioning service to get hardware to run tests on")
     parser.addoption("--hardware", type=str, default=f'{os.path.expanduser("~")}/.local/hardware.yaml',
                      help="path to hardware_yaml")
     parser.addoption("--extra-tests", action="store", default="",
@@ -61,65 +49,56 @@ def pytest_generate_tests(metafunc):
         key_file_path: /path/to/pem
     # key_file_path and password are mutually exclusive so use only 1 type of auth
     """
-
+    if hasattr(metafunc.module, '__initialized_hardware'):
+        # hardware was initialized already, no need to initialize again.
+        return
     fixture_scope = determine_scope(None, metafunc.config)
+    if fixture_scope != 'module':
+        return
+
     provisioner = metafunc.config.getoption("--provisioner")
+    if provisioner:
+        return
 
-    # I only have access to module here (so I cant init 'session' or 'function' scoped hardware):
-    if fixture_scope == 'module':
-        if provisioner:
-            logging.debug("initializing module hardware config to provisioner")
-            if hasattr(metafunc.module, 'hardware') and not hasattr(metafunc.module, '__initialized_hardware'):
-                hardware_config = hardware_initializer.init_hardware(metafunc.module.hardware, provisioner)
-                metafunc.module.__initialized_hardware = hardware_config
-            else:
-                raise Exception("Module needs to have hardware_reqs set to run with scope module")
-        else:
-            logging.debug("initializing module hardware config to local")
-            local_config = get_local_config(metafunc.config.getoption("--hardware"))
-            metafunc.module.__initialized_hardware = local_config
-
-
-def set_config(tests, config=None, provisioner=None):
-    for test in tests:
-        if config:
-            test.function.__initialized_hardware = config
-        else:
-            assert hasattr(test.function, '__hardware_reqs')
-            initialized_hardware = hardware_initializer.init_hardware(test.function.__hardware_reqs, provisioner)
-            test.function.__initialized_hardware = initialized_hardware
+    logging.debug("initializing module hardware config to local")
+    local_config = hardware_initializer.get_local_config(metafunc.config.getoption("--hardware"))
+    metafunc.module.__initialized_hardware = dict()
+    metafunc.module.__initialized_hardware['machines'] = local_config
 
 
 def send_heartbeat(provisioned_hw, stop):
-    logging.debug(f"Starting heartbeat to provisioned hardware: {provisioned_hw}")
+    logging.info(f"Starting heartbeat to provisioned hardware: {provisioned_hw}")
     while True:
-        for host in provisioned_hw.values():
-            logging.debug(f"host: {host}")
-            if "allocation_id" not in host:
-                logging.debug("'allocation_id' not in host data")
-                continue
-            allocation_id = host['allocation_id']
-            logging.debug(f"allocation_id: {allocation_id}")
-            payload = {"allocation_id": allocation_id}
-            logging.debug(f"sending post hb request payload: {payload}")
-            response = requests.post(
-                "%sapi/heartbeat" % os.getenv('HEARTBEAT_SERVER'), json=payload)
-            logging.debug(f"post response {response}")
-            if response.status_code != 200:
-                logging.error(
-                    "Failed to send heartbeat! Got status %s",
-                    response.json()
-                    )
+        allocation_id = provisioned_hw['allocation_id']
+        logging.debug(f"allocation_id: {allocation_id}")
+        payload = {"allocation_id": allocation_id}
+        logging.debug(f"sending post hb request payload: {payload}")
+        response = requests.post(
+            "%s/api/heartbeat" % os.getenv('HEARTBEAT_SERVER', "http://localhost:7080"), json=payload)
+        logging.debug(f"post response {response}")
+        if response.status_code != 200:
+            logging.error(
+                "Failed to send heartbeat! Got status %s",
+                response.json()
+                )
         if stop():
             logging.debug(f"Killing heartbeat to hw {provisioned_hw}")
             break
-        time.sleep(3)
+        time.sleep(10)
     logging.debug(f"Heartbeat to hardware {provisioned_hw} stopped")
 
 
-@pytest.hookimpl(tryfirst=True)
 def pytest_sessionstart(session):
-    pass
+    logging.info("initting ")
+    scope = determine_scope(None, session.config)
+    if scope == 'session':
+        if not session.config.getoption("--provisioner"):
+            local_hw = hardware_initializer.get_local_config(session.config.getoption("--hardware"))
+            session.__initialized_hardware = dict()
+            session.__initialized_hardware['machines'] = local_hw
+        else:  # provisioned:
+            # I cant init provisioned hardware even if its 'session' scoped because I dont have requirements yet....
+            pass
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -143,46 +122,6 @@ def pytest_collection_modifyitems(session, config, items):
         if item.parent.name in extra_tests:
             item.add_marker(pytest.mark.extra)
 
-    fixture_scope = determine_scope(None, config)
-    provisioner = config.getoption("--provisioner")
-
-    if fixture_scope == 'module':
-        # This was handled in previous function.
-        # In future we may need to init other session params (streaming server, s3, etc) but for now we dont have any.
-        return
-
-    if provisioner:
-        if fixture_scope == 'function':
-            logging.debug(f"initializing '{fixture_scope}' hardware config to provisioner")
-            try:
-                set_config(items, provisioner=provisioner)
-            except AssertionError as e:
-                raise Exception("there is a test which doesnt have hardware_reqs defined.", e)
-
-        else:  # scope is 'session'
-            logging.debug(f"initializing '{fixture_scope}' (should be session) hardware config to provisioner")
-            # This is a strange situation, bc if session scope we shouldnt be running provisioner, or module
-            # scope we should have module_hardware defined... Nonetheless to handle this case I think it makes sense
-            # to take the hardware_reqs of the first test which has and attach them to the session.
-            logging.warning(f"Bypassing erroneous situation where running provisioner but scope is '{fixture_scope}' "
-                            f"defaulting to take hardware req for first test which has reqs defined")
-            for test in items:
-                if hasattr(test.function, '__hardware_reqs'):
-                    hardware_config = hardware_initializer.init_hardware(test.function.__hardware_reqs, provisioner)
-                    session.__initialized_hardware = hardware_config
-                    return
-            raise Exception("Tried to run provisioner but no collected tests have hardware reqs defined")
-
-    else:  # not provisioner:
-        # if running locally I will access the session.__initialized hardware even if initializing fixture per function
-        local_config = get_local_config(config.getoption("--hardware"))
-        if fixture_scope == 'function':
-            logging.debug("initializing 'function' hardware config to local_config")
-            set_config(items, local_config)
-        else:  # scope is 'session'
-            logging.debug("initializing 'session' hardware config to local_config")
-            session.__initialized_hardware = local_config
-
 
 def determine_scope(fixture_name, config):
     received_scope = config.getoption("--fixture-scope")
@@ -197,21 +136,15 @@ def determine_scope(fixture_name, config):
         return scope
 
 
-def find_provisioner_hardware(request):
-    if hasattr(request.session, '__initialized_hardware'):
-        logging.debug("returning 'session' initialized hardware")
-        return request.session.__initialized_hardware
-    if hasattr(request.module,  '__initialized_hardware'):
-        logging.debug("returning 'module' initialized hardware")
-        return request.module.__initialized_hardware
-    if hasattr(request.function,  '__initialized_hardware'):
-        logging.debug("returning 'function' initialized hardware")
-        return request.function.__initialized_hardware
+def configured_hardware(request):
+    return getattr(request.session, "__initialized_hardware", None) \
+           or getattr(request.module, "__initialized_hardware", None) \
+           or getattr(request.function, "__initialized_hardware", None)
 
 
 def init_hosts(hardware, base):
-    for machine_name in hardware.keys():
-        base.hosts[machine_name] = Host(**hardware[machine_name])
+    for machine_name, args in hardware['machines'].items():
+        base.hosts[machine_name] = Host(**args)
 
 
 def start_heartbeat_thread(hardware, request):
@@ -228,23 +161,23 @@ def kill_heartbeat_thread(hardware, request):
     request.session.kill_heartbeat = True
 
 
-@pytest.fixture(scope=determine_scope)
-def base_config(request):
-    hardware = find_provisioner_hardware(request)
-    provisioned = request.config.getoption("--provisioner")
-    if provisioned:
-        hb_thread = start_heartbeat_thread(hardware, request)
+def init_base_config(hardware):
     base = DefaultMunch(Munch)
     base.hosts = Munch()
     init_hosts(hardware, base)
     helpers.init_proxy_containers_and_connect(base.hosts.items())
+    return base
+
+
+@pytest.fixture(scope=determine_scope)
+def base_config(request):
+    hardware = configured_hardware(request)
+    assert hardware, "Didnt find configured_hardware in base_config fixture..."
+    base = init_base_config(hardware)
     logging.info("sucessfully initialized base_config fixture")
     yield base
     logging.debug("tearing down base_config fixture")
     helpers.tear_down_proxy_containers(base.hosts.items())
-    if provisioned:
-        kill_heartbeat_thread(hardware, request)
-        hb_thread.join()
 
 
 def init_cluster_structure(base_config, cluster_config):
@@ -283,15 +216,33 @@ def match_base_config_hosts_with_hwreqs(hardware_reqs, base_config):
 
 @pytest.hookimpl(hookwrapper=True, trylast=True)
 def pytest_runtest_setup(item):
-    # The yield allows the base_config fixture to be init'ed:
-    outcome = yield
+    configured_hw = configured_hardware(item._request)
+    if not configured_hw:
+        provisioner = item._request.config.getoption("--provisioner")
+        if not provisioner:
+            hardware = dict()
+            hardware['machines'] = hardware_initializer.get_local_config(item.config.getoption("--hardware"))
+        else:
+            hardware = hardware_initializer.provision_hardware(item.function.__hardware_reqs, provisioner)
+            item.hb_thread = start_heartbeat_thread(hardware, item._request)
+            if determine_scope(None, item.config) == 'session':
+                logging.warning("running provisioned with session scoped fixture.. Could lead to unexpected results..")
+                item.session.__initialized_hardware = dict()
+                item.session.__initialized_hardware = hardware
+
+        item.function.__initialized_hardware = hardware
+
+    assert configured_hardware(item._request), "Couldnt find configured hardware in pytest_runtest_setup"
+    outcome = yield  # This will now go to base_config fixture function
     outcome.get_result()
     base_config = item.funcargs['base_config']
     reqs = item.function.__hardware_reqs
     item.funcargs['base_config'] = match_base_config_hosts_with_hwreqs(reqs, base_config)
     hosts = base_config.hosts.items()
+    logging.info("cleaning between tests..")
     initializer.clean_infra_between_tests(hosts)
     init_cluster_structure(base_config, item.function.__cluster_config)
+    logging.info("done runtest_setup")
 
 
 def pytest_logger_fileloggers(item):
@@ -346,16 +297,24 @@ def _sanitize_nodeid(filename):
 
 def pytest_runtest_teardown(item):
     base_config = item.funcargs['base_config']
-    if is_k8s(next(iter(base_config.hosts.values())).SshDirect):
-        # TODO: implement download_logs for k8s
-        return
-    hosts = item.funcargs['base_config'].hosts.values()
+    hosts_to_download = list()
+    for host in base_config.hosts.values():
+        if not is_k8s(host.SshDirect):
+            hosts_to_download.append(host)
     try:
         logs_dir = os.path.join(item.config.option.logger_logsdir, _sanitize_nodeid(item.nodeid))
+        logging.info("concurrently downloading logs from hosts...")
         concurrently.run({host.ip: (download_host_logs, host, logs_dir)
-                          for host in hosts})
+                          for host in hosts_to_download})
     except subprocess.CalledProcessError:
         logging.exception("was unable to download logs from a host")
+
+    helpers.tear_down_proxy_containers(base_config.hosts.items())
+    scope = determine_scope(None, item.config)
+    if scope == 'function':
+        if item._request.config.getoption("--provisioner"):
+            kill_heartbeat_thread(item.function.__initialized_hardware, item._request)
+            item.hb_thread.join()
 
 
 def get_log_dir(config):
