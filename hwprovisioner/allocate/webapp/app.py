@@ -11,7 +11,7 @@ import connexion
 
 from .redisclient import REDIS
 from .settings import log
-from .expires import expire
+from .expires import expire_allocations
 
 
 random.seed(1)
@@ -66,7 +66,7 @@ async def startup_daemons(app):
     """
     background tasks
     """
-    app["expired_jobs"] = app.loop.create_task(expire(REDIS))
+    app["expired_jobs"] = app.loop.create_task(expire_allocations(REDIS))
 
 
 async def cleanup_daemons(app):
