@@ -40,3 +40,7 @@ class HTTPRequestor():
     def delete(self, route, **kwargs) -> requests.Response:
         pass
 
+    @abstractmethod
+    def patch(self, url, data=None, **kwargs) -> requests.Response:
+        pass
+
