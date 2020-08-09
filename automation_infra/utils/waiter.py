@@ -1,3 +1,4 @@
+import logging
 import signal
 import time
 from contextlib import contextmanager
@@ -49,6 +50,36 @@ def await_changing_result(predicate, interval=2, tries=10):
             prev_res = res
 
 
+def await_and_aggregate_changing_until_result_match(predicate,expected_len_stop, interval=2, tries=10,timeout=30):
+    """
+        This function supports now only iterables results
+        todo : this function need to support not only iterables reulsts and also get lambda for filter result match
+    """
+    caught_exceptions = ""
+    res = []
+    before = time.time()
+    for i in range(tries):
+        logging.info(f"fetch results try number - {i}")
+        if time.time() - before > timeout:
+            raise TimeoutError("Predicate timed out, during the time we caught theses exceptions: \n" + caught_exceptions)
+
+        try:
+            current_res = predicate()
+        except Exception as e:
+            caught_exceptions = caught_exceptions + str(e) + "\n"
+            time.sleep(interval)
+            continue
+
+        if not _is_iterable(current_res):
+            raise Exception("Did not get iterable object as result")
+
+        res.extend(current_res)
+        if len(res) >= expected_len_stop:
+            break
+        time.sleep(interval)
+    return res
+
+
 @contextmanager
 def time_limit(seconds):
     """
@@ -68,3 +99,10 @@ def time_limit(seconds):
     finally:
         signal.alarm(0)
 
+
+def _is_iterable(obj):
+    try:
+        iter(obj)
+    except TypeError:
+        return False
+    return True
