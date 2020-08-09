@@ -39,4 +39,9 @@ class TunnelledRequestor(HTTPRequestor):
         res = requests.delete(formatted_url, **kwargs)
         return res
 
+    def patch(self, route, data=None, **kwargs) -> requests.Response:
+        formatted_url = self.build_url(route)
+        res = requests.patch(formatted_url, data, **kwargs)
+        return res
+
     # TODO: implement other CRUD methods if needed...
