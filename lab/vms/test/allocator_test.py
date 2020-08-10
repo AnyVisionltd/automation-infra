@@ -463,3 +463,36 @@ async def test_concurrent_allocation_and_free_resources(event_loop, mock_libvirt
     with mock.patch.object(vm.VM, '__init__', Exception("boom!")):
         with pytest.raises(Exception):
            await tested_allocator.allocate_vm("sasha_image1", memory_gb=1, base_image_size=10, networks=["bridge"], num_cpus=2, num_gpus=1)
+
+@pytest.mark.asyncio
+async def test_free_resources_on_destroy_or_exception(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner,
+                                           mock_cloud_init, mock_dhcp_handler):
+    gpu1 = _generate_device(1)
+    macs = _generate_macs(2)
+    mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
+    manager = vm_manager.VMManager(event_loop, mock_libvirt, mock_image_store, mock_nbd_provisioner,
+                                   mock_cloud_init, mock_dhcp_handler)
+    mock_dhcp_handler.allocate_ip = mock.AsyncMock(return_value="1.1.1.1")
+    mock_cloud_init.generate_iso.return_value = "my_iso.iso"
+    tested_allocator = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0",
+                                           sol_base_port=5000)
+    assert tested_allocator.sol_used_ports == []
+    vm1 = await tested_allocator.allocate_vm("sasha_image1", memory_gb=1, base_image_size=10, networks=["bridge"], num_cpus=2,
+                                 num_gpus=1)
+    assert tested_allocator.sol_used_ports == [5000]
+    assert len(tested_allocator.gpus_list) == len(gpu1) - 1
+    assert len(tested_allocator.mac_addresses) == len(macs) -1
+
+    await tested_allocator.destroy_vm(vm1.name)
+    assert tested_allocator.sol_used_ports == []
+    assert len(tested_allocator.gpus_list) == len(gpu1)
+    assert len(tested_allocator.mac_addresses) == len(macs)
+
+    with mock.patch.object(vm.VM, '__init__', Exception("boom!")):
+        try:
+            await tested_allocator.allocate_vm("sasha_image1", memory_gb=1, base_image_size=10, networks=["bridge"], num_cpus=2, num_gpus=1)
+        except:
+            pass
+        assert tested_allocator.sol_used_ports == []
+        assert len(tested_allocator.gpus_list) == len(gpu1)
+        assert len(tested_allocator.mac_addresses) == len(macs)
