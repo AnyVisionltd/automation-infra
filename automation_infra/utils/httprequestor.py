@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import requests
 
 
-class HTTPRequestor():
+class HTTPRequestor(object):
     """The goal of the requestor object is to enable communication with a service in different ways.
     The requestor needs to implement the CRUD methods.
     Then the use would be as follows:
