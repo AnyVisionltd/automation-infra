@@ -110,7 +110,7 @@ class Allocator(object):
             machine = vm.VM(**vm_data)
             await self.vm_manager.destroy_vm(machine)
 
-    def _get_free_port(self, port, attempts=500):
+    def _reserve_free_port(self, port, attempts=500):
         if attempts == 0:
             raise socket.error("Could not find any free ports")
         if port not in self.sol_used_ports:
@@ -124,7 +124,7 @@ class Allocator(object):
             except socket.error as err:
                 if err.errno != errno.EADDRINUSE:
                     raise err
-        return self._get_free_port(port + 1, attempts - 1)
+        return self._reserve_free_port(port + 1, attempts - 1)
 
     def _reserve_gpus(self, num_gpus):
         gpus = self.gpus_list[:num_gpus]
@@ -144,10 +144,11 @@ class Allocator(object):
                  'source' : self.paravirt_net_device if network_type == 'bridge' else self.private_network}
                 for mac, network_type in zip(required_macs, networks)]
 
-    def _free_vm_resources(self, gpus, networks):
+    def _free_vm_resources(self, gpus, networks, sol_port):
         macs = [net['macaddress'] for net in networks]
         self.gpus_list.extend(gpus)
         self.mac_addresses.extend(macs)
+        self.sol_used_ports.remove(sol_port)
 
     @staticmethod
     def _validate_networks_params(networks):
@@ -184,6 +185,7 @@ class Allocator(object):
 
             gpus = self._reserve_gpus(num_gpus)
             networks = self._reserve_networks(networks)
+            sol_port = self._reserve_free_port(self.sol_base_port + len(self.vms))
         vm_index = len(self.vms)
         vm_name = "%s-vm-%d" % (self.server_name, vm_index)
         while vm_name in self.vms:
@@ -191,20 +193,20 @@ class Allocator(object):
             vm_name = "%s-vm-%d" % (self.server_name, vm_index)
         try:
             machine = vm.VM(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
-                             net_ifaces=networks, sol_port=self._get_free_port(self.sol_base_port + len(self.vms)),
+                             net_ifaces=networks, sol_port=sol_port,
                              pcis=gpus, base_image=base_image,
                              disks=disks, base_image_size=base_image_size)
             self.vms[vm_name] = machine
         except:
             logging.exception(f"caught exception creating machine {vm_name}")
-            self._free_vm_resources(gpus, networks)
+            self._free_vm_resources(gpus, networks, sol_port)
             raise
 
         async with machine.lock:
             try:
                 await self.vm_manager.allocate_vm(machine)
             except:
-                self._free_vm_resources(gpus, networks)
+                self._free_vm_resources(gpus, networks, sol_port)
                 del self.vms[vm_name]
                 raise
             else:
@@ -226,4 +228,4 @@ class Allocator(object):
                 raise
             else:
                 del self.vms[name]
-                self._free_vm_resources(vm.pcis, vm.net_ifaces)
+                self._free_vm_resources(vm.pcis, vm.net_ifaces, vm.sol_port)
