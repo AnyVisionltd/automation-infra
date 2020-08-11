@@ -15,7 +15,8 @@ class HyperVisor(object):
                                   web.get('/vms', self.handle_list_vms),
                                   web.get('/images', self.handle_list_images),
                                   web.post('/vms/{name}/status', self.handle_vm_update),
-                                  web.get('/vms/{name}', self.handle_vm_status)])
+                                  web.get('/vms/{name}', self.handle_vm_status),
+                                  web.get('/resources', self.handle_resources)])
 
     async def handle_allocate_vm(self, request):
         data = await request.json()
@@ -102,3 +103,9 @@ class HyperVisor(object):
                 return web.json_response({'error': f'couldnt find vm {vm_name} after lock'}, status=404)
             info = await self.allocator.vm_manager.info(vm)
         return web.json_response({'info' : info}, status=200)
+
+    async def handle_resources(self, _):
+        response = {'gpus' : self.allocator.gpus_list,
+                    'macs' : self.allocator.mac_addresses,
+                    'sol_used_ports' : self.allocator.sol_used_ports}
+        return web.json_response(response, status=200)
