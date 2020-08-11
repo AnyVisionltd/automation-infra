@@ -45,6 +45,7 @@ class Allocator(object):
 
     async def _try_restore_vm(self, vm_data):
         pcis_info = vm_data.get('pcis', [])
+        sol_port = vm_data.get('sol_port')
         macs_to_reserve = []
         gpus_to_reserve = []
         # This is dirty hack, since xml is missing the "disks" and we need this variable to
@@ -83,6 +84,12 @@ class Allocator(object):
         # Lets take mac addresses from the list
         for mac in macs_to_reserve:
             self.mac_addresses.remove(mac)
+
+        for gpu in gpus_to_reserve:
+            self.gpus_list.remove(gpu)
+
+        self.sol_used_ports.append(sol_port)
+
         machine = vm.VM(**vm_data)
         self.vms[machine.name] = machine
         logging.info("Restored vm %s", machine)

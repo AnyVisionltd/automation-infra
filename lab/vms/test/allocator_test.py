@@ -367,8 +367,17 @@ async def test_create_machine_and_restore_machine(event_loop, mock_libvirt, mock
     # Now recreate the allocator
     tested = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=5000)
     await tested.restore_vms()
+    sasha_vm = tested.vms['sasha-vm-0']
     assert len(tested.vms) == 1
     assert 'sasha-vm-0' in tested.vms
+    assert str(sasha_vm.sol_port) in tested.sol_used_ports
+
+    for pci in sasha_vm.pcis:
+        assert pci.full_address not in [pci.full_address for pci in tested.gpus_list]
+
+    vm_macs = [net['macaddress'] for net in sasha_vm.net_ifaces]
+    for mac in vm_macs:
+        assert mac not in tested.mac_addresses
     restored_vm_info = await manager.info(old_allocator.vms['sasha-vm-0'])
 
     assert restored_vm_info == old_vm_info
