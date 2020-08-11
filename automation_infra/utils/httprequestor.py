@@ -47,8 +47,9 @@ class HTTPRequestor(object):
 
 class SimpleRequestor(HTTPRequestor):
 
-    def __init__(self, base_uri):
+    def __init__(self, base_uri, verify_cert=False):
         self.base_uri = base_uri
+        self.verify_cert = verify_cert
 
     def build_url(self, route):
         url = f"{self.base_uri}{route}"
@@ -56,17 +57,17 @@ class SimpleRequestor(HTTPRequestor):
 
     def get(self, route, params=None, **kwargs) -> requests.Response:
         """route is the path of the url without the domainname"""
-        return requests.get(self.build_url(route), params, **kwargs)
+        return requests.get(self.build_url(route), params, verify=self.verify_cert, **kwargs)
 
     def post(self, route, data=None, json=None, **kwargs) -> requests.Response:
-        return requests.post(self.build_url(route), data, json, **kwargs)
+        return requests.post(self.build_url(route), data, json, verify=self.verify_cert, **kwargs)
 
     def put(self, route, data=None, **kwargs) -> requests.Response:
-        return requests.put(self.build_url(route), route, data, **kwargs)
+        return requests.put(self.build_url(route), route, data, verify=self.verify_cert, **kwargs)
 
     def delete(self, route, **kwargs) -> requests.Response:
-        return requests.delete(self.build_url(route), route, **kwargs)
+        return requests.delete(self.build_url(route), route, verify=self.verify_cert, **kwargs)
 
     def patch(self, route, data=None, **kwargs) -> requests.Response:
-        return requests.patch(self.build_url(route), data, **kwargs)
+        return requests.patch(self.build_url(route), data, verify=self.verify_cert, **kwargs)
 
