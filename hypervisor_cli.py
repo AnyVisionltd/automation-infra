@@ -40,6 +40,10 @@ def _do_vm_info(args):
     return requests.get("http://%s/vms/%s" % (args.allocator, args.name))
 
 
+def _do_resources():
+    return requests.get("http://%s/resources" % (args.allocator))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--allocator", help="Allocator host:port", required=True)
@@ -72,13 +76,16 @@ if __name__ == "__main__":
     create = commands.add_parser('info', help="Get VM information")
     create.add_argument('--name', help="Name of the VM", required=True)
 
+    create = commands.add_parser('resources', help="List free resources (GPU/Network)")
+
     commands = {"create" : _do_create,
                 "delete" : _do_delete,
                 "images" : _do_list_images,
                 "list"   : _do_list_vms,
-                "poweroff" : functools.partial(_do_update_vm, status = {"power" : "off"}),
-                "poweron" : functools.partial(_do_update_vm, status = {"power" : "on"}),
-                "info" : _do_vm_info}
+                "poweroff" : functools.partial(_do_update_vm, status={"power" : "off"}),
+                "poweron" : functools.partial(_do_update_vm, status={"power" : "on"}),
+                "info" : _do_vm_info,
+                "resources" : _do_resources}
 
     args = parser.parse_args()
     result = commands[args.command](args)
