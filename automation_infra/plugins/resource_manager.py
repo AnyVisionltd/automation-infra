@@ -23,17 +23,6 @@ class ResourceManager(object):
     def config_aws(self):
         if not os.path.exists(f'{os.path.expanduser("~")}/.aws'):
             raise FileNotFoundError("Missing aws credentials in ~/.aws folder")
-        connected_ssh_module = self._host.SSH
-        remote_home = connected_ssh_module.execute("echo $HOME").strip()
-        try:
-            config_exists = len(connected_ssh_module.execute(f"ls {remote_home}/.aws/c*")) == 2
-        except SSHCalledProcessError as e:
-            if 'No such file or directory' in e.stderr:
-                connected_ssh_module.execute(f"mkdir -p {remote_home}/.aws")
-                connected_ssh_module.put(f"{os.getenv('HOME')}/.aws/*", f"{remote_home}/.aws/")
-            else:
-                raise e
-        connected_ssh_module.execute("aws s3 ls s3://anyvision-testing")
 
     @property
     def client(self):
