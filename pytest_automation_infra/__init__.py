@@ -330,8 +330,10 @@ def pytest_report_teststatus(report, config):
 
 def download_host_logs(host, logs_dir):
     dest_dir = os.path.join(logs_dir, host.alias)
-    paths_to_download = ['/storage/logs/', '/var/log/journal']
-    logging.info(f"Downloading logs from {host.alias} to {dest_dir}")
+    logging.info(f"remote log folders and permissions: {host.SshDirect.execute('ls /storage/logs -lh')}")
+    remote_log_folders = host.SshDirect.execute('ls /storage/logs').split()
+    paths_to_download = [*[f"/storage/logs/{folder}" for folder in remote_log_folders], '/var/log/journal']
+    logging.info(f"Downloading logs from {host.alias} to {dest_dir}. Paths to download: {paths_to_download}")
     os.makedirs(dest_dir, exist_ok=True)
     host.SshDirect.download(re.escape(dest_dir), *paths_to_download)
 
