@@ -9,7 +9,7 @@ paths:
   /jobs:
     get:
       tags: [Jobs]
-      operationId: webapp.jobs.alljobs
+      operationId: webapp.rest.alljobs
       summary: Get all jobs from the inventory
       responses:
         200:
@@ -26,33 +26,10 @@ paths:
                       type: string
                     data:
                       type: string
-    post:
-      tags: [Jobs]
-      operationId: webapp.jobs.post
-      summary: Adds a job to the queue
-      requestBody:
-        description: job info
-        content:
-          application/json:
-            schema:
-              properties:
-                demands:
-                  type: object
-      responses:
-        200:
-          description: Return all items from the inventory
-          content:
-            application/json:
-              schema:
-                properties:
-                  status:
-                    type: integer
-                    description: The status for the operation
-                    example: 200
   /jobs/{allocation_id}:
     get:
       tags: [Jobs]
-      operationId: webapp.jobs.onejob
+      operationId: webapp.rest.onejob
       summary: Get one job from the inventory
       parameters:
         - name: allocation_id
@@ -62,6 +39,7 @@ paths:
           schema:
             type: string
             format: uuid
+            example: b4ed4b64-8207-489c-b3bf-91fa2595bd09
       responses:
         200:
           description: Returns a single job from the inventory
@@ -78,7 +56,7 @@ paths:
   /ws/jobs:
     get:
       tags: [Jobs, WebSocket]
-      operationId: webapp.jobs.sub
+      operationId: webapp.rest.fulfill
       summary: Testing infrastructure connects to this ws, sends demands over it, and
       responses:
         200:
@@ -117,6 +95,31 @@ paths:
                     last_hb:
                       type: integer
                       example: 1595759915
+      responses:
+        200:
+          description: Operation success indicator
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+  /release/{allocation_id}:
+    delete:
+      tags: [Jobs]
+      operationId: webapp.rest.release
+      summary: Release allocation
+      parameters:
+        - name: allocation_id
+          in: path
+          description: job allocation id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: b4ed4b64-8207-489c-b3bf-91fa2595bd09
       responses:
         200:
           description: Operation success indicator
