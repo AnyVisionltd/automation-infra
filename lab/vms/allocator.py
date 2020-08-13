@@ -217,7 +217,7 @@ class Allocator(object):
                 del self.vms[vm_name]
                 raise
             else:
-                logging.info(f"Allocated vm {vm}")
+                logging.info(f"Allocated vm {machine}")
         return machine
 
     async def destroy_vm(self, name):
