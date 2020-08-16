@@ -221,7 +221,7 @@ class Allocator(object):
             machine = vm.VM(name=vm_name, num_cpus=num_cpus, memsize=memory_gb,
                              net_ifaces=networks, sol_port=sol_port,
                              pcis=gpus, base_image=base_image,
-                             disks=disks, base_image_size=base_image_size)
+                             disks=disks, base_image_size=base_image_size, allocation_id=allocation_id)
             self.vms[vm_name] = machine
         except:
             logging.exception(f"caught exception creating machine {vm_name}")
