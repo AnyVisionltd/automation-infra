@@ -106,6 +106,10 @@ def pytest_sessionstart(session):
 def pytest_sessionfinish(session, exitstatus):
     logging.debug("Sending kill heartbeat")
     session.kill_heartbeat = True
+    provisioner = session.config.getoption("--provisioner")
+    if provisioner and determine_scope(None, session.config) == 'session':
+        hardware_initializer.release_hardware(session.__initialized_hardware, provisioner)
+
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -326,9 +330,11 @@ def pytest_runtest_teardown(item):
     helpers.tear_down_proxy_containers(base_config.hosts.items())
     scope = determine_scope(None, item.config)
     if scope == 'function':
-        if item._request.config.getoption("--provisioner"):
+        provisioner = item._request.config.getoption("--provisioner")
+        if provisioner:
             kill_heartbeat_thread(item.function.__initialized_hardware, item._request)
             item.hb_thread.join()
+            hardware_initializer.release_hardware(item.function.__initialized_hardware, provisioner)
 
 
 def get_log_dir(config):
