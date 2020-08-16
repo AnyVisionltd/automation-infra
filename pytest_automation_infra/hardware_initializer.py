@@ -8,7 +8,6 @@ import time
 import aiohttp
 import yaml
 
-
 def get_local_config(local_config_path):
     if not os.path.isfile(local_config_path):
         raise Exception("""local hardware_config yaml not found""")
@@ -54,6 +53,22 @@ def provision_hardware(hardware_req, provisioner):
         reply = loop.run_until_complete(fetcher(hardware_req, provisioner))
         logging.info("fetcher took %s seconds", time.time() - start)
         hardware['allocation_id'] = reply['allocation_id']
-        for machine_name, hardware_details in zip(hardware_req.keys(), reply['result']['hardware_details']):
+        for machine_name, hardware_details in zip(hardware_req.keys(), reply['hardware_details']):
             hardware['machines'][machine_name] = hardware_details
     return hardware
+
+
+async def releaser(allocation_id, provisioner):
+    async with aiohttp.ClientSession() as session:
+        async with session.delete(f'http://{provisioner}/api/release/{allocation_id}') as resp:
+            res_json = await resp.json()
+            assert res_json['status'] == 200, f"Wasnt successful releasing {res_json}"
+            return res_json
+
+
+def release_hardware(hardware, provisioner):
+    logging.info("releasing hardware")
+    allocation_id = hardware['allocation_id']
+    loop = asyncio.get_event_loop()
+    reply = loop.run_until_complete(releaser(allocation_id, provisioner))
+    logging.info(f"released hardware. response: {reply}")
