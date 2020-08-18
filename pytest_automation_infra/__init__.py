@@ -336,6 +336,7 @@ def download_host_logs(host, logs_dir):
     logging.info(f"Downloading logs from {host.alias} to {dest_dir}. Paths to download: {paths_to_download}")
     os.makedirs(dest_dir, exist_ok=True)
     host.SshDirect.download(re.escape(dest_dir), *paths_to_download)
+    logging.info(f"downloaded log folders: {os.listdir(dest_dir)}")
 
 def _sanitize_nodeid(filename):
     filename = filename.replace('::()::', '/')
