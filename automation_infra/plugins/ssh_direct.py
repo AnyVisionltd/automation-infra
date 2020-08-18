@@ -171,9 +171,9 @@ class SshDirect(object):
 
     def download(self, localdir, *remote_pathes):
         if self._using_keyfile:
-            prefix = "scp -i %s" % self._host.keyfile
+            prefix = "scp -T -i %s" % self._host.keyfile
         else:
-            prefix = "sshpass -p '%s' scp -P %d -o PubkeyAuthentication=no" % (self._connection.password, self._connection.port)
+            prefix = "sshpass -p '%s' scp -T -P %d -o PubkeyAuthentication=no" % (self._connection.password, self._connection.port)
 
         cmd_template = '%(prefix)s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\
                         -r %(username)s@%(hostname)s:%(remotepath)s %(localpath)s'
