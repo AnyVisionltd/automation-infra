@@ -41,10 +41,11 @@ class DHCPRequestor(object):
 
     def _dhcp_request(self, mac_raw, requested_ip, xid_cookie=0, server_id="0.0.0.0", timeout_sec=10):
         logging.debug(f"Sending dhcp request for {requested_ip} cookie {xid_cookie} server id {server_id} net {self._net_iface}")
+        broadcast_flag = scapy.fields.FlagValue(0b1000000000000000, "???????????????B")
         dhcp_request = l2.Ether(src=self._real_mac, dst="ff:ff:ff:ff:ff:ff") / \
                         inet.IP(src="0.0.0.0", dst="255.255.255.255") / \
                         inet.UDP(sport=68, dport=67) / \
-                        dhcp.BOOTP(chaddr=mac_raw, xid=xid_cookie) / \
+                        dhcp.BOOTP(chaddr=mac_raw, xid=xid_cookie, flags=broadcast_flag) / \
                         dhcp.DHCP(options=[("message-type", "request"), ("server_id", server_id),
                                       ("requested_addr", requested_ip), ("param_req_list", 0), "end"])
 
@@ -61,10 +62,11 @@ class DHCPRequestor(object):
         logging.debug(f"Requesting lease for mac {mac_address} ip {ip} iface {self._net_iface}")
         mac_raw = codecs.decode(mac_address.replace(':', ''), 'hex')
         if ip is None:
+            broadcast_flag = scapy.fields.FlagValue(0b1000000000000000, "???????????????B")
             dhcp_discover = l2.Ether(src=self._real_mac, dst='ff:ff:ff:ff:ff:ff') / \
                             inet.IP(src='0.0.0.0', dst='255.255.255.255') / \
                             inet.UDP(dport=67, sport=68) / \
-                            dhcp.BOOTP(chaddr=mac_raw, xid=scapy.volatile.RandInt()) / dhcp.DHCP(options=[('message-type', 'discover'), 'end'])
+                            dhcp.BOOTP(chaddr=mac_raw, xid=scapy.volatile.RandInt(), flags=broadcast_flag) / dhcp.DHCP(options=[('message-type', 'discover'), 'end'])
             dhcp_offer = sendrecv.srp1(dhcp_discover, iface=self._net_iface, verbose=self._verbose, timeout=timeout_sec)
             if dhcp_offer is None:
                 raise TimeoutError(f"Timeout. failed to get offer for mac {mac_address} iface: {self._net_iface}")
