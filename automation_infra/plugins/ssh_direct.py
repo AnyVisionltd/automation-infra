@@ -160,7 +160,7 @@ class SshDirect(object):
         else:
             prefix = "sshpass -p '%s' scp -P %d -o PubkeyAuthentication=no" % (self._connection.password, self._connection.port)
 
-        cmd_template = '%(prefix)s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\
+        cmd_template = '%(prefix)s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR\
                         -r %(localpath)s %(username)s@%(hostname)s:%(remotepath)s'
         cmd = cmd_template % dict(prefix=prefix,
                                   localpath=src,
@@ -175,7 +175,7 @@ class SshDirect(object):
         else:
             prefix = "sshpass -p '%s' scp -T -P %d -o PubkeyAuthentication=no" % (self._connection.password, self._connection.port)
 
-        cmd_template = '%(prefix)s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\
+        cmd_template = '%(prefix)s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR\
                         -r %(username)s@%(hostname)s:%(remotepath)s %(localpath)s'
         for dest_path in remote_pathes:
             cmd = cmd_template % dict(prefix=prefix,
