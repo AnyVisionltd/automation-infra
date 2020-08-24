@@ -37,6 +37,18 @@ class Iptables(object):
     def unblock(self, service_name):
         self._ssh.execute(f"sudo iptables  -w --delete {self.AUTOMATION_CHAIN} --dest {service_name} -j REJECT")
 
+    def drop(self, service_name, protocol=None):
+        protocol_cmd = self.protocol_cmd(protocol)
+        self._ssh.execute(f"sudo iptables -w -I FORWARD {protocol_cmd} --dest {service_name} -j DROP")
+
+    def undrop(self, service_name, protocol=None):
+        protocol_cmd = self.protocol_cmd(protocol)
+        self._ssh.execute(f"sudo iptables -w -D FORWARD {protocol_cmd} --dest {service_name} -j DROP")
+
+    @staticmethod
+    def protocol_cmd(protocol):
+        return f"-p {protocol}" if protocol else ""
+
     def reset_state(self):
         self.flush_or_create()
         self.activate_automation_chain()
