@@ -155,6 +155,10 @@ def check_for_legacy_containers(ssh):
                         f"Please prune accordingly and rerun test.")
 
 
+def check_hosts_file(ssh):
+    assert ssh.execute("cat /etc/hosts"), "remote /etc/hosts is blank. This will cause problems for docker_hoster"
+
+
 def init_proxy_container_and_connect(host):
     logging.debug(f"[{host}] connecting to ssh directly")
     host.SshDirect.connect()
@@ -168,6 +172,7 @@ def init_proxy_container_and_connect(host):
     logging.debug(f"[{host}] connecting to ssh container")
     waiter.wait_nothrow(lambda: host.SSH.connect(port=host.tunnelport), timeout=60)
     logging.debug(f"[{host}] connected successfully")
+    check_hosts_file(host.SSH)
 
 
 def init_proxy_containers_and_connect(hosts):
