@@ -9,6 +9,7 @@ import threading
 from paramiko import SSHException
 
 from automation_infra.utils import waiter
+import sys
 
 try:
     import SocketServer
@@ -64,7 +65,8 @@ class Tunnel(object):
                 super().__init__(request, client_address, server)
 
             def finish(self):
-                logging.debug(f'finishing <<{remote_host}>> subhandler: {self.server.server_address}')
+                is_in_error = sys.exc_info()[0] is not None
+                logging.debug(f'finishing <<{remote_host}>> subhandler: {self.server.server_address} error ? {is_in_error}')
                 return SocketServer.BaseRequestHandler.finish(self)
 
         forward_server = ForwardServer(("", local_port), SubHander)
