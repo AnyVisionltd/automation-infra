@@ -175,9 +175,7 @@ def base_config(request):
     assert hardware, "Didnt find configured_hardware in base_config fixture..."
     base = init_base_config(hardware)
     logging.info("sucessfully initialized base_config fixture")
-    yield base
-    logging.debug("tearing down base_config fixture")
-    helpers.tear_down_proxy_containers(base.hosts.items())
+    return base
 
 
 def init_cluster_structure(base_config, cluster_config):
