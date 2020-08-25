@@ -75,7 +75,7 @@ def send_heartbeat(provisioned_hw, stop):
         payload = {"allocation_id": allocation_id}
         logging.debug(f"sending post hb request payload: {payload}")
         response = requests.post(
-            "%s/api/heartbeat" % os.getenv('HEARTBEAT_SERVER', "http://localhost:7080"), json=payload)
+            "http://%s/api/heartbeat" % os.getenv('HEARTBEAT_SERVER', "localhost:7080"), json=payload)
         logging.debug(f"post response {response}")
         if response.status_code != 200:
             logging.error(
