@@ -9,6 +9,7 @@ from datetime import datetime
 
 import pytest
 import requests
+from _pytest.fixtures import FixtureLookupError
 from munch import *
 
 from automation_infra.utils import initializer, concurrently
@@ -232,7 +233,17 @@ def pytest_runtest_setup(item):
 
     assert configured_hardware(item._request), "Couldnt find configured hardware in pytest_runtest_setup"
     outcome = yield  # This will now go to base_config fixture function
-    outcome.get_result()
+    try:
+        outcome.get_result()
+    except Exception as e:
+        try:
+            base_config = item._request.getfixturevalue('base_config')
+            item.funcargs['base_config'] = base_config
+        except FixtureLookupError as fe:
+            # We got an exception trying to init base_config fixture
+            logging.error("error trying to init base_config fixture")
+        # We got an exception trying to init some other fixture, so base_config is available
+        raise e
     base_config = item.funcargs['base_config']
     reqs = item.function.__hardware_reqs
     item.funcargs['base_config'] = match_base_config_hosts_with_hwreqs(reqs, base_config)
@@ -295,7 +306,10 @@ def _sanitize_nodeid(filename):
     return filename
 
 def pytest_runtest_teardown(item):
-    base_config = item.funcargs['base_config']
+    base_config = item.funcargs.get('base_config')
+    if not base_config:
+        logging.error("base_config fixture wasnt initted properly, cant download logs")
+        return
     hosts_to_download = list()
     for host in base_config.hosts.values():
         if not is_k8s(host.SshDirect):
