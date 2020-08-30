@@ -3,6 +3,7 @@ import os
 import logging
 import re
 import subprocess
+import sys
 import threading
 import time
 from datetime import datetime
@@ -78,10 +79,8 @@ def send_heartbeat(provisioned_hw, stop):
             "http://%s/api/heartbeat" % os.getenv('HEARTBEAT_SERVER', "localhost:7080"), json=payload)
         logging.debug(f"post response {response}")
         if response.status_code != 200:
-            logging.error(
-                "Failed to send heartbeat! Got status %s",
-                response.json()
-                )
+            logging.error("Error sending heartbeat: %s",response.json())
+            os._exit(1)
         if stop():
             logging.debug(f"Killing heartbeat to hw {provisioned_hw}")
             break
