@@ -77,7 +77,7 @@ class Fulfiller(object):
                                  hardware_details=hardware_details,
                                  result=allocation_result,
                                  status="success",
-                                 expiration=int(time.time()) + 30,
+                                 expiration=int(time.time()) + 60,
                                  )
 
     async def release(self, allocation_id):
