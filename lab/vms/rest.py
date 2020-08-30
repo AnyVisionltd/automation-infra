@@ -27,11 +27,11 @@ class HyperVisor(object):
         for host, reqs in request['demands'].items():
             vm_args = dict(
                 networks=reqs.get('networks', ['bridge']),
-                num_cpus=int(reqs.get('cpus', 1)),
-                num_gpus=int(reqs.get('gpus', 0)),
-                base_image=reqs.get('image', 'automation-infra'),
-                base_image_size=reqs.get('base_image_size', None),
-                memory_gb=int(reqs.get('ram', 2)),
+                num_cpus=int(reqs.get('cpus', 10)),
+                num_gpus=int(reqs.get('gpus', 1)),
+                base_image=reqs.get('image', 'ubuntu-compose_v2'),
+                base_image_size=reqs.get('size', 150),
+                memory_gb=int(reqs.get('ram', 20)),
                 disks=reqs.get('disks', None),
                 allocation_id=request.get('allocation_id', None)
             )
