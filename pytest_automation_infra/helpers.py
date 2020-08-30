@@ -157,7 +157,7 @@ def check_for_legacy_containers(ssh):
 
 def init_proxy_container_and_connect(host):
     logging.debug(f"[{host}] connecting to ssh directly")
-    host.SshDirect.connect()
+    host.SshDirect.connect(timeout=60)
     logging.debug(f"[{host}] connected successfully")
 
     if is_blank(host.SshDirect):
