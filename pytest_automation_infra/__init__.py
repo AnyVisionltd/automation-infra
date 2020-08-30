@@ -85,7 +85,7 @@ def send_heartbeat(provisioned_hw, stop):
         if stop():
             logging.debug(f"Killing heartbeat to hw {provisioned_hw}")
             break
-        time.sleep(10)
+        time.sleep(2)
     logging.debug(f"Heartbeat to hardware {provisioned_hw} stopped")
 
 
