@@ -43,6 +43,9 @@ pipeline {
         ansiColor('xterm')
         buildDiscarder(logRotator(numToKeepStr:'50'))
     }
+    triggers {
+        issueCommentTrigger('^\\/rebuild')
+    }
     stages {
         stage ('Set Remote connection to KVM machine') {
             steps {
