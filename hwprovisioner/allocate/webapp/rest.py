@@ -12,15 +12,15 @@ async def alljobs(request):
     """
     return all of the jobs in the queue
     """
-    jobs = request.app["redis"].conn.hgetall("allocations")
-    results = []
-    for job in jobs.items():
+    allocations_raw = request.app["redis"].conn.hgetall("allocations")
+    allocations_decoded = []
+    for job in allocations_raw.items():
         try:
-            results.append(job[1].decode("utf-8"))
+            allocations_decoded.append(job[1].decode("utf-8"))
         except json.decoder.JSONDecodeError:
             log.error("failed to decode")
-    results = [json.loads(result) for result in results]
-    return web.json_response({"status": 200, "data": results})
+    allocation_objects = [json.loads(allocation) for allocation in allocations_decoded]
+    return web.json_response({"status": 200, "data": allocation_objects})
 
 
 async def onejob(request, allocation_id):
