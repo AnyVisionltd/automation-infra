@@ -10,6 +10,7 @@ from datetime import datetime
 
 import pytest
 import requests
+import yaml
 from _pytest.fixtures import FixtureLookupError
 from munch import *
 
@@ -17,7 +18,7 @@ from automation_infra.utils import initializer, concurrently
 from infra.model.host import Host
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
-from pytest_automation_infra import hardware_initializer, helpers
+from pytest_automation_infra import provisioner_client, helpers
 from pytest_automation_infra.helpers import is_k8s
 
 
@@ -63,9 +64,18 @@ def pytest_generate_tests(metafunc):
         return
 
     logging.debug("initializing module hardware config to local")
-    local_config = hardware_initializer.get_local_config(metafunc.config.getoption("--hardware"))
+    local_config = get_local_config(metafunc.config.getoption("--hardware"))
     metafunc.module.__initialized_hardware = dict()
     metafunc.module.__initialized_hardware['machines'] = local_config
+
+
+def get_local_config(local_config_path):
+    if not os.path.isfile(local_config_path):
+        raise Exception("""local hardware_config yaml not found""")
+    with open(local_config_path, 'r') as f:
+        local_config = yaml.full_load(f)
+    logging.debug(f"local_config: {local_config}")
+    return local_config
 
 
 def send_heartbeat(provisioned_hw, stop):
@@ -93,7 +103,7 @@ def pytest_sessionstart(session):
     scope = determine_scope(None, session.config)
     if scope == 'session':
         if not session.config.getoption("--provisioner"):
-            local_hw = hardware_initializer.get_local_config(session.config.getoption("--hardware"))
+            local_hw = get_local_config(session.config.getoption("--hardware"))
             session.__initialized_hardware = dict()
             session.__initialized_hardware['machines'] = local_hw
         else:  # provisioned:
@@ -107,8 +117,7 @@ def pytest_sessionfinish(session, exitstatus):
     session.kill_heartbeat = True
     provisioner = session.config.getoption("--provisioner")
     if provisioner and determine_scope(None, session.config) == 'session':
-        hardware_initializer.release_hardware(session.__initialized_hardware, provisioner)
-
+        provisioner_client.ProvisionerClient(provisioner).release(session.__initialized_hardware)
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -223,9 +232,9 @@ def pytest_runtest_setup(item):
         provisioner = item._request.config.getoption("--provisioner")
         if not provisioner:
             hardware = dict()
-            hardware['machines'] = hardware_initializer.get_local_config(item.config.getoption("--hardware"))
+            hardware['machines'] = get_local_config(item.config.getoption("--hardware"))
         else:
-            hardware = hardware_initializer.provision_hardware(item.function.__hardware_reqs, provisioner)
+            hardware = provisioner_client.ProvisionerClient(provisioner).provision(item.function.__hardware_reqs)
             item.hb_thread = start_heartbeat_thread(hardware, item._request)
             if determine_scope(None, item.config) == 'session':
                 logging.warning("running provisioned with session scoped fixture.. Could lead to unexpected results..")
@@ -333,7 +342,7 @@ def pytest_runtest_teardown(item):
         if provisioner:
             kill_heartbeat_thread(item.function.__initialized_hardware, item._request)
             item.hb_thread.join()
-            hardware_initializer.release_hardware(item.function.__initialized_hardware, provisioner)
+            provisioner_client.ProvisionerClient(provisioner).release(item.function.__initialized_hardware)
 
 
 def get_log_dir(config):
