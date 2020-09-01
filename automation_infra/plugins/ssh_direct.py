@@ -164,7 +164,7 @@ class SshDirect(object):
                         -r %(localpath)s %(username)s@%(hostname)s:%(remotepath)s'
         cmd = cmd_template % dict(prefix=prefix,
                                   localpath=src,
-                                  username=self._host.user,
+                                  username=self._connection._username,
                                   hostname=self._host.ip,
                                   remotepath=dest)
         subprocess.check_call(cmd, shell=True)
@@ -179,7 +179,7 @@ class SshDirect(object):
                         -r %(username)s@%(hostname)s:%(remotepath)s %(localpath)s'
         for dest_path in remote_pathes:
             cmd = cmd_template % dict(prefix=prefix,
-                                      username=self._host.user,
+                                      username=self._connection._username,
                                       hostname=self._host.ip,
                                       remotepath=dest_path,
                                       localpath=localdir)
@@ -194,7 +194,7 @@ class SshDirect(object):
         exclude_dirs = exclude_dirs or []
         exclude_expr = " ".join([f"--exclude {exclude_dir}" for exclude_dir in exclude_dirs])
         prefix = f"sshpass -p {self._connection.password} rsync -ravh --delete {exclude_expr} -e \"ssh -p {self._connection.port} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null\""
-        cmd = f"{prefix} {src} {self._host.user}@{self._host.ip}:{dst}"
+        cmd = f"{prefix} {src} {self._connection._username}@{self._host.ip}:{dst}"
         subprocess.check_call(cmd, shell=True)
 
 
