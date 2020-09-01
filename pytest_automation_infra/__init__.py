@@ -314,13 +314,14 @@ def pytest_runtest_teardown(item):
     for host in base_config.hosts.values():
         if not is_k8s(host.SshDirect):
             hosts_to_download.append(host)
-    try:
-        logs_dir = os.path.join(item.config.option.logger_logsdir, _sanitize_nodeid(item.nodeid))
-        logging.info("concurrently downloading logs from hosts...")
-        concurrently.run({host.ip: (download_host_logs, host, logs_dir)
-                          for host in hosts_to_download})
-    except subprocess.CalledProcessError:
-        logging.exception("was unable to download logs from a host")
+    if hosts_to_download:
+        try:
+            logs_dir = os.path.join(item.config.option.logger_logsdir, _sanitize_nodeid(item.nodeid))
+            logging.info("concurrently downloading logs from hosts...")
+            concurrently.run({host.ip: (download_host_logs, host, logs_dir)
+                              for host in hosts_to_download})
+        except subprocess.CalledProcessError:
+            logging.exception("was unable to download logs from a host")
 
     helpers.tear_down_proxy_containers(base_config.hosts.items())
     scope = determine_scope(None, item.config)
