@@ -193,7 +193,7 @@ class SshDirect(object):
             raise NotImplemented("Rsync with SSH key is not yet implemented")
         exclude_dirs = exclude_dirs or []
         exclude_expr = " ".join([f"--exclude {exclude_dir}" for exclude_dir in exclude_dirs])
-        prefix = f"sshpass -p {self._connection.password} rsync -ravh --delete {exclude_expr} -e \"ssh -p {self._connection.port} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null\""
+        prefix = f"sshpass -p {self._connection.password} rsync -ravh --delete {exclude_expr} -e \"ssh -p {self._connection.port} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR\""
         cmd = f"{prefix} {src} {self._connection._username}@{self._host.ip}:{dst}"
         subprocess.check_call(cmd, shell=True)
 
