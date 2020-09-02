@@ -110,7 +110,9 @@ def set_up_docker_container(connected_ssh_module):
               f'--volume=/etc/hosts:/etc/hosts '\
               f'--privileged ' \
               f'--network=host ' \
-              f'--name=automation_proxy gcr.io/anyvision-training/automation-proxy:master'
+              f'--entrypoint /usr/sbin/sshd ' \
+              f'--name=automation_proxy gcr.io/anyvision-training/automation-proxy:master ' \
+              f'-D -e -ddd'
     assert not connected_ssh_module.execute("docker ps -aq --filter 'name=automation_proxy'"), \
         "you want to run automation_proxy but it already exists, please remove it beforehand!"
     try:
