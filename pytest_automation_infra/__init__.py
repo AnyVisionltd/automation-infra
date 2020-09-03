@@ -18,7 +18,7 @@ from automation_infra.utils import initializer, concurrently
 from infra.model.host import Host
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
-from pytest_automation_infra import provisioner_client, helpers
+from pytest_automation_infra import provisioner_client, helpers, heartbeat_client
 from pytest_automation_infra.helpers import is_k8s
 
 
@@ -76,26 +76,6 @@ def get_local_config(local_config_path):
         local_config = yaml.full_load(f)
     logging.debug(f"local_config: {local_config}")
     return local_config
-
-
-def send_heartbeat(provisioned_hw, stop):
-    logging.info(f"Starting heartbeat to provisioned hardware: {provisioned_hw}")
-    while True:
-        allocation_id = provisioned_hw['allocation_id']
-        logging.debug(f"allocation_id: {allocation_id}")
-        payload = {"allocation_id": allocation_id}
-        logging.debug(f"sending post hb request payload: {payload}")
-        response = requests.post(
-            "http://%s/api/heartbeat" % os.getenv('HEARTBEAT_SERVER', "localhost:7080"), json=payload)
-        logging.debug(f"post response {response}")
-        if response.status_code != 200:
-            logging.error("Error sending heartbeat: %s",response.json())
-            os._exit(1)
-        if stop():
-            logging.debug(f"Killing heartbeat to hw {provisioned_hw}")
-            break
-        time.sleep(2)
-    logging.debug(f"Heartbeat to hardware {provisioned_hw} stopped")
 
 
 def pytest_sessionstart(session):
@@ -160,18 +140,8 @@ def init_hosts(hardware, base):
         base.hosts[machine_name] = Host(**args)
 
 
-def start_heartbeat_thread(hardware, request):
-    request.session.kill_heartbeat = False
-    hb_thread = threading.Thread(target=send_heartbeat,
-                                 args=(hardware, lambda: request.session.kill_heartbeat),
-                                 daemon=False)
-    hb_thread.start()
-    return hb_thread
-
-
 def kill_heartbeat_thread(hardware, request):
     logging.debug(f"Setting kill_heartbeat on hw {hardware} to True")
-    request.session.kill_heartbeat = True
 
 
 def init_base_config(hardware):
@@ -235,7 +205,9 @@ def pytest_runtest_setup(item):
             hardware['machines'] = get_local_config(item.config.getoption("--hardware"))
         else:
             hardware = provisioner_client.ProvisionerClient(provisioner).provision(item.function.__hardware_reqs)
-            item.hb_thread = start_heartbeat_thread(hardware, item._request)
+            item._request.session.kill_heartbeat = False
+            hb = heartbeat_client.HeartbeatClient(lambda: item._request.session.kill_heartbeat)
+            hb.send_heartbeats_on_thread(hardware['allocation_id'])
             if determine_scope(None, item.config) == 'session':
                 logging.warning("running provisioned with session scoped fixture.. Could lead to unexpected results..")
                 item.session.__initialized_hardware = dict()
@@ -340,8 +312,7 @@ def pytest_runtest_teardown(item):
     if scope == 'function':
         provisioner = item._request.config.getoption("--provisioner")
         if provisioner:
-            kill_heartbeat_thread(item.function.__initialized_hardware, item._request)
-            item.hb_thread.join()
+            item._request.session.kill_heartbeat = True
             provisioner_client.ProvisionerClient(provisioner).release(item.function.__initialized_hardware)
 
 
