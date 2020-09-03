@@ -9,7 +9,7 @@ import websocket
 
 
 class ProvisionerClient(object):
-    def __init__(self, ep=os.getenv('PROVISIONER', "localhost:7080")):
+    def __init__(self, ep=os.getenv('HABERTEST_PROVISIONER', "localhost:8080")):
         self.ep = ep
 
     def provision(self, hardware_req, timeout=120):

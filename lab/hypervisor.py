@@ -109,7 +109,7 @@ def _vfio_bind_pci_devices(devices):
 
 
 async def start_daemons(app):
-    app["heartbeats"] = app.loop.create_task(heartbeat.send_heartbeats(app['info'], os.getenv("PROVISIONER", "localhost:8080")))
+    app["heartbeats"] = app.loop.create_task(heartbeat.send_heartbeats(app['info'], os.getenv("HABERTEST_PROVISIONER", "localhost:8080")))
 
 
 if __name__ == '__main__':
