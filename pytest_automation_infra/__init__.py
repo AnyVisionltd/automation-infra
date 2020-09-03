@@ -13,6 +13,7 @@ from _pytest.fixtures import FixtureLookupError
 from munch import *
 
 from automation_infra.utils import initializer, concurrently
+from automation_infra.utils.grouping_tests import TestAndRequirements, group_tests
 from infra.model.host import Host
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
@@ -266,6 +267,12 @@ def pytest_logger_logsdir(config):
 def pytest_logger_config(logger_config):
     logger_config.split_by_outcome()
     logger_config.set_formatter_class(InfraFormatter)
+
+
+def pytest_collection_modifyitems(session,items, config):
+    collected_tests = [TestAndRequirements(test.obj.__dict__["__hardware_reqs"], test) for test in items]
+    grouped_tests = group_tests(collected_tests)
+    session.__grouped_tests = grouped_tests
 
 
 def pytest_configure(config):
