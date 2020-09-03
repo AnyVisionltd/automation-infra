@@ -33,7 +33,8 @@ class HyperVisor(object):
                 base_image_size=reqs.get('size', 150),
                 memory_gb=int(reqs.get('ram', 20)),
                 disks=reqs.get('disks', None),
-                allocation_id=request.get('allocation_id', None)
+                allocation_id=request.get('allocation_id', None),
+                requestor=request.get('requestor', None)
             )
             vm_request_details.append(vm_args)
         return vm_request_details
