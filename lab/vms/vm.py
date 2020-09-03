@@ -8,7 +8,7 @@ class VM(object):
 
     def __init__(self, name, num_cpus, memsize, sol_port, base_image,
                  base_image_size=None, net_ifaces=None, pcis=None, disks=None, api_version=None,
-                 image=None, cloud_init_iso=None, uuid=None, allocation_id=None):
+                 image=None, cloud_init_iso=None, uuid=None, allocation_id=None, requestor=None):
         self.net_ifaces = net_ifaces or []
         self.pcis = pcis or []
         self.disks = disks or []
@@ -24,6 +24,7 @@ class VM(object):
         self.uuid = uuid or str(libuuid.uuid4())
         self.base_image_size = base_image_size
         self.allocation_id = allocation_id
+        self.requestor = requestor
 
     @property
     def json(self):
@@ -40,7 +41,8 @@ class VM(object):
                 "cloud_init_iso": self.cloud_init_iso,
                 "uuid" : self.uuid,
                 "base_image_size" : self.base_image_size,
-                "allocation_id": self.allocation_id }
+                "allocation_id": self.allocation_id,
+                "requestor": self.requestor}
 
     def __repr__(self):
         data = self.json
