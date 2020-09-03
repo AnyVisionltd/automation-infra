@@ -1,6 +1,8 @@
+import getpass
 import json
 import logging
 import os
+import socket
 import time
 
 import requests
@@ -18,7 +20,11 @@ class ProvisionerClient(object):
         ws.connect("ws://%s/api/ws/jobs" % self.ep)
         start = time.time()
         while time.time() - start <= timeout:
-            ws.send(json.dumps({"data": {"demands": hardware_req}}))
+            requestor_information = dict(hostname=os.getenv("host_hostname", socket.gethostname()),
+                                         username=getpass.getuser(),
+                                         ip=os.getenv("host_ip", socket.gethostbyname(socket.gethostname())))
+            ws.send(json.dumps({"data": {"demands": hardware_req,
+                                         "requestor": requestor_information}}))
             reply = json.loads(ws.recv())
             if reply['status'] == 'unfulfillable':
                 logging.info(f"response: {reply}")

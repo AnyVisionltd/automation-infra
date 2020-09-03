@@ -1,5 +1,7 @@
 username=${USER}
 userhome=${HOME}
+host_hostname=$(hostname)
+host_ip=$(hostname -i | awk '{print $1}')
 uid=${UID}
 workdir=${PWD}
 DOCKER_GROUP_ID=$(getent group docker | cut -d: -f3)
