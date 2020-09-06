@@ -47,6 +47,11 @@ pipeline {
         issueCommentTrigger('^\\/rebuild')
     }
     stages {
+        stage ('Build automation proxy container') {
+           steps {
+                sh(script: "make push-automation-proxy")
+	   }
+        }
         stage ('Set Remote connection to KVM machine') {
             steps {
                 script {
