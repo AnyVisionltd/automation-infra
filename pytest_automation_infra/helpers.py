@@ -7,6 +7,7 @@ from automation_infra.plugins.ssh_direct import SSHCalledProcessError
 import os
 
 from automation_infra.utils import waiter
+import subprocess
 
 logging.getLogger('paramiko').setLevel(logging.WARN)
 
@@ -95,6 +96,25 @@ def set_up_k8s_pod(connected_ssh_module):
     logging.debug("success deploying proxy pod in k8s!")
 
 
+def _memoize(function):
+    from functools import wraps
+    memo = {}
+    @wraps(function)
+    def wrapper(*args):
+        if args in memo:
+            return memo[args]
+        else:
+            rv = function(*args)
+            memo[args] = rv
+            return rv
+    return wrapper
+
+@_memoize
+def _automation_proxy_version():
+    version_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),"../docker_build/version.sh")
+    return subprocess.check_output([version_file]).split()[0].decode()
+
+
 def set_up_docker_container(connected_ssh_module):
     removed = remove_proxy_container(connected_ssh_module)
     if removed:
@@ -102,7 +122,7 @@ def set_up_docker_container(connected_ssh_module):
     do_docker_login(connected_ssh_module)
 
     logging.debug("pulling docker")
-    connected_ssh_module.execute(f"docker pull gcr.io/anyvision-training/automation-proxy:master")
+    connected_ssh_module.execute(f"docker pull gcr.io/anyvision-training/automation-proxy:{_automation_proxy_version()}")
 
     logging.debug("running docker")
     run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --rm ' \
@@ -110,7 +130,7 @@ def set_up_docker_container(connected_ssh_module):
               f'--volume=/etc/hosts:/etc/hosts '\
               f'--privileged ' \
               f'--network=host ' \
-              f'--name=automation_proxy gcr.io/anyvision-training/automation-proxy:master'
+              f'--name=automation_proxy gcr.io/anyvision-training/automation-proxy:{_automation_proxy_version()}'
     assert not connected_ssh_module.execute("docker ps -aq --filter 'name=automation_proxy'"), \
         "you want to run automation_proxy but it already exists, please remove it beforehand!"
     try:
