@@ -54,6 +54,7 @@ RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
 
 # Install pip3 requirements.txt
 ADD requirements.txt  /home/user/requirements.txt
+RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install -r /home/user/requirements.txt
 
 # Configure npm registry
