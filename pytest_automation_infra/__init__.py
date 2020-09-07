@@ -257,7 +257,7 @@ def pytest_configure(config):
     date_fmt = '%Y-%m-%d %H:%M:%S'
 
     config.option.showcapture = 'no'
-    log_dir = datetime.now().strftime('%Y_%m_%d:%H:%M:%S')
+    log_dir = datetime.now().strftime('%Y_%m_%d__%H%M%S')
     logs_dir = os.path.join(os.getcwd(), f'logs/{log_dir}')
     os.makedirs(logs_dir, exist_ok=True)
     config.option.logger_logsdir = logs_dir
