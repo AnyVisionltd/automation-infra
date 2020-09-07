@@ -6,7 +6,7 @@ import aiohttp
 
 
 async def send_heartbeats(rm_info, allocator_ep):
-    logging.debug(f'starting to send heartbeats with info: {rm_info}')
+    logging.debug(f'starting to send heartbeats with info: {rm_info} to {allocator_ep}')
     while True:
         try:
             rm_info['last_hb'] = int(time.time())
