@@ -102,7 +102,7 @@ class RedisClient:
 
 
 REDIS = RedisClient(
-    host=os.getenv("REDIS_HOST", "localhost"),
+    host=os.getenv("REDIS_HOST", "redis"),
     port=os.getenv("REDIS_PORT", "6379"),
     username="",  # os.getenv("REDIS_USER"),
     password="",  # os.getenv("REDIS_PASSWORD"),
