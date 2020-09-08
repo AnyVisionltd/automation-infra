@@ -215,7 +215,9 @@ def pytest_runtest_setup(item):
 
         item.function.__initialized_hardware = hardware
 
-    assert configured_hardware(item._request), "Couldnt find configured hardware in pytest_runtest_setup"
+    hardware = configured_hardware(item._request)
+    assert hardware, "Couldnt find configured hardware in pytest_runtest_setup"
+    logging.info(f"HUT connection string:\n\n{next(iter(hardware['machines'].values()))['user']}@{next(iter(hardware['machines'].values()))['ip']}\n\npassword {next(iter(hardware['machines'].values()))['password']}\n\n")
     outcome = yield  # This will now go to base_config fixture function
     try:
         outcome.get_result()
