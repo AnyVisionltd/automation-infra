@@ -20,6 +20,7 @@ from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
 from pytest_automation_infra import provisioner_client, helpers, heartbeat_client
 from pytest_automation_infra.helpers import is_k8s
+from pytest_automation_infra.settings import infra_logger
 
 
 class InfraFormatter(logging.Formatter):
@@ -79,7 +80,7 @@ def get_local_config(local_config_path):
 
 
 def pytest_sessionstart(session):
-    logging.info("initting ")
+    infra_logger.debug("\n<--------------------sesssionstart------------------------>\n")
     scope = determine_scope(None, session.config)
     if scope == 'session':
         if not session.config.getoption("--provisioner"):
@@ -93,7 +94,8 @@ def pytest_sessionstart(session):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionfinish(session, exitstatus):
-    logging.debug("Sending kill heartbeat")
+    infra_logger.debug("\n<-------------------session finish-------------------->\n")
+    infra_logger.debug("Sending kill heartbeat")
     session.kill_heartbeat = True
     provisioner = session.config.getoption("--provisioner")
     if provisioner and determine_scope(None, session.config) == 'session':
@@ -120,12 +122,10 @@ def determine_scope(fixture_name, config):
     received_scope = config.getoption("--fixture-scope")
     if config.getoption("--provisioner"):
         scope = received_scope if received_scope != 'auto' else 'function'
-        logging.debug(f"scope: {scope} provisioner: True")
         return scope
     # If not provisioner it means were running locally in which case no sense re-initializing fixture each test.
     else:
         scope = received_scope if received_scope != 'auto' else 'session'
-        logging.debug(f"scope: {scope} provisioner: False")
         return scope
 
 
@@ -141,7 +141,8 @@ def init_hosts(hardware, base):
 
 
 def kill_heartbeat_thread(hardware, request):
-    logging.debug(f"Setting kill_heartbeat on hw {hardware} to True")
+    infra_logger.debug(f"Setting kill_heartbeat on hw {hardware} to True")
+    request.session.kill_heartbeat = True
 
 
 def init_base_config(hardware):
@@ -154,10 +155,11 @@ def init_base_config(hardware):
 
 @pytest.fixture(scope=determine_scope)
 def base_config(request):
+    infra_logger.debug("\n<---------------------initing base_config fixture------------------>\n")
     hardware = configured_hardware(request)
     assert hardware, "Didnt find configured_hardware in base_config fixture..."
     base = init_base_config(hardware)
-    logging.info("sucessfully initialized base_config fixture")
+    infra_logger.debug("\n<-----------------sucessfully initialized base_config fixture------------>\n")
     return base
 
 
@@ -197,6 +199,7 @@ def match_base_config_hosts_with_hwreqs(hardware_reqs, base_config):
 
 @pytest.hookimpl(hookwrapper=True, trylast=True)
 def pytest_runtest_setup(item):
+    infra_logger.debug(f"\n<---------runtest_setup {'.'.join(item.listnames()[-2:])}---------------->\n")
     configured_hw = configured_hardware(item._request)
     if not configured_hw:
         provisioner = item._request.config.getoption("--provisioner")
@@ -209,7 +212,7 @@ def pytest_runtest_setup(item):
             hb = heartbeat_client.HeartbeatClient(lambda: item._request.session.kill_heartbeat)
             hb.send_heartbeats_on_thread(hardware['allocation_id'])
             if determine_scope(None, item.config) == 'session':
-                logging.warning("running provisioned with session scoped fixture.. Could lead to unexpected results..")
+                infra_logger.warning("running provisioned with session scoped fixture.. Could lead to unexpected results..")
                 item.session.__initialized_hardware = dict()
                 item.session.__initialized_hardware = hardware
 
@@ -217,7 +220,7 @@ def pytest_runtest_setup(item):
 
     hardware = configured_hardware(item._request)
     assert hardware, "Couldnt find configured hardware in pytest_runtest_setup"
-    logging.info(f"HUT connection string:\n\n{next(iter(hardware['machines'].values()))['user']}@{next(iter(hardware['machines'].values()))['ip']}\n\npassword {next(iter(hardware['machines'].values()))['password']}\n\n")
+    infra_logger.info(f"HUT connection string:\n\n{next(iter(hardware['machines'].values()))['user']}@{next(iter(hardware['machines'].values()))['ip']}\n\npassword {next(iter(hardware['machines'].values()))['password']}\n\n")
     outcome = yield  # This will now go to base_config fixture function
     try:
         outcome.get_result()
@@ -227,22 +230,23 @@ def pytest_runtest_setup(item):
             item.funcargs['base_config'] = base_config
         except FixtureLookupError as fe:
             # We got an exception trying to init base_config fixture
-            logging.error("error trying to init base_config fixture")
+            infra_logger.error("error trying to init base_config fixture")
         # We got an exception trying to init some other fixture, so base_config is available
         raise e
     base_config = item.funcargs['base_config']
     reqs = item.function.__hardware_reqs
     item.funcargs['base_config'] = match_base_config_hosts_with_hwreqs(reqs, base_config)
     hosts = base_config.hosts.items()
-    logging.info("cleaning between tests..")
+    infra_logger.debug("cleaning between tests..")
+    # infra_logger.error("infra error message!")
     initializer.clean_infra_between_tests(hosts)
     init_cluster_structure(base_config, item.function.__cluster_config)
-    logging.info("done runtest_setup")
+    infra_logger.debug("done runtest_setup")
+    infra_logger.debug("\n-----------------runtest call---------------\n")
 
 
 def pytest_logger_fileloggers(item):
-    logging.FileHandler.setLevel(logging.getLogger(), level=logging.DEBUG)
-    return [('')]
+    return [('', logging.INFO), ('infra', logging.DEBUG)]
 
 
 def pytest_logger_logsdir(config):
@@ -263,12 +267,12 @@ def pytest_configure(config):
     logs_dir = os.path.join(os.getcwd(), f'logs/{log_dir}')
     os.makedirs(logs_dir, exist_ok=True)
     config.option.logger_logsdir = logs_dir
-    config.option.log_cli = True
-    config.option.log_cli_level = 'INFO'
     config.option.log_cli_format = log_fmt
     config.option.log_format = log_fmt
     config.option.log_cli_date_format = date_fmt
     config.option.log_file_date_format = date_fmt
+    logging.FileHandler.setLevel(logging.getLogger(), level=logging.INFO)
+    logging.StreamHandler.setLevel(logging.getLogger(), level=logging.INFO)
 
 
 def pytest_report_teststatus(report, config):
@@ -285,13 +289,23 @@ def download_host_logs(host, logs_dir):
     host.SshDirect.download(re.escape(dest_dir), *paths_to_download)
     logging.debug(f"downloaded log folders: {os.listdir(dest_dir)}")
 
+
 def _sanitize_nodeid(filename):
     filename = filename.replace('::()::', '/')
     filename = filename.replace('::', '/')
     filename = re.sub(r'\[(.+)\]', r'-\1', filename)
     return filename
 
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    result = outcome.get_result()
+    if result.when == 'call':
+        infra_logger.info(f"\n>>>>>>>>>>{'.'.join(item.listnames()[-2:])} {'PASSED' if result.passed else 'FAILED'} {f' -> {call.excinfo.value}' if not result.passed else ''}")
+
 def pytest_runtest_teardown(item):
+    infra_logger.debug(f"\n<--------------runtest teardown of {'.'.join(item.listnames()[-2:])}------------------->\n")
     base_config = item.funcargs.get('base_config')
     if not base_config:
         logging.error("base_config fixture wasnt initted properly, cant download logs")
@@ -303,7 +317,7 @@ def pytest_runtest_teardown(item):
     if hosts_to_download:
         try:
             logs_dir = os.path.join(item.config.option.logger_logsdir, _sanitize_nodeid(item.nodeid))
-            logging.info("concurrently downloading logs from hosts...")
+            infra_logger.debug("concurrently downloading logs from hosts...")
             concurrently.run({host.ip: (download_host_logs, host, logs_dir)
                               for host in hosts_to_download})
         except subprocess.CalledProcessError:
