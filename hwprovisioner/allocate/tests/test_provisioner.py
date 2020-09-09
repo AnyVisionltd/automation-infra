@@ -12,8 +12,7 @@ RESOURCE_MANAGER = os.getenv("HABERTEST_RESOURCE_MANAGER", "localhost:9080")
 PROVISIONER = os.getenv("HABERTEST_PROVISIONER", "localhost:8080")
 HEARTBEAT_SERVICE = os.getenv("HABERTEST_HEARTBEAT_SERVER", "localhost:7080")
 
-# These tests can be run in parallel from hwprovisioner/allocate folder with:
-# python3 -m pytest tests/test_provisioner.py -n 3
+# These tests can be run in parallel by make test-provisioner
 
 @pytest.mark.asyncio
 async def test_resource_manager_requestor_happy_flow():

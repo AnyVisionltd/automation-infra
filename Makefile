@@ -43,6 +43,10 @@ build-hypervisor:
 test-hypervisor:
 	cd lab/vms && pytest .
 
+.PHONY: test-provisioner
+test-provisioner:
+	cd hwprovisioner/allocate && python -m pytest tests/test_provisioner.py -n 3
+
 AUTOMATION_PROXY_VERSION:=$(shell ./docker_build/version.sh)
 build-automation-proxy:
 	echo "building automation-proxy:${AUTOMATION_PROXY_VERSION}"
