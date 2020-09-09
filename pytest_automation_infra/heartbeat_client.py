@@ -6,7 +6,7 @@ import requests
 
 
 class HeartbeatClient(object):
-    def __init__(self, stop=lambda: False, ep=os.getenv('HABERTEST_HEARTBEAT_SERVER', "localhost:7080"), interval=2):
+    def __init__(self, stop, ep=os.getenv('HABERTEST_HEARTBEAT_SERVER', "localhost:7080"), interval=2):
         self.ep = ep
         self.stop = stop
         self.interval = interval

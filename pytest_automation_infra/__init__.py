@@ -208,8 +208,8 @@ def pytest_runtest_setup(item):
             hardware['machines'] = get_local_config(item.config.getoption("--hardware"))
         else:
             hardware = provisioner_client.ProvisionerClient(provisioner).provision(item.function.__hardware_reqs)
-            item._request.session.kill_heartbeat = False
-            hb = heartbeat_client.HeartbeatClient(lambda: item._request.session.kill_heartbeat)
+            item._request.session.kill_heartbeat = lambda: False
+            hb = heartbeat_client.HeartbeatClient(item._request.session.kill_heartbeat)
             hb.send_heartbeats_on_thread(hardware['allocation_id'])
             if determine_scope(None, item.config) == 'session':
                 infra_logger.warning("running provisioned with session scoped fixture.. Could lead to unexpected results..")
