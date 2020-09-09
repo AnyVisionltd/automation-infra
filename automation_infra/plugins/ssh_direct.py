@@ -57,19 +57,10 @@ class SshDirect(object):
             temp_ex = ex
             raise SSHCalledProcessError(temp_ex.returncode, temp_ex.cmd, temp_ex.output, temp_ex.stderr, self._host)
 
-    def gpu_count(self):
-        res = int(self.execute("nvidia-smi --list-gpus | wc -l"))
-        return res
 
     def remote_hostname(self):
         return self.execute("echo $HOSTNAME").strip()
 
-    def download_resource(self, remote_path, local_destination):
-        full_bucket_path = f's3://anyvision-testing/{remote_path}'
-        cmd = f"aws s3 cp {full_bucket_path} {local_destination}"
-        self.execute(cmd)
-        res = self.execute(f'ls {local_destination}')
-        assert os.path.basename(remote_path) in res
 
     def run_parallel(self, scripts, max_jobs=None):
         temp_ex = None
