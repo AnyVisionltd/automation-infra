@@ -35,7 +35,8 @@ class TunnelManager(object):
     def clear(self):
         if not self.tunnels:
             return
-        concurrently.run([lambda: self._do_stop(tunnel) for tunnel in self.tunnels.values()])
+        jobs = {tunnel.local_endpoint : (self._do_stop, tunnel) for tunnel in self.tunnels.values()}
+        concurrently.run(jobs)
         self.tunnels.clear()
 
 
