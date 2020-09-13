@@ -10,6 +10,7 @@ from paramiko import SSHException
 
 from automation_infra.utils import waiter
 import sys
+import paramiko
 
 try:
     import SocketServer
@@ -61,13 +62,7 @@ class Tunnel(object):
             local_bind_port = local_port
 
             def __init__(self, request, client_address, server):
-                logging.debug(f"initing <<{remote_host}>> subhandler: {client_address} -> {server.server_address} ")
-                super().__init__(request, client_address, server)
-
-            def finish(self):
-                is_in_error = sys.exc_info()[0] is not None
-                logging.debug(f'finishing <<{remote_host}>> subhandler: {self.server.server_address} error ? {is_in_error}')
-                return SocketServer.BaseRequestHandler.finish(self)
+                super().__init__(self.transport, request, client_address, server)
 
         forward_server = ForwardServer(("", local_port), SubHander)
         selected_port = forward_server.server_address[1]
@@ -78,38 +73,40 @@ class Tunnel(object):
 
 
 class Handler(SocketServer.BaseRequestHandler):
-    def handle(self):
+    def __init__(self, transport, request, client_address, server):
+        self.channel = None
         try:
-            chan = self.transport.open_channel(
-                "direct-tcpip",
-                (self.chain_host, self.chain_port),
-                self.request.getpeername(),
-            )
-            if chan is None:
-                message = "Error in SockerServer handler trying to open_channel: %s:%d Channel is None" % (
-                    self.chain_host, self.chain_port)
-                logging.error(message)
-                return
+            self.channel = transport.open_channel("direct-tcpip", (self.chain_host, self.chain_port), request.getpeername())
+        except:
+            pass
+        super().__init__(request, client_address, server)
 
-            try:
-                while True:
-                    r, w, x = select.select([self.request, chan], [], [])
-                    if self.request in r:
-                        data = self.request.recv(1024)
-                        if len(data) == 0:
-                            break
-                        chan.send(data)
-                    if chan in r:
-                        data = chan.recv(1024)
-                        if len(data) == 0:
-                            break
-                        self.request.send(data)
-            finally:
-                logging.debug(f"Channel closed {self.client_address[0]}:{self.client_address[1]}<->{self.chain_host}:{self.chain_port}")
-                chan.close()
-                self.request.close()
+    def finish(self):
+        if self.channel:
+            self.channel.close()
+
+    def handle(self):
+        if not self.channel:
+            logging.debug(f"Tunnel not connected {self.client_address[0]}:{self.client_address[1]}")
+            return
+        try:
+            while True:
+                r, w, x = select.select([self.request, self.channel], [], [])
+                if self.request in r:
+                    data = self.request.recv(1024)
+                    if len(data) == 0:
+                        break
+                    self.channel.send(data)
+                if self.channel in r:
+                    data = self.channel.recv(1024)
+                    if len(data) == 0:
+                        break
+                    self.request.send(data)
+        except paramiko.ssh_exception.ChannelException:
+            logging.debug(f"Channel exception on {self.client_address[0]}:{self.client_address[1]}", exc_info=True)
         except:
             logging.exception(f"Error during channel operation on {self.client_address[0]}:{self.client_address[1]}")
+            raise
 
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
