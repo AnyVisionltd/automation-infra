@@ -78,11 +78,7 @@ class Tunnel(object):
 
 
 class Handler(SocketServer.BaseRequestHandler):
-    def handle(self, attempt=0, err=None):
-        attempt = attempt + 1
-        if attempt >= 3:
-            logging.error("Too many attempts made!")
-            return err
+    def handle(self):
         try:
             chan = self.transport.open_channel(
                 "direct-tcpip",
@@ -95,31 +91,25 @@ class Handler(SocketServer.BaseRequestHandler):
                 logging.error(message)
                 return
 
-            while True:
-                r, w, x = select.select([self.request, chan], [], [])
-                if self.request in r:
-                    data = self.request.recv(1024)
-                    if len(data) == 0:
-                        break
-                    chan.send(data)
-                if chan in r:
-                    data = chan.recv(1024)
-                    if len(data) == 0:
-                        break
-                    self.request.send(data)
-            chan.close()
-            self.request.close()
-        except (ConnectionResetError, EOFError, SSHException) as err:
-            time.sleep(1)
-            self.handle(attempt, err)
-        except OSError:
-            # this gets thrown when connection is reset and then when trying to get request.getpeername() thrown again
-            # theres nothing to handle here, just makes logs a bit nicer.
-            pass
-        except Exception as err:
-            logging.exception("Unknown error: %s", type(err))
-            time.sleep(1)
-            self.handle(attempt, err)
+            try:
+                while True:
+                    r, w, x = select.select([self.request, chan], [], [])
+                    if self.request in r:
+                        data = self.request.recv(1024)
+                        if len(data) == 0:
+                            break
+                        chan.send(data)
+                    if chan in r:
+                        data = chan.recv(1024)
+                        if len(data) == 0:
+                            break
+                        self.request.send(data)
+            finally:
+                logging.debug(f"Channel closed {self.client_address[0]}:{self.client_address[1]}<->{self.chain_host}:{self.chain_port}")
+                chan.close()
+                self.request.close()
+        except:
+            logging.exception(f"Error during channel operation on {self.client_address[0]}:{self.client_address[1]}")
 
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
