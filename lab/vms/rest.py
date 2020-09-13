@@ -20,7 +20,8 @@ class HyperVisor(object):
                                   web.get('/resources', self.handle_resources),
                                   web.post('/fulfill/theoretically', self.check_fulfill),
                                   web.post('/fulfill/now', self.fulfill),
-                                  web.delete('/deallocate/{name}', self.handle_destroy_vm)])
+                                  web.delete('/deallocate/{name}', self.handle_destroy_vm),
+                                  web.get('/allocations/{allocation_id}', self.handle_get_allocation)])
 
     def translate_to_vm_params(self, request):
         vm_request_details = list()
@@ -170,3 +171,9 @@ class HyperVisor(object):
                     'macs' : self.allocator.mac_addresses,
                     'sol_used_ports' : self.allocator.sol_used_ports}
         return web.json_response(response, status=200)
+
+    async def handle_get_allocation(self, request):
+        allocation_id = request.match_info['allocation_id']
+        allocated_vms = [vm.json for vm in self.allocator.vms.values() if vm.allocation_id == allocation_id]
+        return web.json_response(
+            {'status': 'Success', 'info': allocated_vms}, status=200)
