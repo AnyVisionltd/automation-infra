@@ -1,6 +1,6 @@
 import asyncio
+import concurrent
 import time
-
 
 from . import rm_requestor
 from .settings import log
@@ -35,6 +35,8 @@ class Fulfiller(object):
                 potential_fulfillers.remove(chosen_rm)
                 try:
                     result = await rm_requestor.allocate(chosen_rm['endpoint'], await self.redis.allocations(allocation_id))
+                except concurrent.futures._base.CancelledError:
+                    await self.release(allocation_id)
                 except:
                     log.exception(f"{chosen_rm['alias']} couldnt fulfill demands. remaining potentials: "
                                   f"{[potential['alias'] for potential in potential_fulfillers]}")
