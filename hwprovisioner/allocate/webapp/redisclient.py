@@ -83,7 +83,7 @@ class RedisClient:
 
     async def save_request(self, request):
         conn = await self.asyncconn
-        allocation_id = str(uuid.uuid4())
+        allocation_id = request.get("allocation_id", str(uuid.uuid4()))
         request['status'] = "received"
         request['allocation_id'] = allocation_id
         await conn.hset('allocations', allocation_id, json.dumps(request))
