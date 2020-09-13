@@ -36,3 +36,13 @@ async def deallocate(resource_name, manager_ep):
                 return None
                 raise Exception(f"Error deallocating resource {resource_name} on {manager_ep}: {result}")
             return result
+
+
+async def check_status(allocation_id, manager_ep):
+    url = f'http://{manager_ep}/allocations/{allocation_id}'
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            result = await resp.json()
+            if resp.status != 200:
+                raise Exception(f"Error getting status of {allocation_id} ep {manager_ep}: {result}")
+            return result
