@@ -11,6 +11,7 @@ class TunnelManager(object):
 
     def get_or_create(self, service_name, dns_name, port, transport=None, local_bind_port=None):
         if service_name not in self.tunnels:
+            logging.debug(f"creating tunnel for {service_name} port {port}")
             self._init_tunnel(service_name, dns_name, port, transport, local_bind_port)
         return self.tunnels[service_name]
 
