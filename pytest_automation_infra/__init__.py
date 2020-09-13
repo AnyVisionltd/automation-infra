@@ -241,6 +241,7 @@ def pytest_runtest_setup(item):
         logging.info(f"\n\n{host.SshDirect.ssh_string} # host \n{host.SSH.ssh_string} # container\n\n")
     logging.debug("cleaning between tests..")
     initializer.clean_infra_between_tests(hosts)
+    initializer.clean_infra_between_tests(hosts, item.function.__name__)
     init_cluster_structure(base_config, item.function.__cluster_config)
     logging.debug("done runtest_setup")
     logging.debug("\n-----------------runtest call---------------\n")
