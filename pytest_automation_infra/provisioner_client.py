@@ -4,6 +4,7 @@ import logging
 import os
 import socket
 import time
+import uuid
 
 import requests
 
@@ -21,12 +22,14 @@ class ProvisionerClient(object):
         ws = websocket.WebSocket()
         ws.connect("ws://%s/api/ws/jobs" % self.ep)
         start = time.time()
+        allocation_id = str(uuid.uuid4())
         while time.time() - start <= timeout:
             requestor_information = dict(hostname=os.getenv("host_hostname", socket.gethostname()),
                                          username=getpass.getuser(),
                                          ip=os.getenv("host_ip", socket.gethostbyname(socket.gethostname())))
             ws.send(json.dumps({"data": {"demands": hardware_req,
-                                         "requestor": requestor_information}}))
+                                         "requestor": requestor_information,
+                                         "allocation_id": allocation_id}}))
             reply = json.loads(ws.recv())
             if reply['status'] == 'unfulfillable':
                 infra_logger.info(f"response: {reply}")
@@ -41,6 +44,7 @@ class ProvisionerClient(object):
                     hardware['machines'][machine_name] = hardware_details
                 infra_logger.debug("succeeded provisioning hardware")
                 return hardware
+        self.release(allocation_id)
         infra_logger.error(f"timed out trying to provision hardware {hardware_req}")
         raise TimeoutError(f"Timed out trying to provision hardware in {timeout} seconds")
 
