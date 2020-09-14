@@ -1,7 +1,12 @@
+import os
+
 from infra.utils import shell
 from infra.utils import pci
 from infra.utils import anylogging
 import logging
+import socket
+
+from lab.utils import heartbeat
 from lab.vms import rest, cloud_init
 from lab.vms import allocator
 from lab.vms import vm_manager
@@ -14,6 +19,18 @@ from aiohttp import web
 import argparse
 import yaml
 from lab.utils import net
+
+
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('10.255.255.255', 1))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = '127.0.0.1'
+    finally:
+        s.close()
+    return ip
 
 
 def _verify_gpu_drivers_not_loaded():
@@ -91,6 +108,10 @@ def _vfio_bind_pci_devices(devices):
             raise Exception("Failed to bind device %s verify", device) from e
 
 
+async def start_daemons(app):
+    app["heartbeats"] = app.loop.create_task(heartbeat.send_heartbeats(app['info'], os.getenv("HABERTEST_PROVISIONER", "localhost:8080")))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", help="Config file containing pci addresses and mac addressses", required=True)
@@ -105,7 +126,7 @@ if __name__ == '__main__':
     parser.add_argument("--paravirt-net-device", help="Paravirtualized network device for bridge networks", required=True)
     parser.add_argument("--sol-port", help="Base port for Serial over lan", required=True, type=int)
     parser.add_argument("--server-name", help="Name of the server, this will be used in name of VM`s", required=True)
-    parser.add_argument("--port", help="HTTP port of hypervisor server", default=8080, type=int)
+    parser.add_argument("--port", help="HTTP port of hypervisor server", default=9080, type=int)
     parser.add_argument("--restore-vms", dest='vms_restore', help="Restore VM`s previosly allocated", action="store_true", required=False)
     parser.add_argument("--delete-vms", dest='vms_restore', help="Delete VM`s previosly allocated", action="store_false", required=False)
     parser.set_defaults(vms_restore=True)
@@ -140,5 +161,9 @@ if __name__ == '__main__':
     else:
         loop.run_until_complete(allocator.delete_all_dangling_vms())
     app = web.Application()
+    app["info"] = dict(alias=f'{args.server_name}-hypervisor', rm_type='hypervisor',
+                             endpoint=f'{get_ip()}:{args.port}')
+    app.on_startup.append(start_daemons)
+
     rest.HyperVisor(allocator, storage, app)
     web.run_app(app, port=args.port, access_log_format='%a %t "%r" time %Tf sec %s')
