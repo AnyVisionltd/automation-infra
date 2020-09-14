@@ -8,6 +8,7 @@ import os
 
 from automation_infra.utils import waiter
 import subprocess
+from pytest_automation_infra.settings import infra_logger
 
 logging.getLogger('paramiko').setLevel(logging.WARN)
 
@@ -50,7 +51,7 @@ def get_catalog_credentials(url):
 
 
 def do_docker_login(connected_ssh_module):
-    logging.debug("doing docker login")
+    infra_logger.debug("doing docker login")
     remote_home = connected_ssh_module.execute("echo $HOME").strip()
     try:
         config_exists = connected_ssh_module.execute(f"ls {remote_home}/.docker/config.json")
@@ -64,7 +65,7 @@ def do_docker_login(connected_ssh_module):
 
 
 def create_secret(connected_ssh_module):
-    logging.debug("creating ImagePullSecret")
+    infra_logger.debug("creating ImagePullSecret")
     do_docker_login(connected_ssh_module)  # This is necessary to put the config.json file
     remote_home = connected_ssh_module.execute("echo $HOME").strip()
     connected_ssh_module.execute(
@@ -89,11 +90,11 @@ def set_up_k8s_pod(connected_ssh_module):
     except:
         create_secret(connected_ssh_module)
 
-    logging.debug("deploying proxy pod in k8s")
+    infra_logger.debug("deploying proxy pod in k8s")
     connected_ssh_module.put('./docker_build/daemonset.yaml', '/tmp/')
     connected_ssh_module.execute("kubectl apply -f /tmp/daemonset.yaml")
     waiter.wait_nothrow(lambda: connected_ssh_module.execute("kubectl wait --for=condition=ready --timeout=1s pod -l app=automation-proxy"), timeout=60)
-    logging.debug("success deploying proxy pod in k8s!")
+    infra_logger.debug("success deploying proxy pod in k8s!")
 
 
 def _memoize(function):
@@ -118,13 +119,13 @@ def _automation_proxy_version():
 def set_up_docker_container(connected_ssh_module):
     removed = remove_proxy_container(connected_ssh_module)
     if removed:
-        logging.warning("Unexpected behavior: removed proxy container despite that I shouldn't have needed to")
+        infra_logger.warning("Unexpected behavior: removed proxy container despite that I shouldn't have needed to")
     do_docker_login(connected_ssh_module)
 
-    logging.debug("pulling docker")
-    connected_ssh_module.execute(f"docker pull gcr.io/anyvision-training/automation-proxy:{_automation_proxy_version()}")
+    infra_logger.debug("pulling docker")
+    connected_ssh_module.execute(f"docker pull gcr.io/anyvision-training/automation-proxy:master")
 
-    logging.debug("running docker")
+    infra_logger.debug("running docker")
     run_cmd = f'{use_gravity_exec(connected_ssh_module)} docker run -d --rm ' \
               f'--volume=/tmp/automation_infra/:/tmp/automation_infra ' \
               f'--volume=/etc/hosts:/etc/hosts '\
@@ -141,7 +142,7 @@ def set_up_docker_container(connected_ssh_module):
             connected_ssh_module.execute(run_cmd)
         else:
             raise e
-    logging.debug("docker is running")
+    infra_logger.debug("docker is running")
 
 
 def deploy_proxy_container(connected_ssh_module):
@@ -156,7 +157,7 @@ def is_blank(connected_ssh_module):
         try:
             connected_ssh_module.execute("docker ps")
         except SSHCalledProcessError:
-            logging.warning("Didn't find docker or k8s on machine, "
+            infra_logger.warning("Didn't find docker or k8s on machine, "
                             "running infra on blank machine without proxy container. "
                             "All tests will fail unless docker/k8s is installed from within the test.")
             return True
@@ -176,25 +177,25 @@ def check_for_legacy_containers(ssh):
 
 
 def init_proxy_container_and_connect(host):
-    logging.debug(f"[{host}] connecting to ssh directly")
+    infra_logger.debug(f"[{host}] connecting to ssh directly")
     host.SshDirect.connect(timeout=60)
-    logging.debug(f"[{host}] connected successfully")
+    infra_logger.debug(f"[{host}] connected successfully")
 
     if is_blank(host.SshDirect):
         return
     check_for_legacy_containers(host.SshDirect)
     deploy_proxy_container(host.SshDirect)
 
-    logging.debug(f"[{host}] connecting to ssh container")
+    infra_logger.debug(f"[{host}] connecting to ssh container")
     waiter.wait_nothrow(lambda: host.SSH.connect(port=host.tunnelport), timeout=60)
-    logging.debug(f"[{host}] connected successfully")
+    infra_logger.debug(f"[{host}] connected successfully")
 
 
 def init_proxy_containers_and_connect(hosts):
     for name, host in hosts:
-        logging.debug(f"[{name}: {host}] initializing machine ")
+        infra_logger.debug(f"[{name}: {host}] initializing machine ")
         init_proxy_container_and_connect(host)
-        logging.debug(f"[{name}: {host}] success initializing docker and connecting to it")
+        infra_logger.debug(f"[{name}: {host}] success initializing docker and connecting to it")
 
 
 def restart_proxy_container(host):
@@ -213,24 +214,24 @@ def restart_proxy_container(host):
 
 def remove_proxy_container(connected_ssh_module):
     if is_k8s(connected_ssh_module):
-        logging.debug("trying to remove k8s proxy pod")
+        infra_logger.debug("trying to remove k8s proxy pod")
         try:
             connected_ssh_module.execute("kubectl delete --force --grace-period=0 -f /tmp/daemonset.yaml")
         except SSHCalledProcessError:
-            logging.debug(f"caught expected exception error when deleting /tmp/daemonset.yaml: daemonsets.apps automation-proxy not found")
+            infra_logger.debug(f"caught expected exception error when deleting /tmp/daemonset.yaml: daemonsets.apps automation-proxy not found")
     else:
         try:
-            logging.debug("trying to remove docker container")
+            infra_logger.debug("trying to remove docker container")
             connected_ssh_module.execute(f'{use_gravity_exec(connected_ssh_module)} docker kill automation_proxy')
             waiter.wait_for_predicate(lambda: not connected_ssh_module.execute("docker ps -aq --filter 'name=automation_proxy'"))
-            logging.debug("removed successfully!")
+            infra_logger.debug("removed successfully!")
             return True
         except SSHCalledProcessError as e:
             if ('No such container' in e.stderr) or ('is not running' in e.stderr):
                 pass
             else:
                 raise e
-            logging.debug("nothing to remove")
+            infra_logger.debug("nothing to remove")
 
 
 def tear_down_container(host):
@@ -240,7 +241,7 @@ def tear_down_container(host):
 
 def tear_down_proxy_containers(hosts):
     for name, host in hosts:
-        logging.debug(f"[{name}: {host}] tearing down")
+        infra_logger.debug(f"[{name}: {host}] tearing down")
         tear_down_container(host)
-        logging.debug(f"[{name}: {host}] success tearing down")
+        infra_logger.debug(f"[{name}: {host}] success tearing down")
 

@@ -111,6 +111,11 @@ async def test_allocate_machine_happy_case(event_loop, mock_libvirt, mock_image_
     mock_libvirt.kill_by_name.assert_called_with("sasha-vm-0")
     mock_dhcp_handler.deallocate_ip.assert_called_once()
 
+    await tested.allocate_vm("sasha_image1", memory_gb=1, base_image_size=10, networks="bridge", num_cpus=2, num_gpus=1)
+    assert len(tested.vms) == 1
+    await tested.destroy_vm("sasha-vm-0")
+    assert len(tested.vms) == 0
+
 def _find_disks_by_type(vm, disk_type):
     return [disk for disk in vm.disks if disk['type'] == disk_type]
 
