@@ -3,6 +3,7 @@ redis singleton
 """
 import json
 import os
+import time
 import uuid
 
 import redis
@@ -73,6 +74,8 @@ class RedisClient:
         conn = await self.asyncconn
         if allocation_id:
             allocations = await conn.hget("allocations", allocation_id)
+            if not allocations:
+                return None
             return json.loads(allocations)
         else:
             res = dict()
@@ -83,11 +86,28 @@ class RedisClient:
 
     async def save_request(self, request):
         conn = await self.asyncconn
-        allocation_id = request.get("allocation_id", str(uuid.uuid4()))
         request['status'] = "received"
-        request['allocation_id'] = allocation_id
-        await conn.hset('allocations', allocation_id, json.dumps(request))
-        return allocation_id
+        request['expiration'] = int(time.time()) + 60
+        await conn.hset('allocations', request['allocation_id'], json.dumps(request))
+
+
+    async def save_fulfilled_request(self, allocation_id, resource_manager, allocation_result):
+        hardware_details = list()
+        for allocated_vm in allocation_result['info']:
+            hardware_details.append(dict(
+                ip=allocated_vm['net_ifaces'][0]['ip'],
+                user='root',
+                password='root',
+                resource_manager_ep=resource_manager['endpoint'],
+                vm_id=allocated_vm['name']
+            ))
+        await self.update_status(allocation_id,
+                                 resource_manager=resource_manager['endpoint'],
+                                 hardware_details=hardware_details,
+                                 result=allocation_result,
+                                 status="success",
+                                 expiration=int(time.time()) + 60,
+                                 )
 
     async def update_status(self, allocation_id, **kwargs):
         conn = await self.asyncconn
