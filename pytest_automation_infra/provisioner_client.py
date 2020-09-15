@@ -10,7 +10,6 @@ import requests
 
 import websocket
 
-from pytest_automation_infra.settings import infra_logger
 
 
 class ProvisionerClient(object):
@@ -32,20 +31,20 @@ class ProvisionerClient(object):
                                          "allocation_id": allocation_id}}))
             reply = json.loads(ws.recv())
             if reply['status'] == 'unfulfillable':
-                infra_logger.info(f"response: {reply}")
+                logging.info(f"response: {reply}")
                 raise Exception(reply['message'])
             if reply['status'] == 'busy':
-                infra_logger.debug(f"all resources currently busy.. trying again for {time.time() - start} seconds")
+                logging.debug(f"all resources currently busy.. trying again for {time.time() - start} seconds")
                 time.sleep(5)
                 continue
             if reply['status'] == 'success':
                 hardware['allocation_id'] = reply['allocation_id']
                 for machine_name, hardware_details in zip(hardware_req.keys(), reply['hardware_details']):
                     hardware['machines'][machine_name] = hardware_details
-                infra_logger.debug("succeeded provisioning hardware")
+                logging.debug("succeeded provisioning hardware")
                 return hardware
         self.release(allocation_id)
-        infra_logger.error(f"timed out trying to provision hardware {hardware_req}")
+        logging.error(f"timed out trying to provision hardware {hardware_req}")
         raise TimeoutError(f"Timed out trying to provision hardware in {timeout} seconds")
 
     def release(self, allocation_id):

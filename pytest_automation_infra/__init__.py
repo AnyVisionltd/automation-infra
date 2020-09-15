@@ -20,7 +20,6 @@ from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
 from pytest_automation_infra import provisioner_client, helpers, heartbeat_client
 from pytest_automation_infra.helpers import is_k8s
-from pytest_automation_infra.settings import infra_logger
 
 
 class InfraFormatter(logging.Formatter):
@@ -80,7 +79,7 @@ def get_local_config(local_config_path):
 
 
 def pytest_sessionstart(session):
-    infra_logger.debug("\n<--------------------sesssionstart------------------------>\n")
+    logging.debug("\n<--------------------sesssionstart------------------------>\n")
     scope = determine_scope(None, session.config)
     if scope == 'session':
         if not session.config.getoption("--provisioner"):
@@ -94,8 +93,8 @@ def pytest_sessionstart(session):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionfinish(session, exitstatus):
-    infra_logger.debug("\n<-------------------session finish-------------------->\n")
-    infra_logger.debug("Sending kill heartbeat")
+    logging.debug("\n<-------------------session finish-------------------->\n")
+    logging.debug("Sending kill heartbeat")
     session.kill_heartbeat = True
     provisioner = session.config.getoption("--provisioner")
     if provisioner and determine_scope(None, session.config) == 'session':
@@ -141,7 +140,7 @@ def init_hosts(hardware, base):
 
 
 def kill_heartbeat_thread(hardware, request):
-    infra_logger.debug(f"Setting kill_heartbeat on hw {hardware} to True")
+    logging.debug(f"Setting kill_heartbeat on hw {hardware} to True")
     request.session.kill_heartbeat = True
 
 
@@ -155,7 +154,7 @@ def init_base_config(hardware):
 
 @pytest.fixture(scope=determine_scope)
 def base_config(request):
-    infra_logger.debug("\n<---------------------initing base_config fixture------------------>\n")
+    logging.debug("\n<---------------------initing base_config fixture------------------>\n")
     hardware = configured_hardware(request)
     assert hardware, "Didnt find configured_hardware in base_config fixture..."
     base = init_base_config(hardware)
@@ -199,7 +198,8 @@ def match_base_config_hosts_with_hwreqs(hardware_reqs, base_config):
 
 @pytest.hookimpl(hookwrapper=True, trylast=True)
 def pytest_runtest_setup(item):
-    infra_logger.debug(f"\n<---------runtest_setup {'.'.join(item.listnames()[-2:])}---------------->\n")
+    configure_item_loghandler(item)
+    logging.debug(f"\n<---------runtest_setup {'.'.join(item.listnames()[-2:])}---------------->\n")
     configured_hw = configured_hardware(item._request)
     if not configured_hw:
         provisioner = item._request.config.getoption("--provisioner")
@@ -212,7 +212,7 @@ def pytest_runtest_setup(item):
             hb = heartbeat_client.HeartbeatClient(item._request.session.kill_heartbeat)
             hb.send_heartbeats_on_thread(hardware['allocation_id'])
             if determine_scope(None, item.config) == 'session':
-                infra_logger.warning("running provisioned with session scoped fixture.. Could lead to unexpected results..")
+                logging.warning("running provisioned with session scoped fixture.. Could lead to unexpected results..")
                 item.session.__initialized_hardware = dict()
                 item.session.__initialized_hardware = hardware
 
@@ -229,7 +229,7 @@ def pytest_runtest_setup(item):
             item.funcargs['base_config'] = base_config
         except FixtureLookupError as fe:
             # We got an exception trying to init base_config fixture
-            infra_logger.error("error trying to init base_config fixture")
+            logging.error("error trying to init base_config fixture")
         # We got an exception trying to init some other fixture, so base_config is available
         raise e
     base_config = item.funcargs['base_config']
@@ -241,12 +241,23 @@ def pytest_runtest_setup(item):
     logging.debug("cleaning between tests..")
     initializer.clean_infra_between_tests(hosts)
     init_cluster_structure(base_config, item.function.__cluster_config)
-    infra_logger.debug("done runtest_setup")
-    infra_logger.debug("\n-----------------runtest call---------------\n")
+    logging.debug("done runtest_setup")
+    logging.debug("\n-----------------runtest call---------------\n")
 
 
 def pytest_logger_fileloggers(item):
-    return [('', logging.INFO), ('infra', logging.DEBUG)]
+    return [('', logging.INFO)]
+
+
+def configure_item_loghandler(item):
+    config = item.config
+    log_dir = os.path.join(config.option.logger_logsdir, _sanitize_nodeid(item.nodeid))
+    os.makedirs(log_dir, exist_ok=True)
+    debug_fh = logging.FileHandler(f'{log_dir}/infra.log', mode='w')
+    debug_fh.setLevel(logging.DEBUG)
+    debug_fh.setFormatter(logging.Formatter(config.option.log_format))
+    item.log_handler = debug_fh
+    logging.getLogger().addHandler(item.log_handler)
 
 
 def pytest_logger_logsdir(config):
@@ -258,21 +269,46 @@ def pytest_logger_config(logger_config):
     logger_config.set_formatter_class(InfraFormatter)
 
 
-def pytest_configure(config):
-    log_fmt = '%(asctime)s.%(msecs)0.3d %(threadName)-10.10s %(levelname)-6.6s %(message)s %(funcName)-15.15s %(pathname)s:%(lineno)d'
-    date_fmt = '%Y-%m-%d %H:%M:%S'
+def configure_logging(config):
+    config.option.log_format = '%(asctime)s.%(msecs)0.3d %(threadName)-10.10s %(levelname)-6.6s %(message)s %(funcName)-15.15s %(pathname)s:%(lineno)d'
+    config.option.log_cli_format = config.option.log_format
 
-    config.option.showcapture = 'no'
-    log_dir = datetime.now().strftime('%Y_%m_%d__%H%M%S')
-    logs_dir = os.path.join(os.getcwd(), f'logs/{log_dir}')
-    os.makedirs(logs_dir, exist_ok=True)
-    config.option.logger_logsdir = logs_dir
-    config.option.log_cli_format = log_fmt
-    config.option.log_format = log_fmt
-    config.option.log_cli_date_format = date_fmt
-    config.option.log_file_date_format = date_fmt
-    logging.FileHandler.setLevel(logging.getLogger(), level=logging.INFO)
-    logging.StreamHandler.setLevel(logging.getLogger(), level=logging.INFO)
+    config.option.log_file_date_format = '%Y-%m-%d %H:%M:%S'
+    config.option.log_cli_date_format = config.option.log_file_date_format
+
+    session_logs_dir = f'logs/{datetime.now().strftime("%Y_%m_%d__%H%M_%S")}'
+
+    infra_logs_dir = f'{session_logs_dir}/infra_logs'
+    os.makedirs(infra_logs_dir, exist_ok=True)
+
+    # tests_logs_dir = os.path.join(os.getcwd(), f'{session_logs_dir}/test_logs')
+    tests_logs_dir = f'{session_logs_dir}/tests_logs'
+    os.makedirs(tests_logs_dir, exist_ok=True)
+
+    config.option.logger_logsdir = tests_logs_dir
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    log_fmt = config.option.log_format
+
+    debug_fh = logging.FileHandler(f'{infra_logs_dir}/debug.log', mode='w')
+    debug_fh.setLevel(logging.DEBUG)
+    debug_fh.setFormatter(logging.Formatter(log_fmt))
+    root_logger.addHandler(debug_fh)
+
+    info_fh = logging.FileHandler(f'{infra_logs_dir}/info.log', mode='w')
+    info_fh.setLevel(logging.INFO)
+    info_fh.setFormatter(logging.Formatter(log_fmt))
+    root_logger.addHandler(info_fh)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    ch.setFormatter(logging.Formatter(log_fmt))
+    root_logger.addHandler(ch)
+
+
+def pytest_configure(config):
+    configure_logging(config)
 
 
 def pytest_report_teststatus(report, config):
@@ -302,10 +338,10 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     result = outcome.get_result()
     if result.when == 'call':
-        infra_logger.info(f"\n>>>>>>>>>>{'.'.join(item.listnames()[-2:])} {'PASSED' if result.passed else 'FAILED'} {f' -> {call.excinfo.value}' if not result.passed else ''}")
+        logging.info(f"\n>>>>>>>>>>{'.'.join(item.listnames()[-2:])} {'PASSED' if result.passed else 'FAILED'} {f' -> {call.excinfo.value}' if not result.passed else ''}")
 
 def pytest_runtest_teardown(item):
-    infra_logger.debug(f"\n<--------------runtest teardown of {'.'.join(item.listnames()[-2:])}------------------->\n")
+    logging.debug(f"\n<--------------runtest teardown of {'.'.join(item.listnames()[-2:])}------------------->\n")
     base_config = item.funcargs.get('base_config')
     if not base_config:
         logging.error("base_config fixture wasnt initted properly, cant download logs")
@@ -317,7 +353,7 @@ def pytest_runtest_teardown(item):
     if hosts_to_download:
         try:
             logs_dir = os.path.join(item.config.option.logger_logsdir, _sanitize_nodeid(item.nodeid))
-            infra_logger.debug("concurrently downloading logs from hosts...")
+            logging.debug("concurrently downloading logs from hosts...")
             concurrently.run({host.ip: (download_host_logs, host, logs_dir)
                               for host in hosts_to_download})
         except subprocess.CalledProcessError:
@@ -330,6 +366,7 @@ def pytest_runtest_teardown(item):
         if provisioner:
             item._request.session.kill_heartbeat = True
             provisioner_client.ProvisionerClient(provisioner).release(item.function.__initialized_hardware['allocation_id'])
+    logging.getLogger().removeHandler(item.log_handler)
 
 
 def get_log_dir(config):
