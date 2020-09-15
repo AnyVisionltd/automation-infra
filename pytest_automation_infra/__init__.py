@@ -159,7 +159,7 @@ def base_config(request):
     hardware = configured_hardware(request)
     assert hardware, "Didnt find configured_hardware in base_config fixture..."
     base = init_base_config(hardware)
-    infra_logger.debug("\n<-----------------sucessfully initialized base_config fixture------------>\n")
+    logging.debug("\n<-----------------sucessfully initialized base_config fixture------------>\n")
     return base
 
 
@@ -220,7 +220,6 @@ def pytest_runtest_setup(item):
 
     hardware = configured_hardware(item._request)
     assert hardware, "Couldnt find configured hardware in pytest_runtest_setup"
-    infra_logger.info(f"HUT connection string:\n\n{next(iter(hardware['machines'].values()))['user']}@{next(iter(hardware['machines'].values()))['ip']}\n\npassword {next(iter(hardware['machines'].values()))['password']}\n\n")
     outcome = yield  # This will now go to base_config fixture function
     try:
         outcome.get_result()
@@ -237,8 +236,9 @@ def pytest_runtest_setup(item):
     reqs = item.function.__hardware_reqs
     item.funcargs['base_config'] = match_base_config_hosts_with_hwreqs(reqs, base_config)
     hosts = base_config.hosts.items()
-    infra_logger.debug("cleaning between tests..")
-    # infra_logger.error("infra error message!")
+    for name, host in hosts:
+        logging.info(f"\n\n{host.SshDirect.ssh_string} # host \n{host.SSH.ssh_string} # container\n\n")
+    logging.debug("cleaning between tests..")
     initializer.clean_infra_between_tests(hosts)
     init_cluster_structure(base_config, item.function.__cluster_config)
     infra_logger.debug("done runtest_setup")
