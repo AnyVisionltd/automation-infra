@@ -22,6 +22,10 @@ class SshDirect(object):
             self.connect()
         return self._connection
 
+    @property
+    def ssh_string(self):
+        return f"sshpass -p {self.connection.password} ssh -o StrictHostKeyChecking=no {self.connection._username}@{self.connection._ip} -p {self.connection.port}"
+
     def connect(self, timeout=10):
         self._connection = connection.Connection(self._host)
         self._connection.connect(timeout)
