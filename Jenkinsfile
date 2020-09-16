@@ -19,15 +19,15 @@ pipeline {
         ansiColor('xterm')
         buildDiscarder(logRotator(numToKeepStr:'50'))
     }
+    triggers {
+        issueCommentTrigger('^\\/rebuild')
+    }
     stages {
-        stage('pull git repos'){
-            steps {
-                cleanWs() // clean workspace
-                    sh("""
-                        git clone https://${GIT_CREDS_USR}:${GIT_CREDS_PSW}@github.com/AnyVisionltd/automation-infra.git -b hab/resource_manager_hb_TMTNNFR-279
-                    """)
-            } // end of steps
-        } // end of stage
+        stage ('Build automation proxy container') {
+               steps {
+                    sh(script: "make push-automation-proxy")
+              }
+            }
         stage('Run unit tests') {
             steps {
                 script {
@@ -39,11 +39,9 @@ pipeline {
             stages {
                 stage('Run integration tests') {
                     steps {
-                        dir ('automation-infra') {
-                            sh (
-                                script: "./containerize.sh python -m pytest -p pytest_automation_infra --provisioner ${env.HABERTEST_PROVISIONER} automation_infra/tests/basic_tests/ --ignore=lab --ignore=hwprovisioner --log-cli-level info --fixture-scope session"
-                            )
-                        }
+                        sh (
+                            script: "./containerize.sh python -m pytest -p pytest_automation_infra --provisioner ${env.HABERTEST_PROVISIONER} automation_infra/tests/basic_tests/ --ignore=lab --ignore=hwprovisioner --log-cli-level info --fixture-scope session"
+                        )
                     }
                 }
             }
