@@ -1,4 +1,5 @@
 import os
+import shlex
 import subprocess
 from subprocess import CalledProcessError
 import logging
@@ -192,6 +193,10 @@ class SshDirect(object):
         cmd = f"{prefix} {src} {self._connection._username}@{self._host.ip}:{dst}"
         subprocess.check_output(cmd, shell=True)
 
+    def compress(self, src, dst):
+        src = src if type(src) is list else [src]
+        dst = dst if dst.endswith('tar.gz') else '{dst}.tar.gz'
+        self.execute(f"tar --use-compress-program=pigz -cf {dst} -C {' '.join([shlex.quote(folder) for folder in src])}")
 
 
 class SSHCalledProcessError(CalledProcessError):
