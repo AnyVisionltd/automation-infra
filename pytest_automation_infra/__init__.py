@@ -314,6 +314,17 @@ def pytest_configure(config):
 def pytest_report_teststatus(report, config):
     logging.debug(report.longreprtext)
 
+
+def organize_remote_logs(ssh):
+    ssh.execute('sudo chmod ugo+rw /tmp/automation_infra')
+    ssh.execute('docker logs automation_proxy &> /tmp/automation_proxy.log')
+    ssh.execute('sudo mv /tmp/automation_proxy.log /tmp/automation_infra/automation_proxy.log')
+    remote_log_folders = ssh.execute('ls /storage/logs').split()
+    paths_to_compress = [*[f"/storage/logs/{folder}" for folder in remote_log_folders], '/var/log/journal',
+                         '/tmp/automation_infra/automation_proxy.log']
+    return paths_to_compress
+
+
 def download_host_logs(host, logs_dir):
     dest_dir = os.path.join(logs_dir, host.alias)
     logging.debug(f"remote log folders and permissions: {host.SshDirect.execute('ls /storage/logs -lh || mkdir -p /storage/logs')}")
@@ -323,7 +334,12 @@ def download_host_logs(host, logs_dir):
     paths_to_download = [*[f"/storage/logs/{folder}" for folder in remote_log_folders], '/tmp/automation_proxy.log']
     logging.debug(f"Downloading logs from {host.alias} to {dest_dir}. Paths to download: {paths_to_download}")
     os.makedirs(dest_dir, exist_ok=True)
-    host.SshDirect.download(re.escape(dest_dir), *paths_to_download)
+    logging.debug(f"remote log folders and permissions: {host.SshDirect.execute('ls /storage/logs -lh || mkdir -p /storage/logs')}")
+    paths_to_compress = organize_remote_logs(host.SshDirect)
+    dest_gz = '/tmp/automation_infra/logs.tar.gz'
+    host.SSH.compress(paths_to_compress, dest_gz)
+    logging.debug(f"Downloading logs from {host.alias} to {dest_dir}. Paths to download: {paths_to_compress}")
+    host.SSH.download(re.escape(dest_dir), dest_gz)
     logging.debug(f"downloaded log folders: {os.listdir(dest_dir)}")
 
 
