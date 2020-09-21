@@ -26,6 +26,5 @@ def test_power_plugin(base_config):
     power.on()
     logging.info("powered on, trying to connect")
     waiter.wait_nothrow(lambda: power.status() == 'on')
-    waiter.wait_nothrow(host.SshDirect.connect, timeout=30)
-    helpers.deploy_proxy_container(host.SshDirect)
+    helpers.init_proxy_container_and_connect(host)
     logging.info("connected succesfully, plugin working!")
