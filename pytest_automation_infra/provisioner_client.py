@@ -22,6 +22,7 @@ class ProvisionerClient(object):
         ws.connect("ws://%s/api/ws/jobs" % self.ep)
         start = time.time()
         allocation_id = str(uuid.uuid4())
+        logging.info(f"allocation_id: {allocation_id}")
         while time.time() - start <= timeout:
             requestor_information = dict(hostname=os.getenv("host_hostname", socket.gethostname()),
                                          username=getpass.getuser(),
