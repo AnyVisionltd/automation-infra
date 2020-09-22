@@ -100,7 +100,7 @@ class PythonPacker(object):
         if module.__file__.startswith(self.rootdir):
             return self._truncated_module_path(module)
         relpath = module.__name__.replace('.', os.sep)
-        return module.__file__[module.__file__.find(relpath):]
+        return module.__file__[module.__file__.rfind(relpath):]
 
     def _truncated_module_path(self, module):
         path = module.__file__[len(self.rootdir):]
