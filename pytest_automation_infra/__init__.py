@@ -318,8 +318,7 @@ def organize_remote_logs(ssh):
     ssh.execute('docker logs automation_proxy &> /tmp/automation_proxy.log')
     ssh.execute('sudo mv /tmp/automation_proxy.log /tmp/automation_infra/automation_proxy.log')
     remote_log_folders = ssh.execute('ls /storage/logs').split()
-    paths_to_compress = [*[f"/storage/logs/{folder}" for folder in remote_log_folders], '/var/log/journal',
-                         '/tmp/automation_infra/automation_proxy.log']
+    paths_to_compress = [*[f"/storage/logs/{folder}" for folder in remote_log_folders], '/tmp/automation_infra/automation_proxy.log']
     return paths_to_compress
 
 
