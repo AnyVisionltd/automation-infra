@@ -311,8 +311,6 @@ def pytest_configure(config):
     configure_logging(config)
 
 
-def pytest_report_teststatus(report, config):
-    logging.debug(report.longreprtext)
 
 
 def organize_remote_logs(ssh):
@@ -350,12 +348,18 @@ def _sanitize_nodeid(filename):
     return filename
 
 
+def pytest_report_teststatus(report, config):
+    if report.longreprtext:
+        logging.info(report.longreprtext)
+
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
     result = outcome.get_result()
     if result.when == 'call':
         logging.info(f"\n>>>>>>>>>>{'.'.join(item.listnames()[-2:])} {'PASSED' if result.passed else 'FAILED'} {f' -> {call.excinfo.value}' if not result.passed else ''}")
+
 
 def pytest_runtest_teardown(item):
     logging.debug(f"\n<--------------runtest teardown of {'.'.join(item.listnames()[-2:])}------------------->\n")
