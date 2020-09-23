@@ -1,5 +1,6 @@
 import asyncio
 import concurrent
+import random
 import time
 import uuid
 from asyncio import shield
@@ -68,7 +69,7 @@ class Fulfiller(object):
 
     async def choose_from(self, resource_managers):
         # TODO: placeholder to enable some type of logic
-        return resource_managers[0]
+        return random.choice(resource_managers)
 
     async def find_potential_fulfillers(self, allocation_id):
         allocation_request = await self.redis.allocations(allocation_id)
