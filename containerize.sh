@@ -204,6 +204,7 @@ function run_docker () {
             "${HOME}/.npmrc:${HOME}/.npmrc"
             "${HOME}/.helm:${HOME}/.helm"
             "$MOUNT_PATH:$MOUNT_PATH"
+            "/etc/localtime:/etc/localtime:ro"
 	        )
 
     mount_cmd=""
