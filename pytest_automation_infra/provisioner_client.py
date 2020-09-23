@@ -2,8 +2,10 @@ import getpass
 import json
 import logging
 import os
+import sys
 import socket
 import time
+from datetime import datetime
 import uuid
 
 import requests
@@ -26,7 +28,10 @@ class ProvisionerClient(object):
         while time.time() - start <= timeout:
             requestor_information = dict(hostname=os.getenv("host_hostname", socket.gethostname()),
                                          username=getpass.getuser(),
-                                         ip=os.getenv("host_ip", socket.gethostbyname(socket.gethostname())))
+                                         ip=os.getenv("host_ip", socket.gethostbyname(socket.gethostname())),
+                                         creation_time=str(datetime.now()),
+                                         running_cmd=" ".join(sys.argv)
+                                         )
             ws.send(json.dumps({"data": {"demands": hardware_req,
                                          "requestor": requestor_information,
                                          "allocation_id": allocation_id}}))
