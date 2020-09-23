@@ -246,3 +246,8 @@ def tear_down_proxy_containers(hosts):
         tear_down_container(host)
         logging.debug(f"[{name}: {host}] success tearing down")
 
+
+def sync_time(hosts):
+    host_running_test_ip = os.getenv("host_ip", subprocess.check_output("hostname -I | awk '{print $1}'", shell=True).strip().decode('ascii'))
+    assert host_running_test_ip, "did not manage to get host ip"
+    [host.SshDirect.put('/etc/localtime', '/etc') for host in hosts.values() if host.ip != host_running_test_ip]
