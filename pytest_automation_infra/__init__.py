@@ -3,12 +3,14 @@ import os
 import logging
 import re
 import subprocess
+import sys
 import threading
 import time
 from datetime import datetime
 
 import pytest
 import requests
+import yaml
 from _pytest.fixtures import FixtureLookupError
 from munch import *
 
@@ -16,7 +18,7 @@ from automation_infra.utils import initializer, concurrently
 from infra.model.host import Host
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
-from pytest_automation_infra import hardware_initializer, helpers
+from pytest_automation_infra import provisioner_client, helpers, heartbeat_client
 from pytest_automation_infra.helpers import is_k8s
 
 
@@ -62,39 +64,26 @@ def pytest_generate_tests(metafunc):
         return
 
     logging.debug("initializing module hardware config to local")
-    local_config = hardware_initializer.get_local_config(metafunc.config.getoption("--hardware"))
+    local_config = get_local_config(metafunc.config.getoption("--hardware"))
     metafunc.module.__initialized_hardware = dict()
     metafunc.module.__initialized_hardware['machines'] = local_config
 
 
-def send_heartbeat(provisioned_hw, stop):
-    logging.info(f"Starting heartbeat to provisioned hardware: {provisioned_hw}")
-    while True:
-        allocation_id = provisioned_hw['allocation_id']
-        logging.debug(f"allocation_id: {allocation_id}")
-        payload = {"allocation_id": allocation_id}
-        logging.debug(f"sending post hb request payload: {payload}")
-        response = requests.post(
-            "%s/api/heartbeat" % os.getenv('HEARTBEAT_SERVER', "http://localhost:7080"), json=payload)
-        logging.debug(f"post response {response}")
-        if response.status_code != 200:
-            logging.error(
-                "Failed to send heartbeat! Got status %s",
-                response.json()
-                )
-        if stop():
-            logging.debug(f"Killing heartbeat to hw {provisioned_hw}")
-            break
-        time.sleep(10)
-    logging.debug(f"Heartbeat to hardware {provisioned_hw} stopped")
+def get_local_config(local_config_path):
+    if not os.path.isfile(local_config_path):
+        raise Exception("""local hardware_config yaml not found""")
+    with open(local_config_path, 'r') as f:
+        local_config = yaml.full_load(f)
+    logging.debug(f"local_config: {local_config}")
+    return local_config
 
 
 def pytest_sessionstart(session):
-    logging.info("initting ")
+    logging.debug("\n<--------------------sesssionstart------------------------>\n")
     scope = determine_scope(None, session.config)
     if scope == 'session':
         if not session.config.getoption("--provisioner"):
-            local_hw = hardware_initializer.get_local_config(session.config.getoption("--hardware"))
+            local_hw = get_local_config(session.config.getoption("--hardware"))
             session.__initialized_hardware = dict()
             session.__initialized_hardware['machines'] = local_hw
         else:  # provisioned:
@@ -104,8 +93,12 @@ def pytest_sessionstart(session):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionfinish(session, exitstatus):
+    logging.debug("\n<-------------------session finish-------------------->\n")
     logging.debug("Sending kill heartbeat")
     session.kill_heartbeat = True
+    provisioner = session.config.getoption("--provisioner")
+    if provisioner and determine_scope(None, session.config) == 'session':
+        provisioner_client.ProvisionerClient(provisioner).release(session.__initialized_hardware['allocation_id'])
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -128,12 +121,10 @@ def determine_scope(fixture_name, config):
     received_scope = config.getoption("--fixture-scope")
     if config.getoption("--provisioner"):
         scope = received_scope if received_scope != 'auto' else 'function'
-        logging.debug(f"scope: {scope} provisioner: True")
         return scope
     # If not provisioner it means were running locally in which case no sense re-initializing fixture each test.
     else:
         scope = received_scope if received_scope != 'auto' else 'session'
-        logging.debug(f"scope: {scope} provisioner: False")
         return scope
 
 
@@ -146,15 +137,6 @@ def configured_hardware(request):
 def init_hosts(hardware, base):
     for machine_name, args in hardware['machines'].items():
         base.hosts[machine_name] = Host(**args)
-
-
-def start_heartbeat_thread(hardware, request):
-    request.session.kill_heartbeat = False
-    hb_thread = threading.Thread(target=send_heartbeat,
-                                 args=(hardware, lambda: request.session.kill_heartbeat),
-                                 daemon=False)
-    hb_thread.start()
-    return hb_thread
 
 
 def kill_heartbeat_thread(hardware, request):
@@ -172,10 +154,11 @@ def init_base_config(hardware):
 
 @pytest.fixture(scope=determine_scope)
 def base_config(request):
+    logging.debug("\n<---------------------initing base_config fixture------------------>\n")
     hardware = configured_hardware(request)
     assert hardware, "Didnt find configured_hardware in base_config fixture..."
     base = init_base_config(hardware)
-    logging.info("sucessfully initialized base_config fixture")
+    logging.debug("\n<-----------------sucessfully initialized base_config fixture------------>\n")
     return base
 
 
@@ -195,7 +178,7 @@ def init_cluster_structure(base_config, cluster_config):
 
 def match_base_config_hosts_with_hwreqs(hardware_reqs, base_config):
     if len(hardware_reqs) > len(base_config.hosts):
-        raise Exception("Not enough hosts to fulfil test requirements")
+        raise Exception(f"Expected {len(hardware_reqs)} but only {len(base_config.hosts)} allocated")
     for key in hardware_reqs.keys():
         if key in base_config.hosts:
             base_config.hosts[key].alias = key
@@ -215,15 +198,19 @@ def match_base_config_hosts_with_hwreqs(hardware_reqs, base_config):
 
 @pytest.hookimpl(hookwrapper=True, trylast=True)
 def pytest_runtest_setup(item):
+    configure_item_loghandler(item)
+    logging.debug(f"\n<---------runtest_setup {'.'.join(item.listnames()[-2:])}---------------->\n")
     configured_hw = configured_hardware(item._request)
     if not configured_hw:
         provisioner = item._request.config.getoption("--provisioner")
         if not provisioner:
             hardware = dict()
-            hardware['machines'] = hardware_initializer.get_local_config(item.config.getoption("--hardware"))
+            hardware['machines'] = get_local_config(item.config.getoption("--hardware"))
         else:
-            hardware = hardware_initializer.provision_hardware(item.function.__hardware_reqs, provisioner)
-            item.hb_thread = start_heartbeat_thread(hardware, item._request)
+            hardware = provisioner_client.ProvisionerClient(provisioner).provision(item.function.__hardware_reqs)
+            item._request.session.kill_heartbeat = lambda: False
+            hb = heartbeat_client.HeartbeatClient(item._request.session.kill_heartbeat)
+            hb.send_heartbeats_on_thread(hardware['allocation_id'])
             if determine_scope(None, item.config) == 'session':
                 logging.warning("running provisioned with session scoped fixture.. Could lead to unexpected results..")
                 item.session.__initialized_hardware = dict()
@@ -231,7 +218,8 @@ def pytest_runtest_setup(item):
 
         item.function.__initialized_hardware = hardware
 
-    assert configured_hardware(item._request), "Couldnt find configured hardware in pytest_runtest_setup"
+    hardware = configured_hardware(item._request)
+    assert hardware, "Couldnt find configured hardware in pytest_runtest_setup"
     outcome = yield  # This will now go to base_config fixture function
     try:
         outcome.get_result()
@@ -248,15 +236,28 @@ def pytest_runtest_setup(item):
     reqs = item.function.__hardware_reqs
     item.funcargs['base_config'] = match_base_config_hosts_with_hwreqs(reqs, base_config)
     hosts = base_config.hosts.items()
-    logging.info("cleaning between tests..")
+    for name, host in hosts:
+        logging.info(f"\n\n{host.SshDirect.ssh_string} # host \n{host.SSH.ssh_string} # container\n\n")
+    logging.debug("cleaning between tests..")
     initializer.clean_infra_between_tests(hosts)
     init_cluster_structure(base_config, item.function.__cluster_config)
-    logging.info("done runtest_setup")
+    logging.debug("done runtest_setup")
+    logging.debug("\n-----------------runtest call---------------\n")
 
 
 def pytest_logger_fileloggers(item):
-    logging.FileHandler.setLevel(logging.getLogger(), level=logging.DEBUG)
-    return [('')]
+    return [('', logging.INFO)]
+
+
+def configure_item_loghandler(item):
+    config = item.config
+    log_dir = os.path.join(config.option.logger_logsdir, _sanitize_nodeid(item.nodeid))
+    os.makedirs(log_dir, exist_ok=True)
+    debug_fh = logging.FileHandler(f'{log_dir}/infra.log', mode='w')
+    debug_fh.setLevel(logging.DEBUG)
+    debug_fh.setFormatter(logging.Formatter(config.option.log_format))
+    item.log_handler = debug_fh
+    logging.getLogger().addHandler(item.log_handler)
 
 
 def pytest_logger_logsdir(config):
@@ -268,36 +269,76 @@ def pytest_logger_config(logger_config):
     logger_config.set_formatter_class(InfraFormatter)
 
 
+def configure_logging(config):
+    config.option.log_format = '%(asctime)s.%(msecs)0.3d %(threadName)-10.10s %(levelname)-6.6s %(message)s %(funcName)-15.15s %(pathname)s:%(lineno)d'
+    config.option.log_cli_format = config.option.log_format
+
+    config.option.log_file_date_format = '%Y-%m-%d %H:%M:%S'
+    config.option.log_cli_date_format = config.option.log_file_date_format
+
+    session_logs_dir = f'logs/{datetime.now().strftime("%Y_%m_%d__%H%M_%S")}'
+
+    infra_logs_dir = f'{session_logs_dir}/infra_logs'
+    os.makedirs(infra_logs_dir, exist_ok=True)
+
+    # tests_logs_dir = os.path.join(os.getcwd(), f'{session_logs_dir}/test_logs')
+    tests_logs_dir = f'{session_logs_dir}/tests_logs'
+    os.makedirs(tests_logs_dir, exist_ok=True)
+
+    config.option.logger_logsdir = tests_logs_dir
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    log_fmt = config.option.log_format
+
+    debug_fh = logging.FileHandler(f'{infra_logs_dir}/debug.log', mode='w')
+    debug_fh.setLevel(logging.DEBUG)
+    debug_fh.setFormatter(logging.Formatter(log_fmt))
+    root_logger.addHandler(debug_fh)
+
+    info_fh = logging.FileHandler(f'{infra_logs_dir}/info.log', mode='w')
+    info_fh.setLevel(logging.INFO)
+    info_fh.setFormatter(logging.Formatter(log_fmt))
+    root_logger.addHandler(info_fh)
+
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    ch.setFormatter(logging.Formatter(log_fmt))
+    root_logger.addHandler(ch)
+
+
 def pytest_configure(config):
-    log_fmt = '%(asctime)s.%(msecs)0.3d %(threadName)-10.10s %(levelname)-6.6s %(message)s %(funcName)-15.15s %(pathname)s:%(lineno)d'
-    date_fmt = '%Y-%m-%d %H:%M:%S'
-
-    config.option.showcapture = 'no'
-    log_dir = datetime.now().strftime('%Y_%m_%d:%H:%M:%S')
-    logs_dir = os.path.join(os.getcwd(), f'logs/{log_dir}')
-    os.makedirs(logs_dir, exist_ok=True)
-    config.option.logger_logsdir = logs_dir
-    config.option.log_cli = True
-    config.option.log_cli_level = 'INFO'
-    config.option.log_cli_format = log_fmt
-    config.option.log_format = log_fmt
-    config.option.log_cli_date_format = date_fmt
-    config.option.log_file_date_format = date_fmt
+    configure_logging(config)
 
 
-def pytest_report_teststatus(report, config):
-    logging.debug(report.longreprtext)
+
+
+def organize_remote_logs(ssh):
+    ssh.execute('sudo chmod ugo+rw /tmp/automation_infra')
+    ssh.execute('docker logs automation_proxy &> /tmp/automation_proxy.log')
+    ssh.execute('sudo mv /tmp/automation_proxy.log /tmp/automation_infra/automation_proxy.log')
+    remote_log_folders = ssh.execute('ls /storage/logs').split()
+    paths_to_compress = [*[f"/storage/logs/{folder}" for folder in remote_log_folders], '/tmp/automation_infra/automation_proxy.log']
+    return paths_to_compress
+
 
 def download_host_logs(host, logs_dir):
     dest_dir = os.path.join(logs_dir, host.alias)
     logging.debug(f"remote log folders and permissions: {host.SshDirect.execute('ls /storage/logs -lh || mkdir -p /storage/logs')}")
     host.SshDirect.execute('docker logs automation_proxy &> /tmp/automation_proxy.log')
+    host.SshDirect.execute('sudo sh -c "journalctl > /storage/logs/journal.log"')
     remote_log_folders = host.SshDirect.execute('ls /storage/logs').split()
-    paths_to_download = [*[f"/storage/logs/{folder}" for folder in remote_log_folders], '/var/log/journal', '/tmp/automation_proxy.log']
+    paths_to_download = [*[f"/storage/logs/{folder}" for folder in remote_log_folders], '/tmp/automation_proxy.log']
     logging.debug(f"Downloading logs from {host.alias} to {dest_dir}. Paths to download: {paths_to_download}")
     os.makedirs(dest_dir, exist_ok=True)
-    host.SshDirect.download(re.escape(dest_dir), *paths_to_download)
+    logging.debug(f"remote log folders and permissions: {host.SshDirect.execute('ls /storage/logs -lh || mkdir -p /storage/logs')}")
+    paths_to_compress = organize_remote_logs(host.SshDirect)
+    dest_gz = '/tmp/automation_infra/logs.tar.gz'
+    host.SSH.compress(paths_to_compress, dest_gz)
+    logging.debug(f"Downloading logs from {host.alias} to {dest_dir}. Paths to download: {paths_to_compress}")
+    host.SSH.download(re.escape(dest_dir), dest_gz)
     logging.debug(f"downloaded log folders: {os.listdir(dest_dir)}")
+
 
 def _sanitize_nodeid(filename):
     filename = filename.replace('::()::', '/')
@@ -305,7 +346,22 @@ def _sanitize_nodeid(filename):
     filename = re.sub(r'\[(.+)\]', r'-\1', filename)
     return filename
 
+
+def pytest_report_teststatus(report, config):
+    if report.longreprtext:
+        logging.info(report.longreprtext)
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    result = outcome.get_result()
+    if result.when == 'call':
+        logging.info(f"\n>>>>>>>>>>{'.'.join(item.listnames()[-2:])} {'PASSED' if result.passed else 'FAILED'} {f' -> {call.excinfo.value}' if not result.passed else ''}")
+
+
 def pytest_runtest_teardown(item):
+    logging.debug(f"\n<--------------runtest teardown of {'.'.join(item.listnames()[-2:])}------------------->\n")
     base_config = item.funcargs.get('base_config')
     if not base_config:
         logging.error("base_config fixture wasnt initted properly, cant download logs")
@@ -317,7 +373,7 @@ def pytest_runtest_teardown(item):
     if hosts_to_download:
         try:
             logs_dir = os.path.join(item.config.option.logger_logsdir, _sanitize_nodeid(item.nodeid))
-            logging.info("concurrently downloading logs from hosts...")
+            logging.debug("concurrently downloading logs from hosts...")
             concurrently.run({host.ip: (download_host_logs, host, logs_dir)
                               for host in hosts_to_download})
         except subprocess.CalledProcessError:
@@ -326,9 +382,11 @@ def pytest_runtest_teardown(item):
     helpers.tear_down_proxy_containers(base_config.hosts.items())
     scope = determine_scope(None, item.config)
     if scope == 'function':
-        if item._request.config.getoption("--provisioner"):
-            kill_heartbeat_thread(item.function.__initialized_hardware, item._request)
-            item.hb_thread.join()
+        provisioner = item._request.config.getoption("--provisioner")
+        if provisioner:
+            item._request.session.kill_heartbeat = True
+            provisioner_client.ProvisionerClient(provisioner).release(item.function.__initialized_hardware['allocation_id'])
+    logging.getLogger().removeHandler(item.log_handler)
 
 
 def get_log_dir(config):

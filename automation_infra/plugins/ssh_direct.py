@@ -1,4 +1,5 @@
 import os
+import shlex
 import subprocess
 from subprocess import CalledProcessError
 import logging
@@ -21,6 +22,10 @@ class SshDirect(object):
         if self._connection is None:
             self.connect()
         return self._connection
+
+    @property
+    def ssh_string(self):
+        return f"sshpass -p {self.connection.password} ssh -o StrictHostKeyChecking=no {self.connection._username}@{self.connection._ip} -p {self.connection.port}"
 
     def connect(self, timeout=10):
         self._connection = connection.Connection(self._host)
@@ -57,19 +62,10 @@ class SshDirect(object):
             temp_ex = ex
             raise SSHCalledProcessError(temp_ex.returncode, temp_ex.cmd, temp_ex.output, temp_ex.stderr, self._host)
 
-    def gpu_count(self):
-        res = int(self.execute("nvidia-smi --list-gpus | wc -l"))
-        return res
 
     def remote_hostname(self):
         return self.execute("echo $HOSTNAME").strip()
 
-    def download_resource(self, remote_path, local_destination):
-        full_bucket_path = f's3://anyvision-testing/{remote_path}'
-        cmd = f"aws s3 cp {full_bucket_path} {local_destination}"
-        self.execute(cmd)
-        res = self.execute(f'ls {local_destination}')
-        assert os.path.basename(remote_path) in res
 
     def run_parallel(self, scripts, max_jobs=None):
         temp_ex = None
@@ -193,10 +189,14 @@ class SshDirect(object):
             raise NotImplemented("Rsync with SSH key is not yet implemented")
         exclude_dirs = exclude_dirs or []
         exclude_expr = " ".join([f"--exclude {exclude_dir}" for exclude_dir in exclude_dirs])
-        prefix = f"sshpass -p {self._connection.password} rsync -ravh --delete {exclude_expr} -e \"ssh -p {self._connection.port} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null\""
+        prefix = f"sshpass -p {self._connection.password} rsync -ravh --delete {exclude_expr} -e \"ssh -p {self._connection.port} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR\""
         cmd = f"{prefix} {src} {self._connection._username}@{self._host.ip}:{dst}"
-        subprocess.check_call(cmd, shell=True)
+        subprocess.check_output(cmd, shell=True)
 
+    def compress(self, src, dst):
+        src = src if type(src) is list else [src]
+        dst = dst if dst.endswith('tar.gz') else '{dst}.tar.gz'
+        self.execute(f"tar --use-compress-program=pigz -cf {dst} -C {' '.join([shlex.quote(folder) for folder in src])}")
 
 
 class SSHCalledProcessError(CalledProcessError):

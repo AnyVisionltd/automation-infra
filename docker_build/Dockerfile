@@ -19,6 +19,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     python3-pip \
     iproute2 \
     rsync \
+    pigz \
     && curl -sL https://deb.nodesource.com/setup_10.x | bash \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
@@ -29,21 +30,6 @@ RUN mkdir /var/run/sshd \
     && chmod 0700 /root/.ssh \
     && echo "root:pass" | chpasswd
 
-# configure sshd daemon for ssh connections
-RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#PidFile \/var\/run\/sshd.pid/PidFile .\/sshd.pid/' /etc/ssh/sshd_config \
-    && sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config \
-    && sed -i 's/#ClientAliveInterval 0/ClientAliveInterval 300/' /etc/ssh/sshd_config \
-    && sed -i 's/#UseDNS no/UseDNS yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#PermitTunnel no/PermitTunnel yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#MaxStartups.*/MaxStartups 512:30:1024/' /etc/ssh/sshd_config \
-    && sed -i 's/#MaxSessions.*/MaxSessions 1024/' /etc/ssh/sshd_config \
-    # SSH login fix. Otherwise user is kicked off after login
-    && sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd \
-    && sed -i 's/#LogLevel INFO/LogLevel DEBUG3/' /etc/ssh/sshd_config
-
-# run as a different user
-
 # RUN groupadd --gid 5000 user \
 #     && useradd --home-dir /home/user --create-home --uid 5000 \
 #         --gid 5000 --shell /bin/bash --skel /dev/null user \
@@ -53,12 +39,17 @@ RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
 
 # USER user
 
-# Install pip3 requirements.txt
-ADD requirements.txt  /home/user/requirements.txt
-RUN python3 -m pip install -r /home/user/requirements.txt
 
 # Configure npm registry
 RUN npm config set registry https://anyvision.jfrog.io/anyvision/api/npm/npm/
+
+# Install pip3 requirements.txt
+ADD requirements.txt  /home/user/requirements.txt
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install -r /home/user/requirements.txt
+
+COPY etc/  /etc/
+# run as a different user
 
 WORKDIR /home/user
 

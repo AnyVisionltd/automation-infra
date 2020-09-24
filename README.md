@@ -260,6 +260,10 @@ automation_repos
 # Pytests
 
 + run ./run_tests.sh, this should pass, this means the repo and requirements are set up properly.
+if you get an error "sudo: a terminal is required..." then you need to be a sudoer. something like this should do the 
+trick (obv change 'user' with your username)
+
+```echo "user  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/user```
 
 In addition, any pytest params can be used to along with the `run_tests.sh` script. A couple useful examples; 
 * -h shows a help

@@ -47,6 +47,10 @@ pipeline {
             }               
             steps {
                 script {
+                    dir('docker_build'){
+                       image_tag=sh(returnStdout: true, script: "./version.sh").trim()
+                       containerLib.push_container('anyvision-training', img, image_tag)
+                    }
                     containerLib.push_container('anyvision-training', img, BRANCH_NAME)
                 }
             }
