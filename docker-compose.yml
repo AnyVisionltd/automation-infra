@@ -45,5 +45,3 @@ services:
       - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
     ports:
       - 6379:6379
-    command: [sh, -c, "rm -f /data/dump.rdb && redis-server"]  # disable persistence
-
