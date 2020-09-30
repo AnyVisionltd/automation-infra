@@ -33,7 +33,6 @@ async def deallocate(resource_name, manager_ep):
         async with session.delete(url) as resp:
             result = await resp.json()
             if resp.status != 200:
-                return None
                 raise Exception(f"Error deallocating resource {resource_name} on {manager_ep}: {result}")
             return result
 
