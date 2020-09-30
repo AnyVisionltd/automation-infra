@@ -205,6 +205,7 @@ function run_docker () {
             "${HOME}/.helm:${HOME}/.helm"
             "$MOUNT_PATH:$MOUNT_PATH"
             "/etc/localtime:/etc/localtime:ro"
+            "/etc/timezone:/etc/timezone:ro"
 	        )
 
     mount_cmd=""
