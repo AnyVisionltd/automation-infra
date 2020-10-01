@@ -221,6 +221,7 @@ def pytest_runtest_setup(item):
 
     hardware = configured_hardware(item._request)
     assert hardware, "Couldnt find configured hardware in pytest_runtest_setup"
+    logging.info(f"HUT connection string:\n\nsshpass -p {next(iter(hardware['machines'].values()))['password']} ssh -o StrictHostKeyChecking=no {next(iter(hardware['machines'].values()))['user']}@{next(iter(hardware['machines'].values()))['ip']} \n\n")
     outcome = yield  # This will now go to base_config fixture function
     try:
         outcome.get_result()
@@ -237,8 +238,6 @@ def pytest_runtest_setup(item):
     reqs = item.function.__hardware_reqs
     item.funcargs['base_config'] = match_base_config_hosts_with_hwreqs(reqs, base_config)
     hosts = base_config.hosts.items()
-    for name, host in hosts:
-        logging.info(f"\n\n{host.SshDirect.ssh_string} # host \n{host.SSH.ssh_string} # container\n\n")
     logging.debug("cleaning between tests..")
     initializer.clean_infra_between_tests(hosts)
     init_cluster_structure(base_config, item.function.__cluster_config)
