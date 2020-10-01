@@ -87,7 +87,7 @@ class Fulfiller(object):
         if not allocation:
             return
         log.debug(f"received release request for allocation {allocation}")
-        for hardware_details in allocation.get('hardware_details'):
+        for hardware_details in allocation.get('hardware_details', []):
             await rm_requestor.deallocate(hardware_details['vm_id'], hardware_details['resource_manager_ep'])
         await self.redis.update_status(allocation_id, status="deallocated")
         await self.redis.delete('allocations', [allocation_id])
