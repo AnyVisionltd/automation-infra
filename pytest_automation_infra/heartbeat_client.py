@@ -1,3 +1,4 @@
+import logging
 import os
 import threading
 import time
@@ -24,6 +25,7 @@ class HeartbeatClient(object):
             try:
                 self.send_heartbeat(allocation_id)
             except KeyError:
+                logging.error(f"send hb for {allocation_id} which doesnt exist on {self.ep}.. \nexiting pytest")
                 os._exit(666)
             time.sleep(self.interval)
 
