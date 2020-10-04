@@ -19,8 +19,8 @@ async def try_deallocate(ep, name):
         raise
 
 
-async def deallocate(data):
-    for hardware in data['hardware_details']:
+async def deallocate(allocation):
+    for hardware in allocation['hardware_details']:
         rm_ep = hardware['resource_manager_ep']
         vm_name = hardware["vm_id"]
         await try_deallocate(rm_ep, vm_name)
@@ -37,7 +37,7 @@ async def expire_allocations(redis):
         allocations = await redis.allocations()
         for allocation_id, allocation in allocations.items():
             if allocation['status'] not in ['received', 'allocating', 'success']:
-                log.debug(f"found (dangling) {allocation['status']} allocation")
+                log.debug(f"found dangling {allocation_id} with status {allocation['status']}")
                 result = await rm_requestor.check_status(allocation['allocation_id'], allocation['rm_endpoint'])
                 log.debug(f"updated status: {result}")
                 if result['info']:
@@ -51,26 +51,24 @@ async def expire_allocations(redis):
                         log.debug("deallocated successfully!")
 
             if allocation["expiration"] <= time.time():
-                log.debug(f"found expired allocation with status {allocation['status']}")
+                log.debug(f"found expired {allocation_id} with status {allocation['status']}")
                 if allocation['status'] in ['success', 'allocated']:
                     log.debug(f"deallocating")
                     allocation['status'] = 'deallocating'
                     deallocate_tasks[allocation_id] = asyncio.ensure_future(deallocate(allocation))
                     await conn.hset("allocations", allocation["allocation_id"], json.dumps(allocation))
                 else:
-                    log.debug(f"deleting from redis..")
+                    log.warning(f"found IMPROPER expired {allocation['status']} allocation {allocation_id}, removing")
                     await redis.delete("allocations", allocation_id)
             else:
                 log.debug(f"job {allocation['allocation_id']} ttl: {allocation['expiration'] - int(time.time())}")
 
         for a_id, task in deallocate_tasks.items():
-            allocation = allocations[a_id]
             try:
                 await task
                 await redis.delete("allocations", a_id)
             except:
                 log.debug("exception deallocating")
-                allocation['status'] = 'error_deallocating'
-                await conn.hset("allocations", a_id, json.dumps(allocation))
+                await redis.update_status(a_id, status='error_deallocating')
 
         await asyncio.sleep(10)
