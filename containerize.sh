@@ -203,6 +203,7 @@ function run_docker () {
             "${HOME}/.aws:${HOME}/.aws"
             "${HOME}/.npmrc:${HOME}/.npmrc"
             "${HOME}/.helm:${HOME}/.helm"
+            "${HOME}/.ipython:${HOME}/.ipython"
             "$MOUNT_PATH:$MOUNT_PATH"
             "/etc/localtime:/etc/localtime:ro"
             "/etc/timezone:/etc/timezone:ro"
