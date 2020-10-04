@@ -249,6 +249,7 @@ class Allocator(object):
             if not name in self.vms:
                 raise KeyError()
             try:
+                logging.debug(f"destroying vm {vm.name}, {vm.allocation_id}")
                 await self.vm_manager.destroy_vm(vm)
             except:
                 logging.exception("Failed to free vm %s", vm.name)
