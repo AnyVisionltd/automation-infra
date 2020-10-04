@@ -14,7 +14,7 @@ class LabConnector(Magics):
     def hardware_attach(self, line):
         args = parse_argstring(self.hardware_attach, line)
         hardware_yaml = args.path
-        hardware = pytest_automation_infra.get_local_config(hardware_yaml)
+        hardware = {'machines' : pytest_automation_infra.get_local_config(hardware_yaml)}
 
         base = munch.DefaultMunch(munch.Munch)
         base.hosts = munch.Munch()
