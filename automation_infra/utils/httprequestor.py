@@ -63,10 +63,10 @@ class SimpleRequestor(HTTPRequestor):
         return requests.post(self.build_url(route), data, json, verify=self.verify_cert, **kwargs)
 
     def put(self, route, data=None, **kwargs) -> requests.Response:
-        return requests.put(self.build_url(route), route, data, verify=self.verify_cert, **kwargs)
+        return requests.put(self.build_url(route), data, verify=self.verify_cert, **kwargs)
 
     def delete(self, route, **kwargs) -> requests.Response:
-        return requests.delete(self.build_url(route), route, verify=self.verify_cert, **kwargs)
+        return requests.delete(self.build_url(route), verify=self.verify_cert, **kwargs)
 
     def patch(self, route, data=None, **kwargs) -> requests.Response:
         return requests.patch(self.build_url(route), data, verify=self.verify_cert, **kwargs)
