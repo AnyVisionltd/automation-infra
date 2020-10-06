@@ -1,4 +1,8 @@
 import asyncio
+import concurrent
+import traceback
+from asyncio import shield
+
 from aiohttp import web
 import logging
 # web.View
@@ -107,14 +111,16 @@ class HyperVisor(object):
     async def handle_destroy_vm(self, request):
         vm_name = request.match_info['name']
         try:
-            await self.allocator.destroy_vm(vm_name)
+            await shield(self.allocator.destroy_vm(vm_name))
         except KeyError:
             return web.json_response({"error": f'vm {vm_name} doesnt exist'}, status=404)
+        except concurrent.futures._base.CancelledError:
+            logging.warning("handle_destroy_vm request was cancelled before it completed. "
+                            "The vm will still be destroyed but this may point to a bug")
         except Exception as e:
             logging.exception("Failed to destroy VM")
-            return web.json_response({'status': 'Failed', 'error': str(e)}, status=500)
-        else:
-            return web.json_response({'status' : 'Success'}, status=200)
+            return web.json_response({'status': 'Failed', 'error': traceback.format_exc(e)}, status=500)
+        return web.json_response({'status' : 'Success'}, status=200)
 
     async def handle_list_vms(self, _):
         vms_info = [vm.json for vm in self.allocator.vms.values()]
