@@ -59,7 +59,7 @@ async def fulfill(request):
                 await websocket.send_json(resp)
                 continue  # Return here? or could we have something else to do?
             else:
-                log.debug(f"received message over websocket with unexpected data: {payload['data']}")
+                log.debug(f"received message over websocket with unexpected data: {payload}")
     finally:
         await websocket.close()
         log.debug("jobs websocket discarded")
