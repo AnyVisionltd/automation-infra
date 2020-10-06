@@ -64,23 +64,22 @@ class HyperVisor(object):
                     "allocation_id":"1234-234523-2342-23424"}"""
         data = await request.json()
         vm_requests = self.translate_to_vm_params(data)
-        tasks = set()
+        request_tasks = list()
         for vm_request in vm_requests:
-            logging.info(f"allocating vm with args: {vm_request}")
-            tasks.add(self.allocator.allocate_vm(**vm_request))
+            request_tasks.append(self.allocator.allocate_vm(**vm_request))
+        results = await asyncio.gather(*request_tasks, return_exceptions=True)
 
-        done, pending = await asyncio.wait(tasks)
-        exceptions = set([_task for _task in done if _task.exception() is not None])
-        completed = done.difference(exceptions)
-        logging.warning(f"completed: {completed}, exceptions: {exceptions}")
+        results = set(results)
+        exceptions = {result for result in results if issubclass(type(result), Exception)}
+        completed = results.difference(exceptions)
         if exceptions:
-            destroy_tasks = [self.allocator.destroy_vm(_task.result().name) for _task in completed]
+            destroy_tasks = [self.allocator.destroy_vm(vm.name) for vm in completed]
             logging.warning(f"exceptions trying to fulfill. destroy_tasks: {destroy_tasks}")
             await asyncio.gather(*destroy_tasks)
             return web.json_response({'status': 'Failed', 'error': 'error creating'}, status=500)
 
         return web.json_response(
-            {'status': 'Success', 'info': [_task.result().json for _task in completed]}, status=200)
+            {'status': 'Success', 'info': [vm.json for vm in completed]}, status=200)
 
     async def handle_allocate_vm(self, request):
         data = await request.json()
@@ -94,14 +93,18 @@ class HyperVisor(object):
         disks = data['disks']
         allocation_id = data.get('allocation_id', None)
         try:
-            vm = await self.allocator.allocate_vm(base_image=base_image,
-                                       base_image_size=base_image_size,
-                                       memory_gb=memory_gb,
-                                       networks=networks,
-                                       num_gpus=num_gpus,
-                                       num_cpus=num_cpus,
-                                       disks=disks,
-                                       allocation_id=allocation_id)
+            vm = await self.allocator.allocate_vm(
+                base_image=base_image,
+                base_image_size=base_image_size,
+                memory_gb=memory_gb,
+                networks=networks,
+                num_gpus=num_gpus,
+                num_cpus=num_cpus,
+                disks=disks,
+                allocation_id=allocation_id)
+        except concurrent.futures._base.CancelledError:
+            logging.info(f"{allocation_id} request was cancelled before it was completed.. it shouldnt exist")
+            return web.json_response({'status': 'Cancelled'})
         except Exception as e:
             logging.exception("Failed to create VM")
             return web.json_response({'status': 'Failed', 'error': str(e)}, status=500)
@@ -115,7 +118,7 @@ class HyperVisor(object):
         except KeyError:
             return web.json_response({"error": f'vm {vm_name} doesnt exist'}, status=404)
         except concurrent.futures._base.CancelledError:
-            logging.warning("handle_destroy_vm request was cancelled before it completed. "
+            logging.warning(f"handle_destroy_vm request for {vm_name} was cancelled before it completed. "
                             "The vm will still be destroyed but this may point to a bug")
         except Exception as e:
             logging.exception("Failed to destroy VM")
