@@ -18,6 +18,7 @@ import mock
 from aiohttp import web
 from  lab.vms import rest
 import uuid
+from asyncio.futures import CancelledError
 
 
 @pytest.fixture
@@ -40,6 +41,10 @@ def mock_cloud_init():
 @pytest.fixture
 def mock_dhcp_handler():
     return mock.Mock(spec=dhcp_handlers.DHCPManager)
+
+@pytest.fixture
+def mock_allocator():
+    return mock.AsyncMock(spec=allocator.Allocator)
 
 def _generate_device(num_gpus):
     return [ pci.Device(domain=dev, bus=dev, slot=dev,
@@ -143,42 +148,53 @@ async def mock_destroy_vm(*args, **kwargs):
     return True
 
 
-async def test_vm_allocate_and_cancel(mock_libvirt, mock_image_store, aiohttp_client, loop, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler):
-    gpu1 = _generate_device(1)
-    macs = _generate_macs(1)
-    mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
-    mock_cloud_init.generate_iso.return_value = "/tmp/iso_path"
-    mock_dhcp_handler.allocate_ip = mock.AsyncMock(return_value = "1.1.1.1")
-
-    manager = vm_manager.VMManager(loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
-    alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1025)
-    alloc.allocate_vm = mock.AsyncMock(side_effect=mock_destroy_vm)
-    alloc.destroy_vm = mock.AsyncMock(side_effect=mock_destroy_vm)
+async def test_vm_allocate_and_cancel(mock_allocator, mock_image_store, aiohttp_client, loop):
+#     gpu1 = _generate_device(1)
+#     macs = _generate_macs(1)
+#     mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
+#     mock_cloud_init.generate_iso.return_value = "/tmp/iso_path"
+#     mock_dhcp_handler.allocate_ip = mock.AsyncMock(return_value = "1.1.1.1")
+# 
+#     manager = vm_manager.VMManager(loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
+#     alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1025)
+#     alloc.allocate_vm = mock.AsyncMock(side_effect=mock_destroy_vm)
+#     alloc.destroy_vm = mock.AsyncMock(side_effect=mock_destroy_vm)
+    
+  
     app = web.Application()
-    rest.HyperVisor(alloc, image_store, app)
-    client = await aiohttp_client(app, timeout=aiohttp.ClientTimeout(total=1))
-    sleep_task = asyncio.ensure_future(asyncio.sleep(3))
+    rest.HyperVisor(mock_allocator, mock_image_store, app)
+    mock_allocator.allocate_vm.side_effect = CancelledError
+    client = await aiohttp_client(app)
 
-    delete_fut = asyncio.ensure_future(client.delete("/vms/vm-1"))
-    await asyncio.sleep(0.1)
-    delete_fut.cancel()
-    await asyncio.sleep(0.1)
-    try:
-        await delete_fut
-    except concurrent.futures._base.CancelledError:
-        logging.info("caught cancelled error")
-
-    logging.info("mock creating vm")
-    create_vm_post_task = asyncio.ensure_future(client.post("/vms", json={"base_image": "base.qcow",
+    await client.post("/vms", json={"base_image": "base.qcow",
+                                    "name" : "sasha",
                                             "ram" : 100,
                                             "num_cpus": 1,
                                             "networks" : ['bridge'],
                                             "num_gpus" : 1,
-                                            "disks" : []}))
-    await asyncio.sleep(0.1)
-    create_vm_post_task.cancel()
-    try:
-        res = await create_vm_post_task
-    except concurrent.futures._base.CancelledError:
-        logging.info("caught cancelled error")
-    await sleep_task
+                                            "disks" : []})
+    
+    mock_allocator.destroy_vm.assert_called_once_with("suka")
+    
+#     await asyncio.sleep(0.1)
+#     delete_fut.cancel()
+#     await asyncio.sleep(0.1)
+#     try:
+#         await delete_fut
+#     except concurrent.futures._base.CancelledError:
+#         logging.info("caught cancelled error")
+# 
+#     logging.info("mock creating vm")
+#     create_vm_post_task = asyncio.ensure_future(client.post("/vms", json={"base_image": "base.qcow",
+#                                             "ram" : 100,
+#                                             "num_cpus": 1,
+#                                             "networks" : ['bridge'],
+#                                             "num_gpus" : 1,
+#                                             "disks" : []}))
+#     await asyncio.sleep(0.1)
+#     create_vm_post_task.cancel()
+#     try:
+#         res = await create_vm_post_task
+#     except concurrent.futures._base.CancelledError:
+#         logging.info("caught cancelled error")
+#     await sleep_task

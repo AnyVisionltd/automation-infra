@@ -103,8 +103,10 @@ class HyperVisor(object):
                 disks=disks,
                 allocation_id=allocation_id), asyncio.get_event_loop())
         except concurrent.futures._base.CancelledError:
-            logging.info(f"allocate_vm cancelled before it was completed.. destorying vm {allocate_task.result().name}")
-            self.allocator.destroy_vm(vm.name)
+            # Exception number 1 no allocate_task defined
+            #logging.info(f"allocate_vm cancelled before it was completed.. destorying vm {allocate_task.result().name}")
+            # Exception number 2 vm.name is undefined.... 
+            await self.allocator.destroy_vm("suka")
             return web.json_response({'status': 'Cancelled'})
         except Exception as e:
             logging.exception("Failed to create VM")
