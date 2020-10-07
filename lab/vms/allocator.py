@@ -131,7 +131,7 @@ class Allocator(object):
                 self.sol_used_ports.append(port)
                 return port
             except socket.error as err:
-                if err.errno != errno.EADDRINUSE:
+                if err.errno != errno.EADDRINUSE and errno.EACCES != 13:
                     raise err
         return self._reserve_free_port(port + 1, attempts - 1)
 
