@@ -72,8 +72,8 @@ async def test_vm_list(mock_libvirt, mock_image_store, aiohttp_client, loop, moc
                     'pcis': ["0:0:0.0"], "api_version" : "v1", "base_image" : "sasha_image1",
                     'base_image_size': 20,
                     'image': '/home/sasha_king.qcow', 'disks': [], 'status': 'on', "sol_port" : 1000,
-                    'cloud_init_iso': '/tmp/iso_path'}]}
-
+                    'cloud_init_iso': '/tmp/iso_path',
+                    'allocation_id': None, 'requestor': None}]}
 
 async def test_vm_info(mock_libvirt, mock_image_store, aiohttp_client, loop, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler):
     gpu1 = _generate_device(1)
