@@ -1,4 +1,11 @@
+import asyncio
+import concurrent
+import logging
+
+import aiohttp
 import pytest
+
+from automation_infra.utils import preserve
 from lab.vms import allocator
 from lab.vms import vm_manager
 from infra.utils import pci
@@ -126,3 +133,52 @@ async def test_vm_allocate(mock_libvirt, mock_image_store, aiohttp_client, loop,
     assert resp.status == 200
     assert len(alloc.vms) == 1
     assert 'sasha-vm-0' in alloc.vms
+
+
+async def mock_destroy_vm(*args, **kwargs):
+    logging.info("destroying_vm")
+    await asyncio.sleep(1)
+    # This happens, but I cant figure out how to return something from here and receive it in the test.
+    logging.info("done destroying_vm")
+    return True
+
+
+async def test_vm_allocate_and_cancel(mock_libvirt, mock_image_store, aiohttp_client, loop, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler):
+    gpu1 = _generate_device(1)
+    macs = _generate_macs(1)
+    mock_image_store.clone_qcow = mock.AsyncMock(return_value="/home/sasha_king.qcow")
+    mock_cloud_init.generate_iso.return_value = "/tmp/iso_path"
+    mock_dhcp_handler.allocate_ip = mock.AsyncMock(return_value = "1.1.1.1")
+
+    manager = vm_manager.VMManager(loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
+    alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1025)
+    alloc.allocate_vm = mock.AsyncMock(side_effect=mock_destroy_vm)
+    alloc.destroy_vm = mock.AsyncMock(side_effect=mock_destroy_vm)
+    app = web.Application()
+    rest.HyperVisor(alloc, image_store, app)
+    client = await aiohttp_client(app, timeout=aiohttp.ClientTimeout(total=1))
+    sleep_task = asyncio.ensure_future(asyncio.sleep(3))
+
+    delete_fut = asyncio.ensure_future(client.delete("/vms/vm-1"))
+    await asyncio.sleep(0.1)
+    delete_fut.cancel()
+    await asyncio.sleep(0.1)
+    try:
+        await delete_fut
+    except concurrent.futures._base.CancelledError:
+        logging.info("caught cancelled error")
+
+    logging.info("mock creating vm")
+    create_vm_post_task = asyncio.ensure_future(client.post("/vms", json={"base_image": "base.qcow",
+                                            "ram" : 100,
+                                            "num_cpus": 1,
+                                            "networks" : ['bridge'],
+                                            "num_gpus" : 1,
+                                            "disks" : []}))
+    await asyncio.sleep(0.1)
+    create_vm_post_task.cancel()
+    try:
+        res = await create_vm_post_task
+    except concurrent.futures._base.CancelledError:
+        logging.info("caught cancelled error")
+    await sleep_task
