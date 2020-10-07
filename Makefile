@@ -41,7 +41,7 @@ build-hypervisor:
 
 .PHONY: test-hypervisor
 test-hypervisor:
-	cd lab/vms && pytest .
+	cd lab/vms && pytest . -vvv -s --pdb
 
 .PHONY: test-provisioner
 test-provisioner:
