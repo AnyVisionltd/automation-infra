@@ -29,9 +29,11 @@ pipeline {
               }
             }
         stage('Run unit tests') {
-            steps {
-                script {
-                    sh "echo 'Not yet implemented!'"
+            stages {
+                stage ('Run hypervisor unittests'){
+                    steps {
+                        sh(script: "make test-hypervisor")
+                    }
                 }
             }
         }
