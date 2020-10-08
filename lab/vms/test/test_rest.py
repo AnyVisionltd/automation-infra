@@ -56,9 +56,12 @@ async def test_vm_list(mock_libvirt, mock_image_store, aiohttp_client, loop, moc
     mock_dhcp_handler.allocate_ip = mock.AsyncMock(return_value = "1.1.1.1")
     manager = vm_manager.VMManager(loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
     alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+
     with mock.patch("uuid.uuid4") as uuid4:
         uuid4.return_value = "uuid"
-        await alloc.allocate_vm("sasha_image1", base_image_size=20, memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
+        with mock.patch("socket.socket"):
+            await alloc.allocate_vm("sasha_image1", base_image_size=20, memory_gb=1, networks=["bridge"], num_cpus=2, num_gpus=1)
+
     assert len(alloc.vms) == 1
     assert 'sasha-vm-0' in alloc.vms
 
@@ -87,7 +90,8 @@ async def test_vm_info(mock_libvirt, mock_image_store, aiohttp_client, loop, moc
 
     manager = vm_manager.VMManager(loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
     alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
-    await alloc.allocate_vm("sasha_image1", memory_gb=1, base_image_size=20, networks=["bridge"], num_cpus=2, num_gpus=1)
+    with mock.patch("socket.socket"):
+        await alloc.allocate_vm("sasha_image1", memory_gb=1, base_image_size=20, networks=["bridge"], num_cpus=2, num_gpus=1)
     assert len(alloc.vms) == 1
     assert 'sasha-vm-0' in alloc.vms
 
@@ -112,6 +116,8 @@ async def test_vm_allocate(mock_libvirt, mock_image_store, aiohttp_client, loop,
 
     manager = vm_manager.VMManager(loop, mock_libvirt, mock_image_store, mock_nbd_provisioner, mock_cloud_init, mock_dhcp_handler)
     alloc = allocator.Allocator(macs, gpu1, manager, "sasha", max_vms=1, paravirt_device="eth0", sol_base_port=1000)
+    # Note that here we need to hack it in order not to bind to real port
+    alloc._reserve_free_port = lambda x : x
 
     app = web.Application()
     rest.HyperVisor(alloc, image_store, app)
