@@ -7,6 +7,7 @@ import subprocess
 import sys
 import threading
 import time
+import signal
 from datetime import datetime
 
 import pytest
@@ -79,8 +80,13 @@ def get_local_config(local_config_path):
     return local_config
 
 
+def handle_timeout(signum, frame):
+    raise TimeoutError("Test has reached timeout threshold, therefore starting teardown")
+
+
 def pytest_sessionstart(session):
     logging.debug("\n<--------------------sesssionstart------------------------>\n")
+    signal.signal(signal.SIGALRM, handle_timeout)
     scope = determine_scope(None, session.config)
     if scope == 'session':
         if not session.config.getoption("--provisioner"):
