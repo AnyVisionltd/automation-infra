@@ -41,7 +41,8 @@ build-hypervisor:
 
 .PHONY: test-hypervisor
 test-hypervisor:
-	cd lab/vms && pytest .
+	docker build -t infra_unittests:1.0 -f Dockerfile.infra_unittests .
+	docker run --rm -w /root/automation-infra/lab/vms infra_unittests:1.0 pytest . -vvv -s
 
 .PHONY: test-provisioner
 test-provisioner:
