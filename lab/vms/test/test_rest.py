@@ -1,5 +1,7 @@
+from concurrent.futures._base import CancelledError
+
 import pytest
-from lab.vms import allocator
+from lab.vms import allocator, vm
 from lab.vms import vm_manager
 from infra.utils import pci
 from lab.vms import libvirt_wrapper
@@ -146,3 +148,35 @@ async def test_vm_allocate(mock_libvirt, mock_image_store, aiohttp_client, loop,
     assert resp.status == 200
     assert len(alloc.vms) == 1
     assert 'sasha-vm-0' in alloc.vms
+
+
+@pytest.fixture
+def mock_allocator():
+    return mock.AsyncMock(spec=allocator.Allocator)
+
+
+async def test_vm_allocate_and_cancel(mock_allocator, mock_image_store, aiohttp_client, loop):
+    app = web.Application()
+    rest.HyperVisor(mock_allocator, mock_image_store, app)
+    mock_allocator.allocate_vm.side_effect = [CancelledError, vm.VM("temp", 0, 10, 1000, "foo.bar"), CancelledError]
+    client = await aiohttp_client(app)
+
+    resp = await client.post("/vms", json={"base_image": "base.qcow",
+                                    "name": "sasha",
+                                    "ram": 100,
+                                    "num_cpus": 1,
+                                    "networks": ['bridge'],
+                                    "num_gpus": 1,
+                                    "disks": []})
+    j = await resp.json()
+    assert j == {'status': 'Cancelled'}
+
+    resp = await client.post("/fulfill/now", json={"demands": {"host1": {}, "host2": {}},
+                                                   "requestor": {"hostname": "unittest", "username": "user", "ip": "1.2.3.4", "creation_time": "2020-10-08 14:59:20.216747", "running_cmd": "lab/vms/test/test_rest.py unittest"},
+                                                   "allocation_id": "f73a7520-a297-452a-8149-b3e84c66272f",
+                                                   "status": "allocating", "expiration": 1602165740.4530108,
+                                                   "rm_endpoint": "192.168.70.35:9080",
+                                                   "message": "in progress"})
+    j = await resp.json()
+    assert j == {'status': 'Failed', 'error': 'error creating'}
+    mock_allocator.destroy_vm.assert_called_with("temp")
