@@ -258,6 +258,7 @@ def pytest_logger_fileloggers(item):
 def configure_item_loghandler(item):
     config = item.config
     log_dir = os.path.join(config.option.logger_logsdir, _sanitize_nodeid(item.nodeid))
+    os.environ["TEST_LOG_DIR"] = log_dir
     os.makedirs(log_dir, exist_ok=True)
     debug_fh = logging.FileHandler(f'{log_dir}/infra.log', mode='w')
     debug_fh.setLevel(logging.DEBUG)
