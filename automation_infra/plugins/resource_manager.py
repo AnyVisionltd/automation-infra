@@ -59,12 +59,12 @@ class ResourceManager(object):
             raise Exception(f"file {local_path} doesnt exist")
         return upload_path
 
-    def download_to_filesystem(self, remote_path, local_dir="."):
+    def download_to_filesystem(self, remote_path, local_dir=".", bucketname="anyvision-testing"):
         if not os.path.exists(local_dir):
             os.makedirs(local_dir)
 
         local_file_path = os.path.join(local_dir, os.path.basename(remote_path))
-        self.client.download_file("anyvision-testing", remote_path, local_file_path)
+        self.client.download_file(bucketname, remote_path, local_file_path)
 
         return local_file_path
 
