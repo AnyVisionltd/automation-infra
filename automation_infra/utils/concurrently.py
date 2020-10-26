@@ -58,6 +58,15 @@ class Background(object):
                 raise
         return results
 
+    @property
+    def exception(self, timeout=0):
+        for future in self._futures:
+            try:
+                return future.exception(timeout=timeout)
+            except:
+                return None
+        return None
+
 
 def start(jobs, max_workers=None):
     job = Background(jobs, max_workers=max_workers)
