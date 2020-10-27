@@ -29,12 +29,8 @@ pipeline {
               }
             }
         stage('Run unit tests') {
-            stages {
-                stage ('Run hypervisor unittests'){
-                    steps {
-                        sh(script: "make test-hypervisor")
-                    }
-                }
+            steps {
+                echo "TODO: Not implemented yet"
             }
         }
         stage('Tests on docker') {
