@@ -39,7 +39,7 @@ def pytest_addoption(parser):
                      help="path to hardware_yaml")
     parser.addoption("--extra-tests", action="store", default="",
                      help="tests to run in addition to specified tests and marks. eg. 'test_sanity.py test_extra.py'")
-
+    parser.addoption("--logs-dir", action="store", default="", help="custom directory to store logs in")
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_generate_tests(metafunc):
@@ -282,8 +282,8 @@ def configure_logging(config):
 
     config.option.log_file_date_format = '%Y-%m-%d %H:%M:%S'
     config.option.log_cli_date_format = config.option.log_file_date_format
-
-    session_logs_dir = f'logs/{datetime.now().strftime("%Y_%m_%d__%H%M_%S")}'
+    custom_logs_dir = config.getoption("--logs-dir")
+    session_logs_dir = custom_logs_dir if custom_logs_dir else f'logs/{datetime.now().strftime("%Y_%m_%d__%H%M_%S")}'
 
     infra_logs_dir = f'{session_logs_dir}/infra_logs'
     os.makedirs(infra_logs_dir, exist_ok=True)
