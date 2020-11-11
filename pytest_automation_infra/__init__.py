@@ -2,16 +2,12 @@
 import os
 import logging
 import re
-import socket
 import subprocess
-import sys
 import threading
-import time
 import signal
 from datetime import datetime
 
 import pytest
-import requests
 import yaml
 from _pytest.fixtures import FixtureLookupError
 from munch import *
