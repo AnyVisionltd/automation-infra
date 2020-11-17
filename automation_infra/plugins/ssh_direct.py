@@ -196,7 +196,15 @@ class SshDirect(object):
     def compress(self, src, dst):
         src = src if type(src) is list else [src]
         dst = dst if dst.endswith('tar.gz') else '{dst}.tar.gz'
-        self.execute(f"tar --use-compress-program=pigz -cf {dst} -C {' '.join([shlex.quote(folder) for folder in src])}")
+        try:
+            self.execute(f"tar --warning=no-file-changed --use-compress-program=pigz -cf {dst} -C {' '.join([shlex.quote(folder) for folder in src])}")
+        except SSHCalledProcessError as e:
+            if e.returncode == 1:
+                logging.info("compress should have succeeded, the return code is 1 only because 'some files differ'")
+                logging.info(f"ls on dest dir: {self.execute(f'ls -al {os.path.dirname(dst)}')}")
+            else:
+                raise
+
 
 
 class SSHCalledProcessError(CalledProcessError):
