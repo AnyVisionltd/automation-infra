@@ -4,6 +4,8 @@ import random
 from infra.model import plugins
 import threading
 
+from infra.utils import pem_key
+
 EXAMPLE_IP = '35.231.0.137'
 
 host_config_example1 = {
@@ -36,10 +38,10 @@ host_config_example3 = {
 class Host(object):
 
     def __init__(self, **host_config):
-        _pem = host_config.pop('key_file_path', None)
+        _key = host_config.get('key_file_path', None) or host_config.get('pem_key_string', None)
         _pass = host_config.pop('password', None)
-        assert (_pass and not _pem) or (_pem and not _pass), \
-            "password and key are mutually exclusive (password=%s, key=%s)" % (_pass, _pem)
+        assert (_pass and not _key) or (_key and not _pass), \
+            "password and key are mutually exclusive (password=%s, key=%s)" % (_pass, _key)
         self.ip = host_config.pop('ip')
         if self.ip is None:
             raise ValueError("Host ip cannot be None")
@@ -50,7 +52,9 @@ class Host(object):
         self.resource_manager_ep = host_config.pop('resource_manager_ep', None)
         self.vm_id = host_config.pop('vm_id', None)
         self.password = _pass
-        self.keyfile = _pem
+        pkey = host_config.pop('pem_key_string', None)
+        self.pkey = pem_key.from_string(pkey) if pkey else None
+        self.keyfile = host_config.pop('key_file_path', None)
         self.extra_config = host_config
         self.__plugins = {}
         self._temp_dir_counter = itertools.count()
@@ -96,11 +100,12 @@ class Host(object):
         return self.ip
 
     @classmethod
-    def from_args(cls, ip, user, password=None, key_file_path=None, **kwargs):
+    def from_args(cls, ip, user, password=None, key_file_path=None, pem_key_string=None, **kwargs):
         basic = {"ip": ip,
         "user": user,
         "password": password,
-        "key_file_path": key_file_path}
+        "key_file_path": key_file_path,
+        "pem_key_string": pem_key_string }
         basic.update(**kwargs)
         return cls(**basic)
 
