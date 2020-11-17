@@ -13,6 +13,7 @@ class Connection(object):
         self._username = host.user
         self.password = host.password
         self._keyfile = host.keyfile
+        self._pkey = host.pkey
         self.port = host.port
         self._ssh_client = None
 
@@ -92,7 +93,10 @@ class Connection(object):
         if self.password:
             return dict(password=self.password)
 
-        return dict(key_filename=self._keyfile)
+        return dict(key_filename=self._keyfile,
+                    pkey=self._pkey)
+
+
 
     def _try_connect(self, timeout, credentials):
         self._ssh_client = paramiko.SSHClient()
