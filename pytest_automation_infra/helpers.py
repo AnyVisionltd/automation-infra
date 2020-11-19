@@ -51,16 +51,19 @@ def get_catalog_credentials(url):
 
 def do_docker_login(connected_ssh_module):
     logging.debug("doing docker login")
+    host_running_test_ip = get_host_running_test_ip()
     remote_home = connected_ssh_module.execute("echo $HOME").strip()
-    try:
-        config_exists = connected_ssh_module.execute(f"ls {remote_home}/.docker/config.json")
-    except SSHCalledProcessError as e:
-        if 'No such file or directory' in e.stderr:
-            connected_ssh_module.execute(f"mkdir -p {remote_home}/.docker")
-            connected_ssh_module.put(f"{os.getenv('HOME')}/.docker/config.json", f"{remote_home}/.docker/")
-        else:
-            raise e
+    if host_running_test_ip != connected_ssh_module.get_ip():
+        docker_login_host_path = f"{os.getenv('HOME')}/.docker/config.json"
+        assert os.path.exists(docker_login_host_path) , "There is not docker credential in host running test"
+        connected_ssh_module.execute(f"mkdir -p {remote_home}/.docker")
+        connected_ssh_module.put(docker_login_host_path, f"{remote_home}/.docker/")
     connected_ssh_module.execute("docker login https://gcr.io")
+
+
+def get_host_running_test_ip():
+    return os.getenv("host_ip",
+                     subprocess.check_output("hostname -I | awk '{print $1}'", shell=True).strip().decode('ascii'))
 
 
 def create_secret(connected_ssh_module):
