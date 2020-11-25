@@ -133,7 +133,7 @@ class SshDirect(object):
 
     @property
     def _using_keyfile(self):
-        return self._host.keyfile
+        return self._host.keyfile or self._host.pkey
 
     def copy_to(self, source_file_or_dir, dest_host, dest_file_or_dir):
         """ This method will copy from self._host to dest_host the source to
@@ -189,7 +189,7 @@ class SshDirect(object):
 
     def rsync(self, src, dst, exclude_dirs=None):
         if self._using_keyfile:
-            raise NotImplemented("Rsync with SSH key is not yet implemented")
+            raise NotImplementedError("Rsync with SSH key is not yet implemented")
         exclude_dirs = exclude_dirs or []
         exclude_expr = " ".join([f"--exclude {exclude_dir}" for exclude_dir in exclude_dirs])
         prefix = f"sshpass -p {self._connection.password} rsync -ravh --delete {exclude_expr} -e \"ssh -p {self._connection.port} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR\""
