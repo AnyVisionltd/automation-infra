@@ -29,6 +29,7 @@ class ProvisionerClient(object):
             requestor_information = dict(hostname=os.getenv("host_hostname", socket.gethostname()),
                                          username=getpass.getuser(),
                                          ip=os.getenv("host_ip", socket.gethostbyname(socket.gethostname())),
+                                         external_ip=requests.get("http://ifconfig.me").text,
                                          creation_time=str(datetime.now()),
                                          running_cmd=" ".join(sys.argv)
                                          )
