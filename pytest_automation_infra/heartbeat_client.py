@@ -7,14 +7,18 @@ import requests
 
 
 class HeartbeatClient(object):
-    def __init__(self, stop, ep=os.getenv('HABERTEST_HEARTBEAT_SERVER', "localhost:7080"), interval=2):
+    def __init__(self, stop, ep=os.getenv('HABERTEST_HEARTBEAT_SERVER', "http://localhost:7080"),
+                 cert=os.getenv('SSL_CERT', None), key=os.getenv('SSL_KEY', None), interval=2):
         self.ep = ep
         self.stop_event = stop
+        self.ssl_cert = cert
+        self.ssl_key = key
+        self.complete_cert = (cert, key)
         self.interval = interval
 
     def send_heartbeat(self, allocation_id):
         payload = {"allocation_id": allocation_id}
-        response = requests.post("http://%s/api/heartbeat" % self.ep, json=payload)
+        response = requests.post("%s/api/heartbeat" % self.ep, json=payload, cert=self.complete_cert, verify=False)
         if response.status_code != 200:
             raise KeyError("Error sending heartbeat: %s", response.json())
 

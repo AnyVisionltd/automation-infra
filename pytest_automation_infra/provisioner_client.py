@@ -2,6 +2,7 @@ import getpass
 import json
 import logging
 import os
+import ssl
 import sys
 import socket
 import time
@@ -13,15 +14,22 @@ import requests
 import websocket
 
 
-
 class ProvisionerClient(object):
-    def __init__(self, ep=os.getenv('HABERTEST_PROVISIONER', "localhost:8080")):
+    def __init__(self, ep=os.getenv('HABERTEST_PROVISIONER', "http://localhost:8080"),
+                       cert=os.getenv('SSL_CERT', None), key=os.getenv('SSL_KEY', None)):
         self.ep = ep
+        self.ssl_cert = (cert, key)
+        self.ssl_context = None
+        if cert:
+            self.ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            self.ssl_context.load_cert_chain(self.ssl_key, self.ssl_cert)
 
     def provision(self, hardware_req, timeout=120):
         hardware = {"machines": {}}
+
         ws = websocket.WebSocket()
-        ws.connect("ws://%s/api/ws/jobs" % self.ep)
+        use_ssl = True if self.ep.startswith("https") else False
+        ws.connect(f'{"wss://" if use_ssl else "ws://"}{self.ep[self.ep.find("//")+2:]}/api/ws/jobs',  ssl=self.ssl_context if use_ssl else None)
         start = time.time()
         allocation_id = str(uuid.uuid4())
         logging.info(f"allocation_id: {allocation_id}")
@@ -55,11 +63,11 @@ class ProvisionerClient(object):
         raise TimeoutError(f"Timed out trying to provision hardware in {timeout} seconds")
 
     def release(self, allocation_id):
-        resp = requests.delete(f'http://{self.ep}/api/release/{allocation_id}')
+        resp = requests.delete(f'{self.ep}/api/release/{allocation_id}', cert=self.ssl_cert, verify=False)
         res_json = resp.json()
         assert res_json['status'] == 200, f"Wasnt successful releasing {res_json}"
 
     def allocations(self):
-        res = requests.get(f'http://{self.ep}/api/jobs')
+        res = requests.get(f'{self.ep}/api/jobs', cert=self.ssl_cert, verify=False)
         assert res.status_code == 200
         return res.json()['data']
