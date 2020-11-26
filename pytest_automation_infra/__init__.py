@@ -88,6 +88,7 @@ def pytest_sessionstart(session):
     logging.debug("\n<--------------------sesssionstart------------------------>\n")
     signal.signal(signal.SIGALRM, handle_timeout)
     scope = determine_scope(None, session.config)
+    session.kill_heartbeat = threading.Event()
     if scope == 'session':
         if not session.config.getoption("--provisioner"):
             local_hw = get_local_config(session.config.getoption("--hardware"))
@@ -101,8 +102,10 @@ def pytest_sessionstart(session):
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionfinish(session, exitstatus):
     logging.debug("\n<-------------------session finish-------------------->\n")
+    if not session.kill_heartbeat:
+        return
     logging.debug("Sending kill heartbeat")
-    session.kill_heartbeat = True
+    session.kill_heartbeat.set()
     provisioner = session.config.getoption("--provisioner")
     if provisioner and determine_scope(None, session.config) == 'session':
         provisioner_client.ProvisionerClient(provisioner).release(session.__initialized_hardware['allocation_id'])
@@ -148,7 +151,7 @@ def init_hosts(hardware, base):
 
 def kill_heartbeat_thread(hardware, request):
     logging.debug(f"Setting kill_heartbeat on hw {hardware} to True")
-    request.session.kill_heartbeat = True
+    request.session.kill_heartbeat.set()
 
 
 def init_base_config(hardware):
@@ -215,7 +218,7 @@ def pytest_runtest_setup(item):
             hardware['machines'] = get_local_config(item.config.getoption("--hardware"))
         else:
             hardware = provisioner_client.ProvisionerClient(provisioner).provision(item.function.__hardware_reqs)
-            item._request.session.kill_heartbeat = lambda: False
+            item._request.session.kill_heartbeat = threading.Event()
             hb = heartbeat_client.HeartbeatClient(item._request.session.kill_heartbeat)
             hb.send_heartbeats_on_thread(hardware['allocation_id'])
             if determine_scope(None, item.config) == 'session':
@@ -391,7 +394,7 @@ def pytest_runtest_teardown(item):
     if scope == 'function':
         provisioner = item._request.config.getoption("--provisioner")
         if provisioner:
-            item._request.session.kill_heartbeat = True
+            item._request.session.kill_heartbeat.set()
             provisioner_client.ProvisionerClient(provisioner).release(item.function.__initialized_hardware['allocation_id'])
     logging.getLogger().removeHandler(item.log_handler)
 
