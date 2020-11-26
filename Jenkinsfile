@@ -6,8 +6,8 @@ pipeline {
         TEST_TARGET_BRANCH = 'master'
         EMAIL_TO = 'orielh@anyvision.co'
         KVM_MACHINE_CREDS = credentials("office-il-servers")
-        HABERTEST_HEARTBEAT_SERVER = '192.168.70.7:7080'
-        HABERTEST_PROVISIONER = '192.168.70.7:8080'
+        HABERTEST_HEARTBEAT_SERVER = 'http://192.168.70.7:7080'
+        HABERTEST_PROVISIONER = 'http://192.168.70.7:8080'
     }
     agent {
         label 'iloffice'
