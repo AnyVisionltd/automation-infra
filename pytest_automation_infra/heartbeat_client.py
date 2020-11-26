@@ -9,7 +9,7 @@ import requests
 class HeartbeatClient(object):
     def __init__(self, stop, ep=os.getenv('HABERTEST_HEARTBEAT_SERVER', "localhost:7080"), interval=2):
         self.ep = ep
-        self.stop = stop
+        self.stop_event = stop
         self.interval = interval
 
     def send_heartbeat(self, allocation_id):
@@ -20,7 +20,7 @@ class HeartbeatClient(object):
 
     def send_heartbeats_until_stop(self, allocation_id):
         while True:
-            if self.stop():
+            if self.stop_event.is_set():
                 break
             try:
                 self.send_heartbeat(allocation_id)
