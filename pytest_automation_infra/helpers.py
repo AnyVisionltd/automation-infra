@@ -2,6 +2,7 @@ import logging
 import time
 import yaml
 import paramiko
+import socket
 
 from automation_infra.plugins.ssh_direct import SSHCalledProcessError
 import os
@@ -62,8 +63,11 @@ def do_docker_login(connected_ssh_module):
 
 
 def get_host_running_test_ip():
-    return os.getenv("host_ip",
-                     subprocess.check_output("hostname -I | awk '{print $1}'", shell=True).strip().decode('ascii'))
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    host_ip = s.getsockname()[0]
+    s.close()
+    return os.getenv("host_ip", host_ip)
 
 
 def create_secret(connected_ssh_module):
