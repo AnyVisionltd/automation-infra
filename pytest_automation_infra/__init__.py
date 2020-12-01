@@ -129,13 +129,8 @@ def pytest_collection_modifyitems(session, config, items):
 
 def determine_scope(fixture_name, config):
     received_scope = config.getoption("--fixture-scope")
-    if config.getoption("--provisioner"):
-        scope = received_scope if received_scope != 'auto' else 'function'
-        return scope
-    # If not provisioner it means were running locally in which case no sense re-initializing fixture each test.
-    else:
-        scope = received_scope if received_scope != 'auto' else 'session'
-        return scope
+    scope = received_scope if received_scope != 'auto' else 'session'
+    return scope
 
 
 def configured_hardware(request):
