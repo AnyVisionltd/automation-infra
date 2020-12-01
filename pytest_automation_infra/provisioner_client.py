@@ -22,14 +22,14 @@ class ProvisionerClient(object):
         self.ssl_context = None
         if cert:
             self.ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-            self.ssl_context.load_cert_chain(self.ssl_key, self.ssl_cert)
+            self.ssl_context.load_cert_chain(certfile=self.ssl_cert[0], keyfile=self.ssl_cert[1])
 
     def provision(self, hardware_req, timeout=120):
         hardware = {"machines": {}}
-
-        ws = websocket.WebSocket()
         use_ssl = True if self.ep.startswith("https") else False
-        ws.connect(f'{"wss://" if use_ssl else "ws://"}{self.ep[self.ep.find("//")+2:]}/api/ws/jobs',  ssl=self.ssl_context if use_ssl else None)
+        ws = websocket.WebSocket(sslopt={"certfile": self.ssl_cert[0], "keyfile": self.ssl_cert[1], "cert_reqs": ssl.CERT_NONE} if use_ssl else None)
+        ep = f'{"wss://" if use_ssl else "ws://"}{self.ep[self.ep.find("//")+2:]}/api/ws/jobs'
+        ws.connect(ep)
         start = time.time()
         allocation_id = str(uuid.uuid4())
         logging.info(f"allocation_id: {allocation_id}")
