@@ -229,7 +229,13 @@ def pytest_runtest_setup(item):
 
     hardware = configured_hardware(item._request)
     assert hardware, "Couldnt find configured hardware in pytest_runtest_setup"
-    logging.info(f"HUT connection string:\n\nsshpass -p {next(iter(hardware['machines'].values()))['password']} ssh -o StrictHostKeyChecking=no {next(iter(hardware['machines'].values()))['user']}@{next(iter(hardware['machines'].values()))['ip']} \n\n")
+    first_machine = next(iter(hardware['machines'].values()))
+    hut_conn_format = "HUT connection string:\n\n {} \n\n"
+    if first_machine['password']:
+        conn_string = f"sshpass -p {next(iter(hardware['machines'].values()))['password']} ssh -o StrictHostKeyChecking=no {next(iter(hardware['machines'].values()))['user']}@{next(iter(hardware['machines'].values()))['ip']}"
+    else:
+        conn_string = f"ssh -i {os.path.expanduser('~')}/.ssh/anyvision-devops.pem {first_machine['user']}@{first_machine['ip']}"
+    logging.info(hut_conn_format.format(conn_string))
     outcome = yield  # This will now go to base_config fixture function
     try:
         outcome.get_result()
