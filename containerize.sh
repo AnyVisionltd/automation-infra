@@ -204,6 +204,7 @@ function run_docker () {
             "${HOME}/.npmrc:${HOME}/.npmrc"
             "${HOME}/.helm:${HOME}/.helm"
             "${HOME}/.ipython:${HOME}/.ipython"
+            "${HOME}/.habertest:$HOME/.habertest"
             "$MOUNT_PATH:$MOUNT_PATH"
             "/etc/localtime:/etc/localtime:ro"
             "/etc/timezone:/etc/timezone:ro"
