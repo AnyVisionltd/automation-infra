@@ -85,6 +85,12 @@ class ResourceManager(object):
 
         return resources_s3_list
 
+    def get_file_obj(self, bucket='anyvision-testing', file_path=''):
+        files = []
+        resp = self.client.list_objects_v2(Bucket=bucket, Prefix=file_path)
+        assert len(resp['Contents']) == 1, f"there are may objects match {file_path}"
+        return resp['Contents'][0]
+
     def get_raw_resource(self, resource_path, bucket="anyvision-testing", as_base64=False):
         with BytesIO() as file_obj:
             self.client.download_fileobj(bucket, resource_path, file_obj)
