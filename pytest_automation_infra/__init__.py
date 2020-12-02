@@ -217,7 +217,6 @@ def pytest_runtest_setup(item):
             hb = heartbeat_client.HeartbeatClient(item._request.session.kill_heartbeat)
             hb.send_heartbeats_on_thread(hardware['allocation_id'])
             if determine_scope(None, item.config) == 'session':
-                logging.warning("running provisioned with session scoped fixture.. Could lead to unexpected results..")
                 item.session.__initialized_hardware = dict()
                 item.session.__initialized_hardware = hardware
 
