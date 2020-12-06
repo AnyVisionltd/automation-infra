@@ -18,6 +18,7 @@ class ProvisionerClient(object):
     def __init__(self, ep=os.getenv('HABERTEST_PROVISIONER', "http://localhost:8080"),
                        cert=os.getenv('SSL_CERT', None), key=os.getenv('SSL_KEY', None)):
         self.ep = ep
+        self.external_ip = requests.get("http://ifconfig.me").text
         self.ssl_cert = (cert, key)
         self.ssl_context = None
         if cert:
@@ -37,7 +38,7 @@ class ProvisionerClient(object):
             requestor_information = dict(hostname=os.getenv("host_hostname", socket.gethostname()),
                                          username=getpass.getuser(),
                                          ip=os.getenv("host_ip", socket.gethostbyname(socket.gethostname())),
-                                         external_ip=requests.get("http://ifconfig.me").text,
+                                         external_ip=self.external_ip,
                                          creation_time=str(datetime.now()),
                                          running_cmd=" ".join(sys.argv)
                                          )
