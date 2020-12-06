@@ -3,6 +3,8 @@ import time
 import yaml
 import paramiko
 
+from automation_infra.plugins.admin import Admin
+
 from automation_infra.plugins.ssh_direct import SSHCalledProcessError
 import os
 
@@ -250,7 +252,19 @@ def tear_down_proxy_containers(hosts):
         logging.debug(f"[{name}: {host}] success tearing down")
 
 
+def local_timezone():
+    with open("/etc/timezone", "r") as f:
+        return f.read().strip()
+
+
+def machine_id():
+    return subprocess.check_output('sudo cat /sys/class/dmi/id/product_uuid', shell=True).decode().strip()
+
+
 def sync_time(hosts):
-    host_running_test_ip = os.getenv("host_ip", subprocess.check_output("hostname -I | awk '{print $1}'", shell=True).strip().decode('ascii'))
-    assert host_running_test_ip, "did not manage to get host ip"
-    [host.SshDirect.put('/etc/localtime', '/etc') for host in hosts.values() if host.ip != host_running_test_ip]
+    local_machine_id = machine_id()
+    tz = local_timezone()
+    for host in hosts.values():
+        remote_machine_id = host.Admin.machine_id()
+        if local_machine_id != remote_machine_id:
+            host.Admin.set_timezone(tz)

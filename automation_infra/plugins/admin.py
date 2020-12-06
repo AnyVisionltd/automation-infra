@@ -12,5 +12,11 @@ class Admin(object):
         cmd = f"echo '{msg}' | systemd-cat -t TESTING -p info"
         self._host.SshDirect.execute(cmd)
 
+    def set_timezone(self, timezone):
+        cmd = f"sudo timedatectl set-timezone {timezone}"
+        self._host.SshDirect.execute(cmd)
+
+    def machine_id(self):
+        return self._host.SshDirect.execute('sudo cat /sys/class/dmi/id/product_uuid').strip()
 
 plugins.register('Admin', Admin)
