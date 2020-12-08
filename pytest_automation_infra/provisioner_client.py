@@ -16,7 +16,7 @@ import websocket
 
 class ProvisionerClient(object):
     def __init__(self, ep=os.getenv('HABERTEST_PROVISIONER', "http://localhost:8080"),
-                       cert=os.getenv('SSL_CERT', None), key=os.getenv('SSL_KEY', None)):
+                       cert=os.getenv('HABERTEST_SSL_CERT', None), key=os.getenv('HABERTEST_SSL_KEY', None)):
         self.ep = ep
         self.external_ip = requests.get("http://ifconfig.me").text
         self.ssl_cert = (cert, key)
