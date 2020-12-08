@@ -48,21 +48,21 @@ class ProvisionerClient(object):
                                          "allocation_id": allocation_id}}))
             reply = json.loads(ws.recv())
             if reply['status'] == 'unfulfillable':
-                logging.info(f"response: {reply}")
-                raise Exception(reply['message'])
-            if reply['status'] == 'busy':
-                logging.debug(f"all resources currently busy.. trying again for {time.time() - start} seconds")
-                time.sleep(5)
-                continue
+                logging.info("\n\n test demands unfulfillable with current resource managers.. Exiting \n\n")
+                os._exit(666)
             if reply['status'] == 'success':
                 hardware['allocation_id'] = reply['allocation_id']
                 for machine_name, hardware_details in zip(hardware_req.keys(), reply['hardware_details']):
                     hardware['machines'][machine_name] = hardware_details
                 logging.debug("succeeded provisioning hardware")
                 return hardware
+            else:
+                logging.debug(f"received response: {reply['status']}")
+                time.sleep(5)
+                continue
         self.release(allocation_id)
-        logging.error(f"timed out trying to provision hardware {hardware_req}")
-        raise TimeoutError(f"Timed out trying to provision hardware in {timeout} seconds")
+        logging.error(f"timed out trying to provision hardware {hardware_req}. Exiting.")
+        os._exit(666)
 
     def release(self, allocation_id):
         resp = requests.delete(f'{self.ep}/api/release/{allocation_id}', cert=self.ssl_cert, verify=False)
