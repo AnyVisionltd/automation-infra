@@ -63,6 +63,7 @@ def test_ssh(base_config):
     logging.info(f"Running ssh test on host {base_config.hosts.host.ip}")
     os.system("echo this is a test > /tmp/temp.txt")
     base_config.hosts.host.SSH.put('/tmp/temp.txt', '/tmp')
+    base_config.hosts.host.SshDirect.upload('/tmp/temp.txt', '/tmp')
     logging.info("put file!")
     res = base_config.hosts.host.SSH.execute('ls /tmp')
     assert 'temp.txt' in res.split()
