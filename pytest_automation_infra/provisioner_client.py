@@ -17,8 +17,7 @@ from infra.utils import ip
 
 
 class ProvisionerClient(object):
-    def __init__(self, ep=os.getenv('HABERTEST_PROVISIONER', "http://localhost:8080"),
-                       cert=os.getenv('HABERTEST_SSL_CERT', None), key=os.getenv('HABERTEST_SSL_KEY', None)):
+    def __init__(self, ep, cert=None, key=None):
         assert ep.startswith("http"), f"Provisioner endpoint needs to start with http. Received: {ep}"
         self.ep = ep
         self.external_ip = ip.external_ip()

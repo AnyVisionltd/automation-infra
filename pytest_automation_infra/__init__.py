@@ -97,8 +97,10 @@ def pytest_sessionstart(session):
             session.__initialized_hardware = dict()
             session.__initialized_hardware['machines'] = local_hw
         else:  # provisioned:
-            # I cant init provisioned hardware even if its 'session' scoped because I dont have requirements yet....
-            pass
+            provisioner = session.config.getoption("--provisioner")
+            cert = os.getenv('HABERTEST_SSL_CERT', None)
+            key = os.getenv('HABERTEST_SSL_KEY', None)
+            session.provisioner = provisioner_client.ProvisionerClient(provisioner, cert, key)
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -110,7 +112,7 @@ def pytest_sessionfinish(session, exitstatus):
     session.kill_heartbeat.set()
     provisioner = session.config.getoption("--provisioner")
     if provisioner and determine_scope(None, session.config) == 'session':
-        provisioner_client.ProvisionerClient(provisioner).release(session.__initialized_hardware['allocation_id'])
+        session.provisioner.release(session.__initialized_hardware['allocation_id'])
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -217,7 +219,7 @@ def pytest_runtest_setup(item):
             hardware = dict()
             hardware['machines'] = get_local_config(item.config.getoption("--hardware"))
         else:
-            hardware = provisioner_client.ProvisionerClient(provisioner).provision(item.function.__hardware_reqs)
+            hardware = item.session.provisioner.provision(item.function.__hardware_reqs)
             item._request.session.kill_heartbeat = threading.Event()
             hb = heartbeat_client.HeartbeatClient(item._request.session.kill_heartbeat)
             hb.send_heartbeats_on_thread(hardware['allocation_id'])
@@ -400,7 +402,7 @@ def pytest_runtest_teardown(item):
         provisioner = item._request.config.getoption("--provisioner")
         if provisioner:
             item._request.session.kill_heartbeat.set()
-            provisioner_client.ProvisionerClient(provisioner).release(item.function.__initialized_hardware['allocation_id'])
+            item.session.provisioner.release(item.function.__initialized_hardware['allocation_id'])
     logging.getLogger().removeHandler(item.log_handler)
 
 
