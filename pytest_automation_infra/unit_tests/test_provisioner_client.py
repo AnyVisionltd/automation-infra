@@ -17,7 +17,10 @@ def test_init_hardware_happy_flow():
         cert=os.getenv('HABERTEST_SSL_CERT', None),
         key=os.getenv('HABERTEST_SSL_KEY', None))
     stop = threading.Event()
-    hb = heartbeat_client.HeartbeatClient(stop)
+    hb = heartbeat_client.HeartbeatClient(stop,
+                                          ep=os.getenv('HABERTEST_HEARTBEAT_SERVER', "http://localhost:7080"),
+                                          cert=os.getenv('HABERTEST_SSL_CERT', None),
+                                          key=os.getenv('HABERTEST_SSL_KEY', None))
     req = {"host": {}}
     hardware = provisioner.provision(req)
     assert hardware
