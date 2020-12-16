@@ -1,3 +1,5 @@
+from subprocess import CalledProcessError
+
 import requests
 
 from automation_infra.plugins.ssh_direct import SshDirect
@@ -10,6 +12,10 @@ class Power(object):
         self.id = self._host.vm_id
 
     def verify_available(self):
+        uuid = self._host.SshDirect.execute('sudo cat /sys/devices/virtual/dmi/id/product_uuid')
+        if uuid.startswith("ec2"):
+            raise NotImplementedError(
+                "HUT appears to be an aws instance which is currently unsupported by Power plugin")
         assert bool(self._host.SshDirect.execute('cat /proc/cpuinfo | grep -i hypervisor || [[ $? == 1 ]]', timeout=3).strip()), \
             "Tried to power off a machine which isnt a vm"
         try:
