@@ -221,7 +221,10 @@ def pytest_runtest_setup(item):
         else:
             hardware = item.session.provisioner.provision(item.function.__hardware_reqs)
             item._request.session.kill_heartbeat = threading.Event()
-            hb = heartbeat_client.HeartbeatClient(item._request.session.kill_heartbeat)
+            hb = heartbeat_client.HeartbeatClient(item._request.session.kill_heartbeat,
+                                                  ep=os.getenv('HABERTEST_HEARTBEAT_SERVER', "http://localhost:7080"),
+                                                  cert=os.getenv('HABERTEST_SSL_CERT', None),
+                                                  key=os.getenv('HABERTEST_SSL_KEY', None))
             hb.send_heartbeats_on_thread(hardware['allocation_id'])
             if determine_scope(None, item.config) == 'session':
                 item.session.__initialized_hardware = dict()

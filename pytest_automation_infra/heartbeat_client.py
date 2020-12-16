@@ -7,8 +7,7 @@ import requests
 
 
 class HeartbeatClient(object):
-    def __init__(self, stop, ep=os.getenv('HABERTEST_HEARTBEAT_SERVER', "http://localhost:7080"),
-                 cert=os.getenv('HABERTEST_SSL_CERT', None), key=os.getenv('HABERTEST_SSL_KEY', None), interval=2):
+    def __init__(self, stop, ep, cert, key, interval=2):
         self.ep = ep
         self.stop_event = stop
         self.ssl_cert = cert
