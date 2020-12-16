@@ -56,6 +56,7 @@ class ProvisionerClient(object):
                 for machine_name, hardware_details in zip(hardware_req.keys(), reply['hardware_details']):
                     hardware['machines'][machine_name] = hardware_details
                 logging.debug("succeeded provisioning hardware")
+                ws.close()
                 return hardware
             else:
                 logging.debug(f"received response: {reply['status']}")
