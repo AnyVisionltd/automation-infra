@@ -1,5 +1,6 @@
 import itertools
 import random
+import subprocess
 
 from infra.model import plugins
 import threading
@@ -85,6 +86,9 @@ class Host(object):
         return '/%(basedir)s/%(prefix)s%(counter)d%(suffix)s' % dict(basedir=basedir, prefix=prefix, counter=counter,
                                                                      suffix=suffix)
 
+    def add_to_ssh_agent(self):
+        pkey_str = pem_key.to_string(self.pkey)
+        subprocess.run(["ssh-add", "-"], input=pkey_str.encode())
 
     def remove_plugin(self, name):
         if name in self.__plugins:
