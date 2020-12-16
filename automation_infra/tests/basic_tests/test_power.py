@@ -14,6 +14,11 @@ def test_power_plugin(base_config):
     logging.info("starting power test")
     host = base_config.hosts.host
     power = host.Power
+    try:
+        power.verify_available()
+    except (NotImplementedError, AssertionError):
+        logging.info("Skipping test_power on HUT which Power plugin doesnt support...")
+        return
     logging.info("powering off")
     power.off()
     logging.info("powered off")
