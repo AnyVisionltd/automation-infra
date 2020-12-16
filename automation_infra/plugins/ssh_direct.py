@@ -9,6 +9,8 @@ from automation_infra.plugins import connection
 from automation_infra.utils import snippet
 import tempfile
 
+from infra.utils import pem_key
+
 
 class SshDirect(object):
 
@@ -155,7 +157,10 @@ class SshDirect(object):
     def upload(self, src, dest):
         """ will copy src files and folders to dest dir on self._host """
         if self._using_keyfile:
-            prefix = "scp -i %s" % self._host.keyfile
+            if self._host.keyfile:
+                prefix = "scp -i %s" % self._host.keyfile
+            else:
+                prefix = "scp "
         else:
             prefix = "sshpass -p '%s' scp -P %d -o PubkeyAuthentication=no" % (self._connection.password, self._connection.port)
 
@@ -170,7 +175,10 @@ class SshDirect(object):
 
     def download(self, localdir, *remote_pathes):
         if self._using_keyfile:
-            prefix = "scp -T -i %s" % self._host.keyfile
+            if self._host.keyfile:
+                prefix = "scp -T -i %s" % self._host.keyfile
+            else:
+                prefix = "scp "
         else:
             prefix = "sshpass -p '%s' scp -T -P %d -o PubkeyAuthentication=no" % (self._connection.password, self._connection.port)
 
