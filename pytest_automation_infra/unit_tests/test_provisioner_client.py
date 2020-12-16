@@ -2,6 +2,7 @@
 Can be run like: python -m pytest pytest_automation_infra/unit_tests/test_provisioner_client.py -s --log-cli-level=info
 """
 import logging
+import os
 import threading
 import time
 
@@ -11,7 +12,10 @@ from pytest_automation_infra import provisioner_client, heartbeat_client
 
 
 def test_init_hardware_happy_flow():
-    provisioner = provisioner_client.ProvisionerClient()
+    provisioner = provisioner_client.ProvisionerClient(
+        ep=os.getenv('HABERTEST_PROVISIONER', "http://localhost:8080"),
+        cert=os.getenv('HABERTEST_SSL_CERT', None),
+        key=os.getenv('HABERTEST_SSL_KEY', None))
     stop = threading.Event()
     hb = heartbeat_client.HeartbeatClient(stop)
     req = {"host": {}}
