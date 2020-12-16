@@ -20,6 +20,7 @@ from automation_infra.utils import initializer, concurrently
 from infra.model.host import Host
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
+from infra.utils import ssh_agent
 from pytest_automation_infra import provisioner_client, helpers, heartbeat_client
 from pytest_automation_infra.helpers import is_k8s
 
@@ -89,6 +90,7 @@ def pytest_sessionstart(session):
     signal.signal(signal.SIGALRM, handle_timeout)
     scope = determine_scope(None, session.config)
     session.kill_heartbeat = threading.Event()
+    ssh_agent.setup_agent()
     if scope == 'session':
         if not session.config.getoption("--provisioner"):
             local_hw = get_local_config(session.config.getoption("--hardware"))
@@ -153,6 +155,9 @@ def init_base_config(hardware):
     base = DefaultMunch(Munch)
     base.hosts = Munch()
     init_hosts(hardware, base)
+    for host in base.hosts.values():
+        if host.pkey:
+            host.add_to_ssh_agent()
     helpers.init_proxy_containers_and_connect(base.hosts.items())
     return base
 
