@@ -210,14 +210,14 @@ def pytest_runtest_setup(item):
     logging.debug(f"\n<---------runtest_setup {'.'.join(item.listnames()[-2:])}---------------->\n")
     configured_hw = configured_hardware(item._request)
     if not configured_hw:
-        provisioner = item._request.config.getoption("--provisioner")
+        provisioner = item.config.getoption("--provisioner")
         if not provisioner:
             hardware = dict()
             hardware['machines'] = get_local_config(item.config.getoption("--hardware"))
         else:
             hardware = item.session.provisioner.provision(item.function.__hardware_reqs)
-            item._request.session.kill_heartbeat = threading.Event()
-            hb = heartbeat_client.HeartbeatClient(item._request.session.kill_heartbeat,
+            item.session.kill_heartbeat = threading.Event()
+            hb = heartbeat_client.HeartbeatClient(item.session.kill_heartbeat,
                                                   ep=os.getenv('HABERTEST_HEARTBEAT_SERVER', "http://localhost:7080"),
                                                   cert=os.getenv('HABERTEST_SSL_CERT', None),
                                                   key=os.getenv('HABERTEST_SSL_KEY', None))
@@ -399,9 +399,9 @@ def pytest_runtest_teardown(item):
     helpers.tear_down_proxy_containers(base_config.hosts.items())
     scope = determine_scope(None, item.config)
     if scope == 'function':
-        provisioner = item._request.config.getoption("--provisioner")
+        provisioner = item.config.getoption("--provisioner")
         if provisioner:
-            item._request.session.kill_heartbeat.set()
+            item.session.kill_heartbeat.set()
             item.session.provisioner.release(item.function.__initialized_hardware['allocation_id'])
     logging.getLogger().removeHandler(item.log_handler)
 
