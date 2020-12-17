@@ -12,7 +12,7 @@ pipeline {
         HABERTEST_SSL_KEY='${HOME}/.habertest/habertest.key'
     }
     agent {
-        label 'cicd'
+        label 'automation'
     }
     options {
         timestamps()
