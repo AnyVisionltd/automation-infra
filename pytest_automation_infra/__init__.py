@@ -16,7 +16,6 @@ from automation_infra.utils import initializer, concurrently
 from infra.model.host import Host
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
-from infra.utils import ssh_agent
 from pytest_automation_infra import provisioner_client, helpers, heartbeat_client
 from pytest_automation_infra.helpers import is_k8s
 
@@ -29,43 +28,13 @@ class InfraFormatter(logging.Formatter):
 
 
 def pytest_addoption(parser):
-    parser.addoption("--fixture-scope", type=str, default='auto', choices={"function", "module", "session", "auto"},
+    parser.addoption("--fixture-scope", type=str, default='session', choices={"function", "module", "session"},
                      help="every how often to setup/tear down fixtures, one of [function, module, session]")
-    parser.addoption("--provisioner", type=str, default='', help="use provisioning service to get hardware to run tests on")
     parser.addoption("--hardware", type=str, default=f'{os.path.expanduser("~")}/.local/hardware.yaml',
                      help="path to hardware_yaml")
     parser.addoption("--extra-tests", action="store", default="",
                      help="tests to run in addition to specified tests and marks. eg. 'test_sanity.py test_extra.py'")
     parser.addoption("--logs-dir", action="store", default="", help="custom directory to store logs in")
-
-@pytest.hookimpl(tryfirst=True)
-def pytest_generate_tests(metafunc):
-    """This runs for each test in a row at the beginning but has access only to module.
-    At the end of this function I know that if scope is module, initialized_hardware is set.
-    The function pytest_collection_modifyitems will handle session/function scope.
-    If running unprovisioner: should be a yaml file in $HOME/.local/hardware.yaml which has similar structure to:
-    host_name:
-        ip: 0.0.0.0
-        user: user
-        password: pass
-        key_file_path: /path/to/pem
-    # key_file_path and password are mutually exclusive so use only 1 type of auth
-    """
-    if hasattr(metafunc.module, '__initialized_hardware'):
-        # hardware was initialized already, no need to initialize again.
-        return
-    fixture_scope = determine_scope(None, metafunc.config)
-    if fixture_scope != 'module':
-        return
-
-    provisioner = metafunc.config.getoption("--provisioner")
-    if provisioner:
-        return
-
-    logging.debug("initializing module hardware config to local")
-    local_config = get_local_config(metafunc.config.getoption("--hardware"))
-    metafunc.module.__initialized_hardware = dict()
-    metafunc.module.__initialized_hardware['machines'] = local_config
 
 
 def get_local_config(local_config_path):
@@ -84,31 +53,6 @@ def handle_timeout(signum, frame):
 def pytest_sessionstart(session):
     logging.debug("\n<--------------------sesssionstart------------------------>\n")
     signal.signal(signal.SIGALRM, handle_timeout)
-    scope = determine_scope(None, session.config)
-    session.kill_heartbeat = threading.Event()
-    ssh_agent.setup_agent()
-    if scope == 'session':
-        if not session.config.getoption("--provisioner"):
-            local_hw = get_local_config(session.config.getoption("--hardware"))
-            session.__initialized_hardware = dict()
-            session.__initialized_hardware['machines'] = local_hw
-        else:  # provisioned:
-            provisioner = session.config.getoption("--provisioner")
-            cert = os.getenv('HABERTEST_SSL_CERT', None)
-            key = os.getenv('HABERTEST_SSL_KEY', None)
-            session.provisioner = provisioner_client.ProvisionerClient(provisioner, cert, key)
-
-
-@pytest.hookimpl(tryfirst=True)
-def pytest_sessionfinish(session, exitstatus):
-    logging.debug("\n<-------------------session finish-------------------->\n")
-    if not session.kill_heartbeat:
-        return
-    logging.debug("Sending kill heartbeat")
-    session.kill_heartbeat.set()
-    provisioner = session.config.getoption("--provisioner")
-    if provisioner and determine_scope(None, session.config) == 'session':
-        session.provisioner.release(session.__initialized_hardware['allocation_id'])
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -128,9 +72,7 @@ def pytest_collection_modifyitems(session, config, items):
 
 
 def determine_scope(fixture_name, config):
-    received_scope = config.getoption("--fixture-scope")
-    scope = received_scope if received_scope != 'auto' else 'session'
-    return scope
+    return config.getoption("--fixture-scope")
 
 
 def configured_hardware(request):
@@ -142,11 +84,6 @@ def configured_hardware(request):
 def init_hosts(hardware, base):
     for machine_name, args in hardware['machines'].items():
         base.hosts[machine_name] = Host(**args)
-
-
-def kill_heartbeat_thread(hardware, request):
-    logging.debug(f"Setting kill_heartbeat on hw {hardware} to True")
-    request.session.kill_heartbeat.set()
 
 
 def init_base_config(hardware):
@@ -210,23 +147,9 @@ def pytest_runtest_setup(item):
     logging.debug(f"\n<---------runtest_setup {'.'.join(item.listnames()[-2:])}---------------->\n")
     configured_hw = configured_hardware(item._request)
     if not configured_hw:
-        provisioner = item.config.getoption("--provisioner")
-        if not provisioner:
-            hardware = dict()
-            hardware['machines'] = get_local_config(item.config.getoption("--hardware"))
-        else:
-            hardware = item.session.provisioner.provision(item.function.__hardware_reqs)
-            item.session.kill_heartbeat = threading.Event()
-            hb = heartbeat_client.HeartbeatClient(item.session.kill_heartbeat,
-                                                  ep=os.getenv('HABERTEST_HEARTBEAT_SERVER', "http://localhost:7080"),
-                                                  cert=os.getenv('HABERTEST_SSL_CERT', None),
-                                                  key=os.getenv('HABERTEST_SSL_KEY', None))
-            os.environ["HABERTEST_ALLOCATION_ID"] =  hardware['allocation_id']
-            hb.send_heartbeats_on_thread(hardware['allocation_id'])
-            if determine_scope(None, item.config) == 'session':
-                item.session.__initialized_hardware = dict()
-                item.session.__initialized_hardware = hardware
-
+        logging.info("getting locally configured hardware")
+        hardware = dict()
+        hardware['machines'] = get_local_config(item.config.getoption("--hardware"))
         item.function.__initialized_hardware = hardware
 
     hardware = configured_hardware(item._request)
@@ -298,7 +221,6 @@ def configure_logging(config):
     infra_logs_dir = f'{session_logs_dir}/infra_logs'
     os.makedirs(infra_logs_dir, exist_ok=True)
 
-    # tests_logs_dir = os.path.join(os.getcwd(), f'{session_logs_dir}/test_logs')
     tests_logs_dir = f'{session_logs_dir}/tests_logs'
     os.makedirs(tests_logs_dir, exist_ok=True)
 
@@ -326,8 +248,6 @@ def configure_logging(config):
 
 def pytest_configure(config):
     configure_logging(config)
-
-
 
 
 def organize_remote_logs(ssh):
@@ -397,12 +317,6 @@ def pytest_runtest_teardown(item):
             logging.exception("was unable to download logs from a host")
 
     helpers.tear_down_proxy_containers(base_config.hosts.items())
-    scope = determine_scope(None, item.config)
-    if scope == 'function':
-        provisioner = item.config.getoption("--provisioner")
-        if provisioner:
-            item.session.kill_heartbeat.set()
-            item.session.provisioner.release(item.function.__initialized_hardware['allocation_id'])
     logging.getLogger().removeHandler(item.log_handler)
 
 
