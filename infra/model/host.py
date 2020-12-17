@@ -88,7 +88,8 @@ class Host(object):
 
     def add_to_ssh_agent(self):
         pkey_str = pem_key.to_string(self.pkey)
-        subprocess.run(["ssh-add", "-"], input=pkey_str.encode())
+        subprocess.run(["ssh-add", "-"], input=pkey_str.encode(),
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def remove_plugin(self, name):
         if name in self.__plugins:
