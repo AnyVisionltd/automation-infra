@@ -30,9 +30,13 @@ class ProvisionerClient(object):
     def provision(self, hardware_req, timeout=120):
         hardware = {"machines": {}}
         use_ssl = True if self.ep.startswith("https") else False
-        ws = websocket.WebSocket(sslopt={"certfile": self.ssl_cert[0], "keyfile": self.ssl_cert[1], "cert_reqs": ssl.CERT_NONE} if use_ssl else None)
-        ep = f'{"wss://" if use_ssl else "ws://"}{self.ep[self.ep.find("//")+2:]}/api/ws/jobs'
-        ws.connect(ep)
+        try:
+            ws = websocket.WebSocket(sslopt={"certfile": self.ssl_cert[0], "keyfile": self.ssl_cert[1], "cert_reqs": ssl.CERT_NONE} if use_ssl else None)
+            ep = f'{"wss://" if use_ssl else "ws://"}{self.ep[self.ep.find("//")+2:]}/api/ws/jobs'
+            ws.connect(ep)
+        except:
+            logging.exception("wasnt able to open websocket to provisioner. Stacktrace: ")
+            raise
         start = time.time()
         allocation_id = str(uuid.uuid4())
         logging.info(f"allocation_id: {allocation_id}")
