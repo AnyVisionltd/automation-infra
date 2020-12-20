@@ -225,6 +225,7 @@ def pytest_runtest_setup(item):
                                                   ep=os.getenv('HABERTEST_HEARTBEAT_SERVER', "http://localhost:7080"),
                                                   cert=os.getenv('HABERTEST_SSL_CERT', None),
                                                   key=os.getenv('HABERTEST_SSL_KEY', None))
+            os.environ["HABERTEST_ALLOCATION_ID"] =  hardware['allocation_id']
             hb.send_heartbeats_on_thread(hardware['allocation_id'])
             if determine_scope(None, item.config) == 'session':
                 item.session.__initialized_hardware = dict()
