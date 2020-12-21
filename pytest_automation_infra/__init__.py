@@ -250,31 +250,21 @@ def pytest_configure(config):
     configure_logging(config)
 
 
-def organize_remote_logs(ssh):
-    ssh.execute('sudo chmod ugo+rw /tmp/automation_infra')
-    ssh.execute('docker logs automation_proxy &> /tmp/automation_proxy.log')
-    ssh.execute('sudo mv /tmp/automation_proxy.log /tmp/automation_infra/automation_proxy.log')
-    remote_log_folders = ssh.execute('ls /storage/logs').split()
-    paths_to_compress = [*[f"/storage/logs/{folder}" for folder in remote_log_folders], '/tmp/automation_infra/automation_proxy.log']
-    return paths_to_compress
+def organize_remote_logs(ssh_direct):
+    ssh_direct.execute('sudo chmod ugo+rw /tmp/automation_infra && '
+                       'docker logs automation_proxy &> /tmp/automation_proxy.log && '
+                       'sudo mv /tmp/automation_proxy.log /storage/logs/automation_proxy.log && '
+                       'sudo sh -c "journalctl > /storage/logs/journal.log"')
 
 
 def download_host_logs(host, logs_dir):
     dest_dir = os.path.join(logs_dir, host.alias)
-    logging.debug(f"remote log folders and permissions: {host.SshDirect.execute('ls /storage/logs -lh || mkdir -p /storage/logs')}")
-    host.SshDirect.execute('docker logs automation_proxy &> /tmp/automation_proxy.log')
-    host.SshDirect.execute('sudo sh -c "journalctl > /storage/logs/journal.log"')
-    remote_log_folders = host.SshDirect.execute('ls /storage/logs').split()
-    paths_to_download = [*[f"/storage/logs/{folder}" for folder in remote_log_folders], '/tmp/automation_proxy.log']
-    logging.debug(f"Downloading logs from {host.alias} to {dest_dir}. Paths to download: {paths_to_download}")
     os.makedirs(dest_dir, exist_ok=True)
-    logging.debug(f"remote log folders and permissions: {host.SshDirect.execute('ls /storage/logs -lh || mkdir -p /storage/logs')}")
-    paths_to_compress = organize_remote_logs(host.SshDirect)
+    organize_remote_logs(host.SshDirect)
+    logging.debug(f"ls on /storage/logs: {host.SSH.execute('ls /storage/logs -lh')}")
     dest_gz = '/tmp/automation_infra/logs.tar.gz'
-    host.SSH.compress(paths_to_compress, dest_gz)
-    logging.debug(f"Downloading logs from {host.alias} to {dest_dir}. Paths to download: {paths_to_compress}")
+    host.SSH.compress("/storage/logs/", dest_gz)
     host.SSH.download(re.escape(dest_dir), dest_gz)
-    logging.debug(f"downloaded log folders: {os.listdir(dest_dir)}")
 
 
 def _sanitize_nodeid(filename):
