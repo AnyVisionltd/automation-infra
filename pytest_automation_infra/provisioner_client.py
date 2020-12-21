@@ -29,6 +29,8 @@ class ProvisionerClient(object):
 
     def provision(self, hardware_req, timeout=120):
         hardware = {"machines": {}}
+        for host_name, req in hardware_req.items():
+            req.setdefault('base_image_tag', 'automation_infra_1.0')
         use_ssl = True if self.ep.startswith("https") else False
         assert os.path.exists(self.ssl_cert[0]), f"Certfile doesnt exist at path: {self.ssl_cert[0]}"
         assert os.path.exists(self.ssl_cert[1]), f"Keyfile doesnt exist at path: {self.ssl_cert[1]}"
