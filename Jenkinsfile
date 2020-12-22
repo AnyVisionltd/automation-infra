@@ -36,14 +36,10 @@ pipeline {
             }
         }
         stage('Tests on docker') {
-            stages {
-                stage('Run integration tests') {
-                    steps {
-                        sh (
-                            script: "./run/env_vars.sh automation_infra/tests/basic_tests/ --ignore=lab --ignore=hwprovisioner --log-cli-level info --fixture-scope session"
-                        )
-                    }
-                }
+            steps {
+                sh (
+                    script: "./run/env_vars.sh automation_infra/tests/basic_tests/ --ignore=lab --ignore=hwprovisioner --log-cli-level info --fixture-scope session"
+                )
             }
         }
     } // end of stages
