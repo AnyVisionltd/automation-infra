@@ -180,6 +180,13 @@ function build_python_path () {
     echo $python_path
 }
 
+function superintend_containerize() {
+  echo "running superintend with PID: ${1} name: ${2}"
+  tail --pid ${1} -f
+  echo "containerize process closed.. killing container"
+  docker kill --signal=9 ${2}
+}
+
 function run_docker () {
     local tag="$1"
     local run_cmd="$2"
@@ -192,9 +199,6 @@ function run_docker () {
 
     # We generate a unique name in order to be able to kill the container when the terminal is closed.
     NAME=$(uuidgen)
-
-    # I dont think this is necessary because docker is run with --rm but am leaving it to make sure
-    # trap "kill_container ${NAME}" 0
 
     MOUNTS=("${HOME}/.ssh:${HOME}/.ssh"
             "/var/run/docker.sock:/var/run/docker.sock"
@@ -239,12 +243,16 @@ function run_docker () {
         cmd+=" $run_cmd"
     fi
 
+    PID=$$
+    nohup bash -c "superintend_containerize ${PID} ${NAME}" >> /tmp/superintend.out &
+
     debug_print "Executing ${cmd}"
     ${cmd}
 }
 
 
 function main () {
+    export -f superintend_containerize
     local cmd="$1"
     debug_print "running script with command args: $cmd"
     local tag=$(docker_tag)
