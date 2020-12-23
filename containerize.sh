@@ -21,6 +21,16 @@ function _is_debug() {
    fi
 }
 
+function kill_container() {
+    local container_name=$1
+    local container_id=$(docker ps -f name=${container_name} -q)
+
+    if [ "${container_id}" != "" ]; then
+        docker kill ${container_name}
+    fi
+}
+
+
 function debug_print() {
     if [ "$V" = "1" ]; then echo "$1"; fi
 }
@@ -115,10 +125,6 @@ function build_docker_image () {
         --network=host
 }
 
-function kill_container() {
-    docker kill "$1" || debug_print "could not kill container $1"
-}
-
 function _add_mount() {
     if command -v gravity > /dev/null 2>&1 && \
         gravity status | grep -i 'Status:' | grep -i -q 'active'; then
@@ -193,8 +199,6 @@ function run_docker () {
     # We generate a unique name in order to be able to kill the container when the terminal is closed.
     NAME=$(uuidgen)
 
-    # I dont think this is necessary because docker is run with --rm but am leaving it to make sure
-    # trap "kill_container ${NAME}" 0
 
     MOUNTS=("${HOME}/.ssh:${HOME}/.ssh"
             "/var/run/docker.sock:/var/run/docker.sock"
@@ -222,7 +226,7 @@ function run_docker () {
     env_cmd+="-e PYTHONPATH=${python_path} "
 
     # mount source code in same location as in host
-    cmd="docker run -t --name ${NAME} --privileged  --rm --memory=4g --memory-swap=8g --cap-add=SYS_PTRACE --security-opt seccomp=unconfined $mount_cmd $env_cmd"
+    cmd="docker run --name ${NAME} --privileged  --rm --memory=4g --memory-swap=8g --cap-add=SYS_PTRACE --security-opt seccomp=unconfined $mount_cmd $env_cmd"
 
     cmd+=" $(_read_passed_environment)"
 
@@ -240,6 +244,9 @@ function run_docker () {
     fi
 
     debug_print "Executing ${cmd}"
+
+    trap "kill_container ${NAME}" 0
+
     ${cmd}
 }
 
