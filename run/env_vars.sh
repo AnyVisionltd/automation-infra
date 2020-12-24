@@ -21,4 +21,3 @@ read -p "Change? waiting 5 seconds... (y) " -t 5 yn
               $prefix $@ ;;
 
   esac
-  exit 0
