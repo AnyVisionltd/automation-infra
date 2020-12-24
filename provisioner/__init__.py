@@ -28,11 +28,18 @@ def pytest_sessionstart(session):
     cert = session.config.getoption("--ssl-cert")
     key = session.config.getoption("--ssl-key")
     session.provisioner = ProvisionerClient(ep=provisioner, cert=cert, key=key)
+    session.__initialized_hardware = None
 
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_runtest_setup(item):
     session = item.session
+    if session.__initialized_hardware:
+        logging.debug("hardware previously initialized..")
+        item.function.__initialized_hardware = session.__initialized_hardware
+        yield
+        # The return is so that after the yield the rest of this function doesnt run...
+        return
     logging.debug("Provisioning hardware")
     hardware = session.provisioner.provision(item.function.__hardware_reqs)
     os.environ["HABERTEST_ALLOCATION_ID"] = hardware['allocation_id']
