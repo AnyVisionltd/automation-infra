@@ -21,7 +21,6 @@ def pytest_addoption(parser):
 
 
 def pytest_sessionstart(session):
-    session.kill_heartbeat = threading.Event()
     ssh_agent.setup_agent()
     provisioner = session.config.getoption("--provisioner")
     assert provisioner, "the following arguments are required: --provisioner"
@@ -58,7 +57,7 @@ def pytest_runtest_setup(item):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionfinish(session, exitstatus):
-    if not session.kill_heartbeat:
+    if not session.__initialized_hardware:
         return
     logging.debug("killing heartbeat")
     session.kill_heartbeat.set()
