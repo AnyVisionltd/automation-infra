@@ -15,7 +15,6 @@ from munch import *
 from automation_infra.utils import initializer, concurrently
 from infra.model.host import Host
 from pytest_automation_infra import helpers
-from pytest_automation_infra.helpers import is_k8s
 
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
@@ -93,7 +92,10 @@ def init_base_config(hardware):
     for host in base.hosts.values():
         if host.pkey:
             host.add_to_ssh_agent()
-    helpers.init_proxy_containers_and_connect(base.hosts.items())
+    for name, host in base.hosts.items():
+        logging.debug(f"[{host}] connecting to ssh directly")
+        host.SshDirect.connect(timeout=60)
+        logging.debug(f"[{host}] connected successfully")
     return base
 
 
@@ -251,20 +253,14 @@ def pytest_configure(config):
 
 
 def organize_remote_logs(ssh_direct):
-    ssh_direct.execute('sudo chmod ugo+rw /tmp/automation_infra && '
-                       'docker logs automation_proxy &> /tmp/automation_proxy.log && '
-                       'sudo mv /tmp/automation_proxy.log /storage/logs/automation_proxy.log && '
-                       'sudo sh -c "journalctl > /storage/logs/journal.log"')
+    ssh_direct.execute('sudo sh -c "journalctl > /tmp/journal.log"')
 
 
 def download_host_logs(host, logs_dir):
     dest_dir = os.path.join(logs_dir, host.alias)
     os.makedirs(dest_dir, exist_ok=True)
-    organize_remote_logs(host.SshDirect)
-    logging.debug(f"ls on /storage/logs: {host.SSH.execute('ls /storage/logs -lh')}")
-    dest_gz = '/tmp/automation_infra/logs.tar.gz'
-    host.SSH.compress("/storage/logs/", dest_gz)
-    host.SSH.download(re.escape(dest_dir), dest_gz)
+    host.SshDirect.execute('sudo sh -c "journalctl > /tmp/journal.log"')
+    host.SshDirect.download(dest_dir, '/tmp/journal.log')
 
 
 def _sanitize_nodeid(filename):
@@ -293,29 +289,11 @@ def pytest_runtest_teardown(item):
     if not base_config:
         logging.error("base_config fixture wasnt initted properly, cant download logs")
         return
-    hosts_to_download = list()
-    for host in base_config.hosts.values():
-        if not is_k8s(host.SshDirect):
-            hosts_to_download.append(host)
-    if hosts_to_download:
-        try:
-            logs_dir = os.path.join(item.config.option.logger_logsdir, _sanitize_nodeid(item.nodeid))
-            logging.debug("concurrently downloading logs from hosts...")
-            concurrently.run({host.ip: (download_host_logs, host, logs_dir)
-                              for host in hosts_to_download})
-        except subprocess.CalledProcessError:
-            logging.exception("was unable to download logs from a host")
-
-    helpers.tear_down_proxy_containers(base_config.hosts.items())
-    logging.getLogger().removeHandler(item.log_handler)
-
-
-def get_log_dir(config):
-    handlers = logging.RootLogger.root.handlers
-    for handler in handlers:
-        if type(handler) == logging.FileHandler:
-            path = handler.baseFilename
-            return os.path.dirname(path)
-    return config.option.logger_logsdir
-
-
+    try:
+        logs_dir = item.config.getoption("--logs-dir")
+        logging.debug("concurrently downloading logs from hosts...")
+        concurrently.run({host.ip: (download_host_logs, host, logs_dir, item.config.hook.pytest_download_logs)
+                          for host in base_config.hosts.values()})
+    except subprocess.CalledProcessError:
+        logging.exception("was unable to download logs from a host")
+    item.config.hook.pytest_after_test(item=item, base_config=base_config)

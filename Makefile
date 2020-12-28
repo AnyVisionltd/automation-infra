@@ -47,12 +47,3 @@ test-hypervisor:
 .PHONY: test-provisioner
 test-provisioner:
 	cd hwprovisioner/allocate && python -m pytest tests/test_provisioner.py -n 3
-
-AUTOMATION_PROXY_VERSION:=$(shell ./docker_build/version.sh)
-build-automation-proxy:
-	echo "building automation-proxy:${AUTOMATION_PROXY_VERSION}"
-	(cd docker_build && docker build -f Dockerfile -t gcr.io/anyvision-training/automation-proxy:${AUTOMATION_PROXY_VERSION} .)
-	
-push-automation-proxy: build-automation-proxy
-	echo "pushing automation-proxy:${AUTOMATION_PROXY_VERSION}"
-	(cd docker_build && docker push gcr.io/anyvision-training/automation-proxy:${AUTOMATION_PROXY_VERSION})
