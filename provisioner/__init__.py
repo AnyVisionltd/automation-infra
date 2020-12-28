@@ -5,8 +5,8 @@ import threading
 import pytest
 
 from infra.utils import ssh_agent
-from pytest_automation_infra.heartbeat_client import HeartbeatClient
-from pytest_automation_infra.provisioner_client import ProvisionerClient
+from provisioner.heartbeat_client import HeartbeatClient
+from provisioner.provisioner_client import ProvisionerClient
 
 
 def pytest_addoption(parser):

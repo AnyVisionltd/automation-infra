@@ -14,10 +14,11 @@ from munch import *
 
 from automation_infra.utils import initializer, concurrently
 from infra.model.host import Host
+from pytest_automation_infra import helpers
+from pytest_automation_infra.helpers import is_k8s
+
 from automation_infra.plugins.ssh import SSH
 from automation_infra.plugins.ssh_direct import SshDirect
-from pytest_automation_infra import provisioner_client, helpers, heartbeat_client
-from pytest_automation_infra.helpers import is_k8s
 
 
 class InfraFormatter(logging.Formatter):
