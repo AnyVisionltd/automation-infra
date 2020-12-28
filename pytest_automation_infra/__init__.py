@@ -77,7 +77,6 @@ def determine_scope(fixture_name, config):
 
 def configured_hardware(request):
     return getattr(request.session, "__initialized_hardware", None) \
-           or getattr(request.module, "__initialized_hardware", None) \
            or getattr(request.function, "__initialized_hardware", None)
 
 
@@ -150,7 +149,7 @@ def pytest_runtest_setup(item):
         logging.info("getting locally configured hardware")
         hardware = dict()
         hardware['machines'] = get_local_config(item.config.getoption("--hardware"))
-        item.function.__initialized_hardware = hardware
+        item.session.__initialized_hardware = hardware
 
     hardware = configured_hardware(item._request)
     assert hardware, "Couldnt find configured hardware in pytest_runtest_setup"
