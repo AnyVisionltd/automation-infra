@@ -13,7 +13,6 @@ def clean(host, test_name):
     host.SshDirect.disconnect()
     host.clear_plugins()
     logging.debug("resetting iptables")
-    helpers.restart_proxy_container(host)
     host.Iptables.reset_state()
     # Flushing journal to only have journal of current test if needed
     host.Admin.flush_journal()

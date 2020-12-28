@@ -49,10 +49,6 @@ def pytest_runtest_setup(item):
                          key=session.config.getoption("--ssl-key"))
     logging.debug("Success! Sending heartbeat")
     hb.send_heartbeats_on_thread(hardware['allocation_id'])
-    session.__initialized_hardware = hardware
-    item.function.__initialized_hardware = hardware
-    logging.debug("Resource available")
-    yield
 
 
 @pytest.hookimpl(tryfirst=True)
