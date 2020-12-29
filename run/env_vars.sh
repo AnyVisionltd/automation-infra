@@ -16,7 +16,7 @@ read -p "Change? waiting 5 seconds... (y) " -t 5 yn
               exit;;
             * )
               script_dir=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
-              prefix="$script_dir/../containerize.sh python -m pytest -p provisioner --provisioner=$HABERTEST_PROVISIONER --heartbeat=$HABERTEST_HEARTBEAT_SERVER --ssl-cert=$HABERTEST_SSL_CERT --ssl-key=$HABERTEST_SSL_KEY -p pytest_automation_infra -s "
+              prefix="$script_dir/../containerize.sh python -m pytest -p provisioner --provisioner=$HABERTEST_PROVISIONER --heartbeat=$HABERTEST_HEARTBEAT_SERVER --ssl-cert=$HABERTEST_SSL_CERT --ssl-key=$HABERTEST_SSL_KEY -s "
               echo "running command: $prefix $@"
               $prefix $@ ;;
 

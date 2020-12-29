@@ -7,7 +7,7 @@ if [ "$1" == "-h" ]; then
 fi
 
 script_dir=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
-prefix="$script_dir/../containerize.sh python -m pytest -p provisioner --provisioner=https://provisioner.tls.ai --heartbeat=https://heartbeat-server.tls.ai --ssl-cert=$HOME/.habertest/habertest.crt --ssl-key=$HOME/.habertest/habertest.key -p pytest_automation_infra -s "
+prefix="$script_dir/../containerize.sh python -m pytest -p provisioner --provisioner=https://provisioner.tls.ai --heartbeat=https://heartbeat-server.tls.ai --ssl-cert=$HOME/.habertest/habertest.crt --ssl-key=$HOME/.habertest/habertest.key -s "
 echo "running command: $prefix $@"
 sleep 3
 $prefix "$@"
