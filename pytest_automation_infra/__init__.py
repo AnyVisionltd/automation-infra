@@ -3,7 +3,6 @@ import os
 import logging
 import re
 import subprocess
-import threading
 import signal
 from datetime import datetime
 
@@ -35,6 +34,12 @@ def pytest_addoption(parser):
     parser.addoption("--extra-tests", action="store", default="",
                      help="tests to run in addition to specified tests and marks. eg. 'test_sanity.py test_extra.py'")
     parser.addoption("--logs-dir", action="store", default="", help="custom directory to store logs in")
+    parser.addoption("--provisioned-hardware", type=str)
+
+
+def pytest_addhooks(pluginmanager):
+    from . import hooks
+    pluginmanager.add_hookspecs(hooks)
 
 
 def get_local_config(local_config_path):
@@ -42,7 +47,7 @@ def get_local_config(local_config_path):
         raise Exception("""local hardware_config yaml not found""")
     with open(local_config_path, 'r') as f:
         local_config = yaml.full_load(f)
-    logging.debug(f"local_config: {local_config}")
+    logging.info(f"local_config: {local_config}")
     return local_config
 
 
@@ -53,6 +58,8 @@ def handle_timeout(signum, frame):
 def pytest_sessionstart(session):
     logging.debug("\n<--------------------sesssionstart------------------------>\n")
     signal.signal(signal.SIGALRM, handle_timeout)
+    if session.config.getoption("--provisioned-hardware"):
+        session.__initialized_hardware = json.loads(session.config.getoption("--provisioned-hardware"))
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -106,6 +113,7 @@ def base_config(request):
     assert hardware, "Didnt find configured_hardware in base_config fixture..."
     base = init_base_config(hardware)
     logging.debug("\n<-----------------sucessfully initialized base_config fixture------------>\n")
+    request.config.hook.pytest_after_base_config(base_config=base)
     return base
 
 
@@ -180,8 +188,8 @@ def pytest_runtest_setup(item):
     item.funcargs['base_config'] = match_base_config_hosts_with_hwreqs(reqs, base_config)
     hosts = base_config.hosts.items()
     logging.debug("cleaning between tests..")
-    initializer.clean_infra_between_tests(hosts, item.function.__name__)
-    init_cluster_structure(base_config, item.function.__cluster_config)
+    initializer.clean_infra_between_tests(hosts, item, item.config.hook.pytest_clean_between_tests)
+    # init_cluster_structure(base_config, item.function.__cluster_config)
     logging.debug("done runtest_setup")
     logging.debug("\n-----------------runtest call---------------\n")
 
