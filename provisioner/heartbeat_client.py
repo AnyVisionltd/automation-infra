@@ -5,6 +5,8 @@ import time
 
 import requests
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class HeartbeatClient(object):
     def __init__(self, stop, ep, cert, key, interval=2):
