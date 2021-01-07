@@ -105,5 +105,5 @@ else:
         packed = PythonPacker.from_script(script, outfile or name, excludes=self.excludes)
         self.archive_path = packed.outfile
 
-    def create_instance(self, host, interpreter='python3'):
-        return SnippetRunner(self, host.SSH, interpreter, self.snippet_params_file_path)
+    def create_instance(self, ssh, interpreter='python3'):
+        return SnippetRunner(self, ssh, interpreter, self.snippet_params_file_path)

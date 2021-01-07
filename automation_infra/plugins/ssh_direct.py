@@ -114,7 +114,7 @@ class SshDirect(object):
         code = snippet.Snippet(self._host, code_snippet, excludes)
         with tempfile.NamedTemporaryFile(prefix="snippet") as f:
             code.prepare(f.name)
-            instance = code.create_instance(self._host)
+            instance = code.create_instance(self)
         return instance.run(*args, **kwargs)
 
     def run_background_snippet(self, code_snippet, *args, **kwargs):
@@ -122,7 +122,7 @@ class SshDirect(object):
         code = snippet.Snippet(self._host, code_snippet, excludes)
         with tempfile.NamedTemporaryFile(prefix="snippet") as f:
             code.prepare(f.name)
-        instance = code.create_instance(self._host)
+        instance = code.create_instance(self)
         return instance.run_background(*args, **kwargs)
 
     def _install_private_key(self, keyfile, install_to_host):
