@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from provisioner import heartbeat_client, provisioner_client
+from pytest_provisioner import heartbeat_client, provisioner_client
 
 
 def test_init_hardware_happy_flow():
