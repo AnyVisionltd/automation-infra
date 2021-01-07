@@ -2,7 +2,6 @@ from pluggy import HookspecMarker
 hookspec = HookspecMarker("pytest")
 
 
-
 def pytest_before_group_items(session, config, items):
     """
     Enables enriching test items with more properties to be used for grouping or other purposes.
@@ -10,7 +9,7 @@ def pytest_before_group_items(session, config, items):
     """
 
 @hookspec(firstresult=True)
-def pytest_can_run_together(item1, item2, firstresult=True):
+def pytest_can_run_together(item1, item2):
     """
     receives 2 items and decides if they can run together.
     returns bool
@@ -24,25 +23,21 @@ def pytest_after_group_items(session, config, items):
     """
 
 
-def pytest_before_provisioning(session, config, items):
+def pytest_before_provisioning(item):
     """
-    """
-
-
-def pytest_after_provisioning(session, config, items):
-    """
+    called right before provisioning hardware for item (and whatever group its in).
     """
 
 
-def pytest_before_subprocess_run(session):
+def pytest_after_provisioning(item):
     """
-    hook is invoked immediately before calling test groups invocation on a subprocess
-    """
-
-
-def pytest_after_subprocess_run(session):
-    """
-    hook is invoked after calling test groups on a subprocess.
-    At this point the reports are written to disk so it is possible to load them and manipulate if necessary.
+    called right after successfully provisioning hardware for item (and group)
     """
 
+
+def pytest_before_release():
+    """"""
+
+
+def pytest_after_release():
+    """"""
