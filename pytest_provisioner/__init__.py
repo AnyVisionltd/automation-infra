@@ -8,7 +8,6 @@ import threading
 
 import pytest
 
-from infra.model.groups import Group
 from infra.utils import ssh_agent
 from pytest_provisioner.heartbeat_client import HeartbeatClient
 from pytest_provisioner.provisioner_client import ProvisionerClient
@@ -39,6 +38,12 @@ def pytest_addhooks(pluginmanager):
     pluginmanager.add_hookspecs(hooks)
 
 
+def pytest_configure(config):
+    if config.pluginmanager.hasplugin('pytest_grouper'):
+        from . import grouper_hooks
+        config.pluginmanager.register(grouper_hooks)
+
+
 def pytest_sessionstart(session):
     ssh_agent.setup_agent()
     provisioner = session.config.getoption("--provisioner")
@@ -46,64 +51,38 @@ def pytest_sessionstart(session):
     cert = session.config.getoption("--ssl-cert")
     key = session.config.getoption("--ssl-key")
     session.provisioner = ProvisionerClient(ep=provisioner, cert=cert, key=key)
-
-
-def pytest_collection_modifyitems(session, config, items):
-    config.hook.pytest_before_group_items(session=session, config=config, items=items)
-    group_tests(session, items, config.hook)
-    config.hook.pytest_after_group_items(session=session, config=config, items=items)
-
-    # TODO: set test.teardown() property?
-
-
-def group_tests(session, items, hook):
-    session.groups = list()
-    Group.assign_to_new_group(items[0], session.groups)
-    for idx in range(1, len(items)):
-        for group in session.groups:
-            together = hook.pytest_can_run_together(item1=group.tests[0], item2=items[idx])
-            if together:
-                group.attach(items[idx])
-                break
-        if not getattr(items[idx], "test_group", None):
-            Group.assign_to_new_group(items[idx], session.groups)
-
-    logging.info(f"groups: {[group.tests for group in session.groups]}")
-    if len(session.groups) < session.config.option.num_parallel:
-        session.groups = Group.reorganize(session.groups, session.config.option.num_parallel)
-        logging.info(f"groups were shuffled as num_parallel is higher than groups: "
-                     f"{[len(group.tests) for group in session.groups]}")
+    session.hardware_map = dict()  # {worker.id:{hardware:hardware, kill_hb: event()}}
 
 
 @pytest.hookimpl(tryfirst=True)
-def pytest_start_subprocess(item):
+def pytest_start_subprocess(item, worker):
     try:
-        group = item.test_group
-        if not group.provisioned_hardware:
+        hardware = item.session.hardware_map.get(worker.id, None)
+        if not hardware:
             item.config.hook.pytest_before_provisioning(item=item)
-            provision_hardware(item)
+            provision_hardware(item, worker)
             item.config.hook.pytest_after_provisioning(item=item)
-        item.config.option.secondary_flags.extend(["--provisioned-hardware", json.dumps(group.provisioned_hardware, separators=(',', ':'))])
+        item.config.option.secondary_flags.extend(["--provisioned-hardware",
+                                                   json.dumps(item.session.hardware_map[worker.id]['hardware'],
+                                                              separators=(',', ':'))])
     except:
         logging.error("couldnt provision hardware. exiting...")
         os._exit(666)
 
 
-def provision_hardware(item):
+def provision_hardware(item, worker):
     session = item.session
-    logging.debug("provisioning hardware")
+    logging.info(f"provisioning hardware for item {os.path.split(item.nodeid)[1]}")
     hardware = session.provisioner.provision(item.function.__hardware_reqs)
     logging.info(f"provisioned hardware: {hardware_to_print(hardware)}")
     os.environ["HABERTEST_ALLOCATION_ID"] = hardware['allocation_id']
-    item.test_group.provisioned_hardware = hardware
-    item.test_group.kill_hb = threading.Event()
-    hb = HeartbeatClient(stop=item.test_group.kill_hb,
+    item.session.hardware_map[worker.id] = {"hardware": hardware, "kill_hb": threading.Event()}
+    hb = HeartbeatClient(stop=item.session.hardware_map[worker.id]['kill_hb'],
                          ep=session.config.getoption("--heartbeat"),
                          cert=session.config.getoption("--ssl-cert"),
                          key=session.config.getoption("--ssl-key"))
     logging.debug("Success! Sending heartbeat")
     hb.send_heartbeats_on_thread(hardware['allocation_id'])
-    return hardware
 
 
 def hardware_to_print(hardware):
@@ -115,29 +94,26 @@ def hardware_to_print(hardware):
 
 
 @pytest.hookimpl(trylast=True)
-def pytest_end_subprocess(item):
-    group = item.test_group
-    for item in group.tests:
-        if not getattr(item, "ran", None):
-            return
-    logging.debug(f"All tests in group {group.id} ran. Releasing hardware...")
-    release_hardware(item)
+def pytest_end_subprocess(item, worker):
+    # if pytest_grouper is registered, the proper place to release is in pytest_finished_handling_group hook
+    # (which grouper calls). If the grouper isnt active, then each test is a "group" on its own, and we
+    # must allocate/release for each item:
+    if not item.config.pluginmanager.hasplugin('pytest_grouper'):
+        logging.debug("running without pytest_grouper invoked and therefore releasing hardware at pytest_end_subprocess")
+        release_worker_hardware(item.session, worker)
 
 
-def release_hardware(item):
-    item.test_group.kill_hb.set()
+def release_worker_hardware(session, worker):
+    do_release_hardware(session.provisioner,
+                        session.hardware_map[worker.id]['hardware']['allocation_id'],
+                        session.hardware_map[worker.id]['kill_hb'])
+    del session.hardware_map[worker.id]
+
+
+def do_release_hardware(provisioner_client, allocation_id, hb_stop):
+    logging.info(f"releasing hardware {allocation_id}")
+    hb_stop.set()
     time.sleep(5)
-    item.session.provisioner.release(item.test_group.provisioned_hardware['allocation_id'])
-    logging.info(f"released hardware: {hardware_to_print(item.test_group.provisioned_hardware)}")
+    provisioner_client.release(allocation_id)
 
 
-@pytest.hookimpl(trylast=True)
-def pytest_can_run_together(item1, item2):
-    """
-    This is default implementation if no one else implemented this hook.
-    It does a trivial comparison of hardware_reqs adn cluster_config.
-    """
-    if item1.function.__hardware_reqs == item2.function.__hardware_reqs and \
-            item2.function.__cluster_config == item2.function.__cluster_config:
-        return True
-    return False
