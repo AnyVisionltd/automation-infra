@@ -7,7 +7,7 @@ if [ "$1" == "-h" ]; then
 fi
 
 script_dir=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
-prefix="$script_dir/../containerize.sh python -m pytest -p pytest_automation_infra -s "
+prefix="$script_dir/../containerize.sh python -m pytest -p pytest_subprocessor --sf=\"-p pytest_automation_infra \" -s "
 echo "running command: $prefix $@"
 sleep 3
 $prefix $@
