@@ -39,11 +39,11 @@ class Iptables(object):
 
     def drop(self, service_name, protocol=None):
         protocol_cmd = self.protocol_cmd(protocol)
-        self._ssh.execute(f"sudo iptables -w -I FORWARD {protocol_cmd} --dest {service_name} -j DROP")
+        self._ssh.execute(f"sudo iptables -w --insert {self.AUTOMATION_CHAIN} {protocol_cmd} --dest {service_name} -j DROP")
 
     def undrop(self, service_name, protocol=None):
         protocol_cmd = self.protocol_cmd(protocol)
-        self._ssh.execute(f"sudo iptables -w -D FORWARD {protocol_cmd} --dest {service_name} -j DROP")
+        self._ssh.execute(f"sudo iptables -w --delete {self.AUTOMATION_CHAIN} {protocol_cmd} --dest {service_name} -j DROP")
 
     @staticmethod
     def protocol_cmd(protocol):
