@@ -32,8 +32,9 @@ class ProvisionerClient(object):
         for host_name, req in hardware_req.items():
             req.setdefault('base_image', 'automation_infra_1.0')
         use_ssl = True if self.ep.startswith("https") else False
-        assert os.path.exists(self.ssl_cert[0]), f"Certfile doesnt exist at path: {self.ssl_cert[0]}"
-        assert os.path.exists(self.ssl_cert[1]), f"Keyfile doesnt exist at path: {self.ssl_cert[1]}"
+        if use_ssl:
+            assert os.path.exists(self.ssl_cert[0]), f"Certfile doesnt exist at path: {self.ssl_cert[0]}"
+            assert os.path.exists(self.ssl_cert[1]), f"Keyfile doesnt exist at path: {self.ssl_cert[1]}"
         try:
             ws = websocket.WebSocket(sslopt={"certfile": self.ssl_cert[0], "keyfile": self.ssl_cert[1], "cert_reqs": ssl.CERT_NONE} if use_ssl else None)
             ep = f'{"wss://" if use_ssl else "ws://"}{self.ep[self.ep.find("//")+2:]}/api/ws/jobs'
