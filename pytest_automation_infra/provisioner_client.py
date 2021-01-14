@@ -45,9 +45,11 @@ class ProvisionerClient(object):
         allocation_id = str(uuid.uuid4())
         logging.info(f"allocation_id: {allocation_id}")
         while time.time() - start <= timeout:
-            requestor_information = dict(hostname=os.getenv("host_hostname", socket.gethostname()),
+            hostname = os.getenv("host_hostname") if os.getenv("host_hostname") else socket.gethostname()
+            ip = os.getenv("host_ip") if os.getenv("host_ip") else socket.gethostbyname(socket.gethostname())
+            requestor_information = dict(hostname=hostname,
                                          username=getpass.getuser(),
-                                         ip=os.getenv("host_ip", socket.gethostbyname(socket.gethostname())),
+                                         ip=ip,
                                          external_ip=self.external_ip,
                                          creation_time=str(datetime.now()),
                                          running_cmd=" ".join(sys.argv)
