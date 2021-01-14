@@ -25,6 +25,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg2 \
     iproute2 \
     rsync \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg-agent \
+    software-properties-common \
   && ln -s /usr/bin/python3 /usr/local/bin/python \
   && pip3 install --upgrade pip \
   && apt-get clean && apt-get autoremove && rm -rf /var/lib/apt/lists/* \
@@ -36,6 +41,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list \
   && apt-get update && apt-get install -y kubectl
 
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - &&  \
+	add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+    $(lsb_release -cs) stable"
+
+RUN  apt-get update && apt-get install -y --no-install-recommends \
+     docker-ce docker-ce-cli containerd.io
 
 # Set the locale
 ENV LANG C.UTF-8
