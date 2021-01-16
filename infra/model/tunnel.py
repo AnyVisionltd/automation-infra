@@ -62,15 +62,6 @@ class Tunnel(object):
             transport = ssh_transport
             local_bind_port = local_port
 
-            def __init__(self, request, client_address, server):
-                logging.debug(f"initing <<{remote_host}>> subhandler: {client_address} -> {server.server_address} ")
-                super().__init__(request, client_address, server)
-
-            def finish(self):
-                is_in_error = sys.exc_info()[0] is not None
-                logging.debug(f'finishing <<{remote_host}>> subhandler: {self.server.server_address} error ? {is_in_error}')
-                return SocketServer.BaseRequestHandler.finish(self)
-
         forward_server = ForwardServer(("", local_port), SubHander)
         selected_port = forward_server.server_address[1]
         server_thread = threading.Thread(target=forward_server.serve_forever, daemon=True)
