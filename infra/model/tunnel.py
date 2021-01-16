@@ -87,17 +87,31 @@ class Handler(SocketServer.BaseRequestHandler):
                 data = chan.recv(Handler.RECV_BUFFER_SIZE)
                 self.request.sendall(data)
 
+    def _retry_open_channel(self, timeout):
+        end_time = time.time() + timeout
+        last_exception = None
+        while time.time() < end_time:
+            try:
+                return self.transport.open_channel(
+                    "direct-tcpip",
+                    (self.chain_host, self.chain_port),
+                    self.request.getpeername(),
+                    max_packet_size=paramiko.common.MAX_WINDOW_SIZE,
+                    timeout=timeout)
+            except:
+                logging.debug(f"Failed to connect to {self.chain_host}:{self.chain_port}")
+                last_exception = sys.exc_info()[0]
+                time.sleep(1)
+                pass
+        else:
+            raise last_exception
+
     def handle(self):
         connection_uuid = str(uuid.uuid4())
         connection_info = f"id: {connection_uuid} local {self.client_address} <-> remote {self.chain_host}:{self.chain_port}"
         logging.debug(f"Open tunnel on {connection_info}")
         try:
-            chan = self.transport.open_channel(
-                "direct-tcpip",
-                (self.chain_host, self.chain_port),
-                self.request.getpeername(),
-                max_packet_size=paramiko.common.MAX_WINDOW_SIZE
-            )
+            chan = self._retry_open_channel(timeout=10)
         except Exception as e:
             msg_tupe = 'ssh ' if isinstance(e, paramiko.SSHException) else ''
             exc_msg = 'open new channel {0}error: {1}'.format(msg_tupe, e)
