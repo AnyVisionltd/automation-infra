@@ -100,7 +100,7 @@ class Handler(SocketServer.BaseRequestHandler):
                     timeout=timeout)
             except:
                 logging.debug(f"Failed to connect to {self.chain_host}:{self.chain_port}")
-                last_exception = sys.exc_info()[0]
+                last_exception = sys.exc_info()[1]
                 time.sleep(1)
                 pass
         else:
