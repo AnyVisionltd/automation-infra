@@ -20,6 +20,7 @@ except ImportError:
 
 
 class Tunnel(object):
+
     def __init__(self, dns_name, port, transport, local_bind_port=None):
         self.remote_dns_name = dns_name
         self.remote_port = int(port)
@@ -51,7 +52,6 @@ class Tunnel(object):
     def _start_tunnel(self):
         self._forward_server, self._local_bind_port = waiter.wait_nothrow(lambda:
                             self.try_start_tunnel(self.remote_dns_name, self.remote_port, self.transport, self._local_bind_port))
-
 
     @staticmethod
     def try_start_tunnel(remote_host, remote_port, ssh_transport, local_port=0):
