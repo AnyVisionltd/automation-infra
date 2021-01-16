@@ -11,6 +11,7 @@ from paramiko import SSHException
 from automation_infra.utils import waiter
 import sys
 import paramiko
+import uuid
 
 try:
     import SocketServer
@@ -95,38 +96,39 @@ class Handler(SocketServer.BaseRequestHandler):
                 data = chan.recv(Handler.RECV_BUFFER_SIZE)
                 self.request.sendall(data)
 
-    def handle(self, attempt=0, err=None):
-        attempt = attempt + 1
-        if attempt >= 3:
-            logging.error("Too many attempts made!")
-            return err
+    def handle(self):
+        connection_uuid = str(uuid.uuid4())
+        connection_info = f"id: {connection_uuid} local {self.client_address} <-> remote {self.chain_host}:{self.chain_port}"
+        logging.debug(f"Open tunnel on {connection_info}")
         try:
             chan = self.transport.open_channel(
                 "direct-tcpip",
                 (self.chain_host, self.chain_port),
                 self.request.getpeername(),
-                max_packet_size = paramiko.common.MAX_WINDOW_SIZE
+                max_packet_size=paramiko.common.MAX_WINDOW_SIZE
             )
-            if chan is None:
-                message = "Error in SockerServer handler trying to open_channel: %s:%d Channel is None" % (
-                    self.chain_host, self.chain_port)
-                logging.error(message)
-                return
+        except Exception as e:
+            msg_tupe = 'ssh ' if isinstance(e, paramiko.SSHException) else ''
+            exc_msg = 'open new channel {0}error: {1}'.format(msg_tupe, e)
+            msg = f"{connection_info} error: {exc_msg}"
+            raise Exception(msg)
 
+        connection_info = f"id: {connection_uuid} chanel id: {chan.chanid} remote channel id {chan.remote_chanid} local {self.client_address} <-> remote {self.chain_host}:{self.chain_port}"
+        logging.debug(f"Tunnel {connection_info} connected")
+        try:
             self._redirect(chan)
+        except socket.error:
+            # Sometimes a RST is sent and a socket error is raised, treat this
+            # exception. It was seen that a 3way FIN is processed later on, so
+            # no need to make an ordered close of the connection here or raise
+            # the exception beyond this point...
+            logging.debug(f"socket error in {connection_info}")
+        except Exception as e:
+            logging.debug(f"Error on {connection_info}")
+        finally:
+            logging.debug(f"Tunnel {connection_info} closed")
             chan.close()
             self.request.close()
-        except (ConnectionResetError, EOFError, SSHException) as err:
-            time.sleep(1)
-            self.handle(attempt, err)
-        except OSError:
-            # this gets thrown when connection is reset and then when trying to get request.getpeername() thrown again
-            # theres nothing to handle here, just makes logs a bit nicer.
-            pass
-        except Exception as err:
-            logging.exception("Unknown error: %s", type(err))
-            time.sleep(1)
-            self.handle(attempt, err)
 
 
 class ForwardServer(SocketServer.ThreadingTCPServer):
