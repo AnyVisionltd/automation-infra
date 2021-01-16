@@ -5,7 +5,7 @@
 function main () {
     local cmd=$1
     local script_dir=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
-    $script_dir/containerize.sh  python3 ./lab_terminal.py
+    $script_dir/containerize.sh  python3 $script_dir/lab_terminal.py
 }
 
 
