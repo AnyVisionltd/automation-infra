@@ -95,7 +95,7 @@ class Handler(SocketServer.BaseRequestHandler):
                 logging.error(message)
                 return
 
-            while True:
+            while chan.active:
                 r, w, x = select.select([self.request, chan], [], [])
                 if self.request in r:
                     data = self.request.recv(1024)
@@ -103,9 +103,9 @@ class Handler(SocketServer.BaseRequestHandler):
                         break
                     chan.sendall(data)
                 if chan in r:
-                    data = chan.recv(1024)
-                    if len(data) == 0:
+                    if not chan.recv_ready():
                         break
+                    data = chan.recv(1024)
                     self.request.sendall(data)
             chan.close()
             self.request.close()
