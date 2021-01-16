@@ -10,6 +10,7 @@ from paramiko import SSHException
 
 from automation_infra.utils import waiter
 import sys
+import paramiko
 
 try:
     import SocketServer
@@ -78,6 +79,7 @@ class Tunnel(object):
 
 
 class Handler(SocketServer.BaseRequestHandler):
+    RECV_BUFFER_SIZE  = 4 * 1024 * 1024
     def handle(self, attempt=0, err=None):
         attempt = attempt + 1
         if attempt >= 3:
@@ -88,6 +90,7 @@ class Handler(SocketServer.BaseRequestHandler):
                 "direct-tcpip",
                 (self.chain_host, self.chain_port),
                 self.request.getpeername(),
+                max_packet_size = paramiko.common.MAX_WINDOW_SIZE
             )
             if chan is None:
                 message = "Error in SockerServer handler trying to open_channel: %s:%d Channel is None" % (
@@ -98,14 +101,14 @@ class Handler(SocketServer.BaseRequestHandler):
             while chan.active:
                 r, w, x = select.select([self.request, chan], [], [])
                 if self.request in r:
-                    data = self.request.recv(1024)
+                    data = self.request.recv(Handler.RECV_BUFFER_SIZE)
                     if len(data) == 0:
                         break
                     chan.sendall(data)
                 if chan in r:
                     if not chan.recv_ready():
                         break
-                    data = chan.recv(1024)
+                    data = chan.recv(Handler.RECV_BUFFER_SIZE)
                     self.request.sendall(data)
             chan.close()
             self.request.close()
