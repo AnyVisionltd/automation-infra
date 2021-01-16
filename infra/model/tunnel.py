@@ -79,7 +79,22 @@ class Tunnel(object):
 
 
 class Handler(SocketServer.BaseRequestHandler):
-    RECV_BUFFER_SIZE  = 4 * 1024 * 1024
+    RECV_BUFFER_SIZE = 4 * 1024 * 1024
+
+    def _redirect(self, chan):
+        while chan.active:
+            r, w, x = select.select([self.request, chan], [], [])
+            if self.request in r:
+                data = self.request.recv(Handler.RECV_BUFFER_SIZE)
+                if len(data) == 0:
+                    break
+                chan.sendall(data)
+            if chan in r:
+                if not chan.recv_ready():
+                    break
+                data = chan.recv(Handler.RECV_BUFFER_SIZE)
+                self.request.sendall(data)
+
     def handle(self, attempt=0, err=None):
         attempt = attempt + 1
         if attempt >= 3:
@@ -98,18 +113,7 @@ class Handler(SocketServer.BaseRequestHandler):
                 logging.error(message)
                 return
 
-            while chan.active:
-                r, w, x = select.select([self.request, chan], [], [])
-                if self.request in r:
-                    data = self.request.recv(Handler.RECV_BUFFER_SIZE)
-                    if len(data) == 0:
-                        break
-                    chan.sendall(data)
-                if chan in r:
-                    if not chan.recv_ready():
-                        break
-                    data = chan.recv(Handler.RECV_BUFFER_SIZE)
-                    self.request.sendall(data)
+            self._redirect(chan)
             chan.close()
             self.request.close()
         except (ConnectionResetError, EOFError, SSHException) as err:
