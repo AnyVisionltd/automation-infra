@@ -26,7 +26,7 @@ class Tunnel(object):
         self.remote_port = int(port)
         self.transport = transport
         self._forward_server = None
-        self._hostname = "localhost"
+        self._hostname = "127.0.0.1"
         self._local_bind_port = local_bind_port or 0
 
     def start(self):
@@ -34,7 +34,7 @@ class Tunnel(object):
         self._start_tunnel()
 
     def stop(self):
-        logging.debug(f"stopping tunnel from localhost:{self._local_bind_port} -> {self.remote_dns_name}:{self._local_bind_port}")
+        logging.debug(f"stopping tunnel from {self._hostname}:{self._local_bind_port} -> {self.remote_dns_name}:{self._local_bind_port}")
         self._forward_server.shutdown()
 
     @property
