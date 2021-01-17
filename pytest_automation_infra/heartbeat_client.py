@@ -30,6 +30,10 @@ class HeartbeatClient(object):
             except KeyError:
                 logging.error(f"send hb for {allocation_id} which doesnt exist on {self.ep}.. \nexiting pytest")
                 os._exit(666)
+            except:
+                logging.warn(f"Failed to send ping to allocator {self.ep}", exc_info=True)
+                time.sleep(0.1)
+                continue
             time.sleep(self.interval)
 
     def send_heartbeats_on_thread(self, allocation_id):
