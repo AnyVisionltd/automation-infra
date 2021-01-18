@@ -1,6 +1,18 @@
 import logging
 import time
 
+import pytest
+
+
+@pytest.mark.parametrize('param', ["first", "second", "third"])
+def test_parametrize(param):
+    logging.info(f"running test {param}")
+
+
+@pytest.mark.repeat(3)
+def test_repeat(request):
+    logging.info("running test_repeat")
+
 
 def test_one():
     logging.info("Running test_one...")
