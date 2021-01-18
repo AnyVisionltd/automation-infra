@@ -26,6 +26,9 @@ def pytest_collection_modifyitems(session, config, items):
 
 
 def group_items(session, items, hook):
+    if not items:
+        logging.info("didnt find any items")
+        os._exit(666)
     session.groups = list()
     Group.assign_to_new_group(items[0], session.groups)
     for idx in range(1, len(items)):
