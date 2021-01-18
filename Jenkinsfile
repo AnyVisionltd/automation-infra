@@ -26,11 +26,6 @@ pipeline {
         issueCommentTrigger('^\\/rebuild')
     }
     stages {
-        stage ('Build automation proxy container') {
-               steps {
-                    sh(script: "make push-automation-proxy")
-              }
-            }
         stage('Run unit tests') {
             steps {
                 echo "TODO: Not implemented yet"
