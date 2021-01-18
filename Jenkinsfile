@@ -34,7 +34,7 @@ pipeline {
         stage('Tests on docker') {
             steps {
                 sh (
-                    script: "./run/env_vars.sh automation_infra/tests/basic_tests/ --ignore=lab --ignore=hwprovisioner --log-cli-level info --fixture-scope session"
+                    script: "./run/env_vars.sh automation_infra/tests/basic_tests/ --num-parallel 3"
                 )
             }
         }
