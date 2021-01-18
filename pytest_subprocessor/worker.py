@@ -47,6 +47,8 @@ class Worker:
         command = self.build_pytest_prefix(item)
         test_full_path = self.build_fullpath(item)
         command.append(test_full_path)
+        keyword_expression = self.build_keyword_expression(item)
+        command.append(keyword_expression)
         logging.debug(f"command: {command}")
         # Set up something (not install yet bc for install you need base_config)
         item.config.hook.pytest_before_running_test(item=item)
@@ -59,7 +61,8 @@ class Worker:
     def build_pytest_prefix(self, item):
         # this makes sure there aren't secondary_flags with spaces (which fucks up subprocess.run command):
         secondary_flags = self.split_intelligently(item.config.option.secondary_flags)
-        pytest_prefix = f"{sys.executable} -m pytest -p pytest_subprocessor.serializer --item-id {item.id} -s"
+        count = f'--count {item.config.getoption("--count", None)}' if item.config.getoption("--count", None) else ''
+        pytest_prefix = f"{sys.executable} -m pytest -p pytest_subprocessor.serializer --item-id {item.id} {count} -s"
         pytest_prefix = pytest_prefix.split()
         logs_dir = os.path.join(item.config.option.logger_logsdir, "subprocess", sanitize_nodeid(os.path.split(item.nodeid)[1]))
         os.makedirs(logs_dir, exist_ok=True)
@@ -82,9 +85,15 @@ class Worker:
 
     @staticmethod
     def build_fullpath(item):
-        # I need to use item.function.__name__ because at least --count adds [1-4] to the nodeid:
-        return os.path.join(item.config.rootdir, f'{item.nodeid.split("::")[0]}::{item.function.__name__}')
-        # return os.path.join(item.config.rootdir, item.nodeid)
+        return os.path.join(item.config.rootdir, f'{item.nodeid.split("[")[0]}')
+
+    @staticmethod
+    def build_keyword_expression(item):
+        """Its hard to explain why this is necessary, but parametrized tests have [1-5] appended to their nodeid.
+        In order to only run test once, its necessary to add -k and only the specific nodeid we would like.
+        pytest -k arg does 'only run tests which match the given substring expression.' (see pytest help)"""
+        parametrized = item.nodeid.split('[')[1] if len(item.nodeid.split('[')) > 1 else ''
+        return f"-k {parametrized}"
 
     @staticmethod
     def run_subprocess_tests(command):
@@ -101,5 +110,4 @@ class Worker:
                     # better because then we will have the item and can hopefully call runtest_teardown somehow
                 # decide by the serialized reports which were written to the disk.
         except:
-            import pdb; pdb.set_trace()
             raise
