@@ -16,13 +16,14 @@ from pytest_automation_infra import helpers
 
 
 def pytest_addoption(parser):
-    parser.addoption("--fixture-scope", type=str, default='session', choices={"function", "module", "session"},
+    group = parser.getgroup("pytest_automation_infra")
+    group.addoption("--fixture-scope", type=str, default='session', choices={"function", "module", "session"},
                      help="every how often to setup/tear down fixtures, one of [function, module, session]")
-    parser.addoption("--hardware", type=str, default=f'{os.path.expanduser("~")}/.local/hardware.yaml',
+    group.addoption("--hardware", type=str, default=f'{os.path.expanduser("~")}/.local/hardware.yaml',
                      help="path to hardware_yaml")
-    parser.addoption("--extra-tests", action="store", default="",
+    group.addoption("--extra-tests", action="store", default="",
                      help="tests to run in addition to specified tests and marks. eg. 'test_sanity.py test_extra.py'")
-    parser.addoption("--provisioned-hardware", type=str)
+    group.addoption("--provisioned-hardware", type=str)
 
 
 def pytest_addhooks(pluginmanager):

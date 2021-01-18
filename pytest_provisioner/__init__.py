@@ -23,13 +23,14 @@ def pytest_cmdline_parse(pluginmanager, args):
 
 
 def pytest_addoption(parser):
-    parser.addoption("--provisioner", type=str,
+    group = parser.getgroup("pytest_provisioner")
+    group.addoption("--provisioner", type=str,
                      help="endpoint of provisioning service to get hardware to run tests on, incl http/s")
-    parser.addoption("--heartbeat", type=str,
+    group.addoption("--heartbeat", type=str,
                      help="endpoint of heartbeat service to get hardware to run tests on, incl http/s")
-    parser.addoption("--ssl-cert", type=str, default='',
+    group.addoption("--ssl-cert", type=str, default='',
                      help="path to ssl-cert to use for ssl auth")
-    parser.addoption("--ssl-key", type=str, default='',
+    group.addoption("--ssl-key", type=str, default='',
                      help="path to ssl-key to use for ssl auth")
 
 

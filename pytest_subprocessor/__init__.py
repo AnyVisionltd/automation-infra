@@ -36,10 +36,11 @@ def pytest_cmdline_parse(pluginmanager, args):
 
 
 def pytest_addoption(parser):
-    parser.addoption("--num-parallel", type=int, default=1,
+    group = parser.getgroup("pytest_subprocessor")
+    group.addoption("--num-parallel", type=int, default=1,
                      help="number of resourcess to provision and run tests against in parallel")
-    parser.addoption("--logs-dir", action="store", default="", help="custom directory to store logs in")
-    parser.addoption("--sf", dest="secondary_flags", action="append", default=[],
+    group.addoption("--logs-dir", action="store", default=f'logs/{datetime.now().strftime("%Y_%m_%d__%H%M_%S")}', help="custom directory to store logs in")
+    group.addoption("--sf", dest="secondary_flags", action="append", default=[],
                      help='flags to pass to the secondary pytest call (after provisioning).'
                           'Can be passed individually like --sf=-flag1 --sf=--flag2 or with escaped " marks like '
                           '--sf=\\"--flag1 value1 --flag2\\"')
