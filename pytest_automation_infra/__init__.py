@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import os
 import logging
@@ -198,7 +199,7 @@ def pytest_runtest_teardown(item):
         logging.error("base_config fixture wasnt initted properly, cant download logs")
         return
     try:
-        logs_dir = item.config.getoption("--logs-dir")
+        logs_dir = item.config.getoption("--logs-dir", f'logs/{datetime.now().strftime("%Y_%m_%d__%H%M_%S")}')
         logging.debug("concurrently downloading logs from hosts...")
         concurrently.run({host.ip: (download_host_logs, host, logs_dir, item.config.hook.pytest_download_logs)
                           for host in base_config.hosts.values()})
