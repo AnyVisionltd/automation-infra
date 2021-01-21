@@ -53,6 +53,7 @@ def pytest_addhooks(pluginmanager):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_configure(config):
+    config.option.assertmode = 'rewrite'
     configure_logging(config)
 
 
