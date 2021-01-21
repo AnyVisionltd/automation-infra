@@ -78,6 +78,7 @@ class PythonPacker(object):
         stdlib = sysconfig.get_python_lib(standard_lib=True)
         stdlib_local = sysconfig.get_python_lib(standard_lib=True, prefix='/usr/local')
         dist_packages = sysconfig.get_python_lib()
+        stdlib_user_local = sysconfig.get_python_lib(standard_lib=True, prefix=f'{os.path.expanduser("~")}/.local')
         for module in finder.modules.values():
             if module.__file__ is None:
                 continue
@@ -86,6 +87,8 @@ class PythonPacker(object):
             elif module.__file__.startswith(stdlib_local):
                 continue
             elif module.__file__.startswith(dist_packages):
+                continue
+            elif module.__file__.startswith(stdlib_user_local):
                 continue
             elif module.__file__ == buffer.name:
                 continue
