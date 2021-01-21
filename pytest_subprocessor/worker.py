@@ -62,7 +62,7 @@ class Worker:
         # this makes sure there aren't secondary_flags with spaces (which fucks up subprocess.run command):
         secondary_flags = self.split_intelligently(item.config.option.secondary_flags)
         count = f'--count {item.config.getoption("--count", None)}' if item.config.getoption("--count", None) else ''
-        pytest_prefix = f"{sys.executable} -m pytest -p pytest_subprocessor.serializer --item-id {item.id} {count} -s"
+        pytest_prefix = f"{sys.executable} -m pytest -p pytest_subprocessor.serializer -p no:logging --item-id {item.id} {count} -s"
         pytest_prefix = pytest_prefix.split()
         logs_dir = os.path.join(item.config.option.logger_logsdir, "subprocess", sanitize_nodeid(os.path.split(item.nodeid)[1]))
         os.makedirs(logs_dir, exist_ok=True)
