@@ -60,6 +60,7 @@ def pytest_runtest_makereport(item, call):
     os.makedirs(pytest_subprocessor.SERIALIZED_REPORT_LOCATION, exist_ok=True)
     with open(pytest_subprocessor.serialized_path(item, call),  'w') as f:
         json.dump(report_ser, f)
-
-
-
+    if report.when == 'call':
+        logging.info(f"\n>>>>>>>>>>{'.'.join(item.listnames()[-2:])} {'PASSED' if report.passed else 'FAILED'}")
+        if report.failed:
+            logging.info(report.longreprtext)
