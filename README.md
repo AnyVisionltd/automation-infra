@@ -1,5 +1,7 @@
-automation-infra
-================
+# Automation labs Confluence space:
+
+https://anyvision.atlassian.net/wiki/spaces/PROD/pages/1558806832/Automation+Labs
+
 ###### DISCLOSURE
 This is an anyvision open-source project. It is written by the people for the people, if you find a bug, please fix it so everyone can benefit. And take into account that it is infrastructure, so tread softly.<br>
 In other words, pull requests are happily accepted :)
@@ -14,6 +16,13 @@ In other words, pull requests are happily accepted :)
     * [set git](#set-git)
 * [Pytests](#pytests)
 * [Provisioning](#provisioning)
+
+## Quickstart for aws provisioning:
+* Make sure `~/.docker/config.json` exists and you can pull anyvision containers from gcr.
+* Make sure you have `~/.ssh/anyvision-devops.pem` (talk to devops if you need it).
+* Put cert files in place acc to these instructions:
+https://anyvision.atlassian.net/wiki/spaces/PROD/pages/2266464264/Run+test+with+cloud+provisiner
+* run: `./run/aws.sh automation_infra/tests/basic_tests/test_ssh.py`. This should pass, otherwise something isn't set up properly.
 
 ## Background
 
@@ -102,7 +111,8 @@ You will need to configure **docker login credentials** in your local machine so
 
 #### docker login credentials using json file
 
-Ask from you devops guy your **docker login credentials** `json` file
+Instructions for setting up docker credentials: 
+https://anyvision.atlassian.net/wiki/spaces/INTEGRATION/pages/752321438/Software+Installation+from+scratch
 
 **Makefile**
 
@@ -259,67 +269,44 @@ automation_repos
 
 # Pytests
 
-+ run ./run_tests.sh, this should pass, this means the repo and requirements are set up properly.
++ run 
+  ```make test-sanity```
+  this should pass, this means the repo and requirements are set up properly.
 if you get an error "sudo: a terminal is required..." then you need to be a sudoer. something like this should do the 
-trick (obv change 'user' with your username)
+trick (obv change 'user' with your username):
+```echo "user  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/user ```
+  
+./run folder:
++ there is a run folder which has various shell scripts in it, aws.sh, local.sh, etc
++ These are helper scripts which wrap calls to pytest invoking various infrastructure plugins automatically, so that it wont be necessary to write out tedious commands when trying to run a test.
++ the Makefile has various targets which can be used as examples as to how the run bash scripts can be invoked. 
++ there are ./run/\<script>.sh scripts also in devops-infra (and core-product) repos which can be used as well to invoke devops (and core) plugins automatically. If you are working on a different repo which doesnt have helper scripts yet, you are welcome to add them to make it easy for other developers to write tests simply by automatically invoking relevant plugins.
 
-```echo "user  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/user```
 
-In addition, any pytest params can be used to along with the `run_tests.sh` script. A couple useful examples; 
-* -h shows a help
-* --pdb will drop out to pdb debugger when a test fails
-* -sv will print some more logging
-* pytest.ini file can be copied to test directory for realtime cli (and file) logging
-
-Instead of using `run_tests.sh` it is also possible to use `containerize.sh` which will take you into a container with all 
-settings configured and you can run whichever commands you would like inside the container.
-
-After that, in addition you should probably clone the following repos:
-
-**devops-automation-infra**: git@github.com:AnyVisionltd/devops-automation-infra.git<br>
-**camera_service**: git@github.com:AnyVisionltd/camera-service.git<br>
-**pipeng**: git@github.com:AnyVisionltd/pipeNG.git
-
-(Make sure the repos have the subfolder automation/[repo_name]/...)
-
+  
 So for example the directory structure:
 ```
-automation-infra
-    automation  # <- sources root / pythonpath
-        automation_infra
-            plugins
-                ssh.py
-            utils
-                util1.py
-            tests
-                test_example.py
-devops-automation-infra
-    automation  # <- sources root / pythonpath
-        devops-automation_infra
-            plugins
-                memsql.py
-                seaweed.py
-            utils
-                util1.py
-            tests
-                test_example.py
-camera_service
-    automation  # <- sources root / pythonpath
-        camera_service
-            plugins
-                camera_service.py
-            utils
-                cs_util.py
-            tests
-                test_sanity.py
-pipeng
-    automation  # <- sources root / pythonpath
-        pipeng
-            plugins
-                pipeng.py
-            utils
-                pipeng_util
-            tests
+___ automation-infra                                                                                                                                                                                               
+___ ___ automation_infra             
+___ ___ ___ plugins       
+___ ___ ___ ___ ssh.py       
+___ ___ pytest_automation_infra
+___ ___ ___ unit_tests
+___ ___ run      
+___ camera-service
+___ ___ automation
+___ ___ ___ camera_service
+___ ___ ___ ___ utils
+___ ___ ___ ___ ___ cs_util.py
+___ pipeNG
+___ ___ automation
+___ ___ ___ pipeng
+___ ___ ___ ___ plugins
+___ ___ ___ ___ ___ pipeng.py
+___ ___ ___ devops_docker_installer
+___ ___ ___ devops_proxy_container
+___ ___ ___ proxy_container
+___ ___ run
 ...
 ```
 And then the imports would be:
@@ -329,110 +316,3 @@ from pipeng.plugins.pipeng import Pipeng
 from camera_service.utils import cs_util
 ```
 
-Anyvision Pytest plugins:
-----
-pytest plugins can be implemented to run custom setup/teardown logic over the infrastructure.
-Core has a plugin in core-product repo, in directory core-product/automation/core_product/pytest/core_compose_v2_manager.py
-It can be invoked like:  
-```
-./run_tests.sh -p core_product.pytest.core_compose_v2_manager /path/to/test
-```
-The plugin (if invoked) will copy over docker-compose-core.yaml from core-product repository (maintained by core team), 
-pull and up core compose v2... So this way it is possible to run tests on a "blank" machine, which doesnt have core 
-product running. 
-
-Anyone interested to implement test setup/teardown login in addition to what is provided can implement a pytest plugin of their own and invoke it in the same way. 
-
-
-# Provisioning
-
-make
-----
-
-A makefile has been provided for your convenience. Simply run `make` to see a
-list of possible commands.
-
-hypervisor
-----------
-
-### server
-
-To run the hypervisor server, first ensure you have the docker image,
-(`make build-hypervisor`), then you can run the server:
-
-```sh
-RUN_IMAGES_DIR=/home/pathto/images-run/ \
-BASE_IMAGE_DIR=/home/pathto/images \
-SSD_IMAGES_DIR=/home/pathto/images-ssd/ \
-HDD_IMAGES_DIR=/home/pathto/images-hdd/ \
-PARAVIRT_NET_DEVICE=yourNetworkDeviceId0 \
-CONFIG_FILE=/home/pathto/config/hypervisor.yaml \
-./deployment/hypervisor/run_hypervisor.sh
-```
-
-To view logs you can run `tail -f /var/log/syslog` or view it in journalctl
-
-### client
-
-you should now be able to run the client:
-
-```sh
-./hypervisor_cli.py --allocator=localhost:8080 create \
-  --image debian \ # $BASE_IMAGE_DIR/debian.qcow2
-  --ram 2 \
-  --cpus 2 \
-  bridge # network. bridge or isolated
-```
-
-pipenv
-------
-
-If you have pipenv installed you can enter this environment with:
-
-```sh
-make shell
-```
-
-tests
------
-
-You can run all tests with:
-
-```sh
-make tests
-```
-
-You can run all generic linters:
-
-```sh
-make lint
-```
-
-You can run individual analysis using:
-
-```sh
-make test-complexity      # run only complexity analysis
-make test-security        # run only security analysis
-make test-lint-python     # run only pylint
-make test-lint-shellcheck # run only shell/bash linter
-make test-lint-docker     # run only docker linter
-```
-
-## hwprovisoner architecture
-
-https://anyvision.atlassian.net/wiki/spaces/PROD/pages/1558806855
-
-## run backend services
-
-These steps will allow you to run allocate, redis and a resource manager:
-
-It is recommended you start by copying
-`./hwprovisioner/resourcemanager/example.resources.yml` to
-`./hwprovisioner/resourcemanager/resources.yml` and update the content to
-match the resources you have.
-
-
-```sh
-# note: RESOURCES_CONFIG_FILE is relative to ./hwprovisioner/resourcemanager/
-RESOURCES_CONFIG_FILE=./resources.yml make run-server
-```
