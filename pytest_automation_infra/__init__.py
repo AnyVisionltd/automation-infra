@@ -1,3 +1,4 @@
+import pathlib
 from datetime import datetime
 import json
 import os
@@ -15,6 +16,7 @@ from automation_infra.utils import initializer, concurrently
 from infra.model.host import Host
 from pytest_automation_infra import helpers
 
+TMP_DIR = "/tmp/habertest"
 
 def pytest_addoption(parser):
     group = parser.getgroup("pytest_automation_infra")
@@ -99,9 +101,20 @@ def base_config(request):
     assert hardware, "Didnt find configured_hardware in base_config fixture..."
     base = init_base_config(hardware)
     logging.debug("\n<-----------------sucessfully initialized base_config fixture------------>\n")
-    # Deploy proxy container (if pytest_devops_infra is invoked)
-    request.config.hook.pytest_after_base_config(base_config=base, request=request)
+    if beginning_of_session(request):
+        mark_session(request)
+        request.config.hook.pytest_after_base_config(base_config=base, request=request)
     return base
+
+
+def beginning_of_session(request):
+    return not os.path.exists(f"{TMP_DIR}/{request.session.id}/{os.path.basename(__file__)}")
+
+
+def mark_session(request):
+    base_dir = f"{TMP_DIR}/{request.session.id}"
+    pathlib.Path(base_dir).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(f"{base_dir}/{os.path.basename(__file__)}").touch()
 
 
 def init_cluster_structure(base_config, cluster_config):
