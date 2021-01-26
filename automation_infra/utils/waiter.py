@@ -39,6 +39,11 @@ def wait_nothrow(operation, timeout=10, interval=1.0):
         time.sleep(interval)
 
 
+def wait_for_predicates(*callables, timeout=60):
+    for callable in callables:
+        wait_nothrow(callable, timeout=timeout)
+
+
 def await_changing_result(predicate, interval=2, tries=10):
     prev_res = predicate()
     for i in range(tries):
