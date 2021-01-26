@@ -19,6 +19,10 @@ from infra.utils import ip
 class ProvisionerClient(object):
     def __init__(self, ep, cert=None, key=None):
         assert ep.startswith("http"), f"Provisioner endpoint needs to start with http. Received: {ep}"
+        if cert:
+            assert os.path.exists(cert), f"cert file for communication with provisioner doesnt exist at {cert}"
+        if key:
+            assert os.path.exists(key), f"key file for communication with provisioner  doesnt exist at {key}"
         self.ep = ep
         self.external_ip = ip.external_ip()
         self.ssl_cert = (cert, key)
