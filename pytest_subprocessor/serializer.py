@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import pathlib
 from datetime import datetime
 
 import pytest
@@ -8,6 +9,7 @@ from _pytest.reports import TestReport
 
 from infra.utils.plugin_logging import InfraFormatter
 import pytest_subprocessor
+from pytest_subprocessor.worker import sanitize_nodeid
 
 
 def pytest_addoption(parser):
@@ -64,3 +66,20 @@ def pytest_runtest_makereport(item, call):
         logging.info(f"\n>>>>>>>>>>{'.'.join(item.listnames()[-2:])} {'PASSED' if report.passed else 'FAILED'}")
         if report.failed:
             logging.info(report.longreprtext)
+        create_symbolic_link(item, report.outcome)
+
+
+def create_symbolic_link(item, outcome):
+    item_logs_dir = os.path.realpath(item.config.getoption("--logs-dir"))
+    if "subprocess" in item_logs_dir:
+        subprocess_dir = pathlib.Path(item_logs_dir)
+        while subprocess_dir.name != 'subprocess':
+            subprocess_dir = subprocess_dir.parent
+    else:
+        subprocess_dir = pathlib.Path(item_logs_dir)
+    by_outcome_dir = os.path.join(subprocess_dir, outcome)
+    os.makedirs(by_outcome_dir, exist_ok=True)
+    dest = os.path.realpath(os.path.join(by_outcome_dir, sanitize_nodeid(os.path.split(item.nodeid)[1])))
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    if not os.path.exists(dest):
+        os.symlink(item_logs_dir, dest, target_is_directory=True)

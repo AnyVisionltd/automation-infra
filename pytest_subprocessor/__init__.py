@@ -58,8 +58,7 @@ def pytest_configure(config):
 
 
 def configure_logging(config):
-    custom_logs_dir = config.getoption("--logs-dir")
-    session_logs_dir = custom_logs_dir
+    session_logs_dir = config.getoption("--logs-dir")
     os.makedirs(session_logs_dir, exist_ok=True)
     config.option.logger_logsdir = session_logs_dir
 
