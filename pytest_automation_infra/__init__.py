@@ -164,7 +164,7 @@ def pytest_runtest_setup(item):
     assert hardware, "Couldnt find configured hardware in pytest_runtest_setup"
     first_machine = next(iter(hardware['machines'].values()))
     hut_conn_format = "HUT connection string:\n\n{}\n\n"
-    if first_machine['password']:
+    if first_machine.get('password', None):
         conn_string = f"sshpass -p {next(iter(hardware['machines'].values()))['password']} ssh -o StrictHostKeyChecking=no {next(iter(hardware['machines'].values()))['user']}@{next(iter(hardware['machines'].values()))['ip']}"
     else:
         conn_string = f"ssh -i {os.path.expanduser('~')}/.ssh/anyvision-devops.pem {first_machine['user']}@{first_machine['ip']}"
