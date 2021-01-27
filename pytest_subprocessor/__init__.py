@@ -234,7 +234,8 @@ def report_from_disk(item, call):
 
 
 def serialized_path(item, call):
-    return f'{SERIALIZED_REPORT_LOCATION}/{item.id}.{call.when}.report'
+    item_id = getattr(item, 'id', None) or item.config.option.item_id
+    return f'{SERIALIZED_REPORT_LOCATION}/{item_id}.{call.when}.report'
 
 
 @pytest.hookimpl(trylast=True)
