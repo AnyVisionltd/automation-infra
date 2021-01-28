@@ -15,6 +15,7 @@ function add_user() {
 
 chmod 777 /etc/hosts
 echo 'source /environ ' >> "${userhome}"/.bashrc
+echo "alias sudo='sudo -h 127.0.0.1'" >> ~/.bash_aliases
 
 # We need to adjust docker group according to GID on the host machine
 # so that we will be able to run docker inside docker
