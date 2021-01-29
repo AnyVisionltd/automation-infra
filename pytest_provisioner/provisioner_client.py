@@ -39,12 +39,12 @@ class ProvisionerClient(object):
         if use_ssl:
             assert os.path.exists(self.ssl_cert[0]), f"Certfile doesnt exist at path: {self.ssl_cert[0]}"
             assert os.path.exists(self.ssl_cert[1]), f"Keyfile doesnt exist at path: {self.ssl_cert[1]}"
+        ws = websocket.WebSocket(sslopt={"certfile": self.ssl_cert[0], "keyfile": self.ssl_cert[1], "cert_reqs": ssl.CERT_NONE} if use_ssl else None)
+        ep = f'{"wss://" if use_ssl else "ws://"}{self.ep[self.ep.find("//")+2:]}/api/ws/jobs'
         try:
-            ws = websocket.WebSocket(sslopt={"certfile": self.ssl_cert[0], "keyfile": self.ssl_cert[1], "cert_reqs": ssl.CERT_NONE} if use_ssl else None)
-            ep = f'{"wss://" if use_ssl else "ws://"}{self.ep[self.ep.find("//")+2:]}/api/ws/jobs'
             ws.connect(ep)
         except:
-            logging.exception("wasnt able to open websocket to provisioner. Stacktrace: ")
+            logging.exception(f"wasnt able to open websocket to provisioner {ep}. Stacktrace: ")
             raise
         start = time.time()
         allocation_id = str(uuid.uuid4())
