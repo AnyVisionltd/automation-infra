@@ -16,6 +16,7 @@ def pytest_addoption(parser):
     parser.addoption("--logs-dir", action="store", default=f'logs/{datetime.now().strftime("%Y_%m_%d__%H%M_%S")}',
                      help="custom directory to store logs in")
     parser.addoption("--item-id", action="store", help="item_id to use to serialize report")
+    parser.addoption("--session-id", action="store", help="session_id to mark 'session' scoped fixtures")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -47,7 +48,7 @@ def configure_logging(config):
 
 
 def pytest_sessionstart(session):
-    session.id = os.environ.get(pytest_subprocessor.SESSION_ID_ENV_VAR, None)
+    session.id = session.config.option.session_id
 
 
 @pytest.hookimpl(tryfirst=True)
