@@ -249,3 +249,9 @@ def pytest_get_next_item(session, worker):
         return item
     except queue.Empty:
         return None
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_keyboard_interrupt(excinfo):
+    logging.info("exiting from ctrl+c")
+    os._exit(9)
