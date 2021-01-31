@@ -85,11 +85,6 @@ def configure_logging(config):
 
 
 def pytest_sessionstart(session):
-    # This is to be able to have the idea of a test "session" as pytest uses it,
-    # even if tests are run on separate pytest calls on different processes:
-    session.id = str(uuid.uuid4())
-    os.environ[SESSION_ID_ENV_VAR] = session.id
-    logging.debug(f"session_id: {session.id}")
     session.tests_queue = queue.Queue()
 
 
