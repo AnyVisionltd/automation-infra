@@ -29,6 +29,9 @@ class Worker:
         fut = self.executor.submit(self.run_tests)
         fut.worker = self
         self.fut = fut
+        
+    def refresh_id(self):
+        self.id = str(uuid.uuid4())
 
     @property
     def completion(self):

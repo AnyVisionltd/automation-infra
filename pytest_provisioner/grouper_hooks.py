@@ -20,6 +20,11 @@ def pytest_can_run_together(item1, item2):
     return True
 
 
+def pytest_started_handling_group(session, worker):
+    worker.refresh_id()
+    logging.info("worker started handling group")
+
+
 def pytest_finished_handling_group(session, worker):
     logging.info("finished handling group, releasing group hardware..")
     pytest_provisioner.release_worker_hardware(session, worker)

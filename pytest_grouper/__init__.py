@@ -64,8 +64,8 @@ def pytest_get_next_item(session, worker):
             del session.worker_map[worker.id]
     try:
         next_group = next(session.groups_iter)
-        session.worker_map[worker.id]['items_queue'] = next_group.items_queue
         session.config.hook.pytest_started_handling_group(session=session, worker=worker)
+        session.worker_map[worker.id]['items_queue'] = next_group.items_queue
         logging.debug(f"worker {worker.id} handling new group")
         return pytest_get_next_item(session, worker)
     except StopIteration:
@@ -74,10 +74,10 @@ def pytest_get_next_item(session, worker):
         for worker_id, worker_dict in session.worker_map.items():
             if worker_dict['items_queue'].qsize() > 1 and worker_dict['items_queue'].qsize() > longest_q.qsize():
                 longest_q = worker_dict['items_queue']
-        session.worker_map[worker.id]['items_queue'] = longest_q
         if longest_q.qsize():
             logging.debug("found long queue.. handling it")
             session.config.hook.pytest_started_handling_group(session=session, worker=worker)
+            session.worker_map[worker.id]['items_queue'] = longest_q
             return pytest_get_next_item(session, worker)
         else:
             logging.debug("all groups have been exhausted")
