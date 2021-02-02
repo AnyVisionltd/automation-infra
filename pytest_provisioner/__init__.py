@@ -57,6 +57,9 @@ def pytest_sessionstart(session):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_start_subprocess(item, worker):
+    if not item.config.pluginmanager.hasplugin('pytest_grouper'):
+        logging.warning("running without pytest_grouper invoked and therefore refreshing worker_id")
+        worker.refresh_id()
     try:
         hardware = item.session.hardware_map.get(worker.id, None)
         if not hardware:
@@ -100,7 +103,7 @@ def pytest_end_subprocess(item, worker):
     # (which grouper calls). If the grouper isnt active, then each test is a "group" on its own, and we
     # must allocate/release for each item:
     if not item.config.pluginmanager.hasplugin('pytest_grouper'):
-        logging.debug("running without pytest_grouper invoked and therefore releasing hardware at pytest_end_subprocess")
+        logging.warning("running without pytest_grouper invoked and therefore releasing hardware at pytest_end_subprocess")
         release_worker_hardware(item.session, worker)
 
 
