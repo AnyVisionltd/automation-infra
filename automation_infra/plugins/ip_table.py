@@ -37,13 +37,27 @@ class Iptables(object):
     def unblock(self, service_name):
         self._ssh.execute(f"sudo iptables  -w --delete {self.AUTOMATION_CHAIN} --dest {service_name} -j REJECT")
 
-    def drop(self, service_name, protocol=None):
-        protocol_cmd = self.protocol_cmd(protocol)
-        self._ssh.execute(f"sudo iptables -w --insert {self.AUTOMATION_CHAIN} {protocol_cmd} --dest {service_name} -j DROP")
 
-    def undrop(self, service_name, protocol=None):
+    def _filter(self, source_host, source_port, dest_host, dest_port):
+        src_host = f"--src {source_host}" if source_host else ""
+        src_port = f"--sport {source_port}" if source_port else ""
+        dst_host = f"--dst {dest_host}" if dest_host else ""
+        dst_port = f"--dport {dest_port}" if dest_port else ""
+        return f"{src_host} {src_port} {dst_host} {dst_port}"
+
+
+
+
+    def drop(self, service_name, protocol=None, service_port=None, source_service=None, source_port=None):
         protocol_cmd = self.protocol_cmd(protocol)
-        self._ssh.execute(f"sudo iptables -w --delete {self.AUTOMATION_CHAIN} {protocol_cmd} --dest {service_name} -j DROP")
+        iptables_filter = self._filter(source_service, source_port, service_name, service_port)
+        cmd = f"sudo iptables -w --insert {self.AUTOMATION_CHAIN} {protocol_cmd} {iptables_filter} -j DROP"
+        self._ssh.execute(cmd)
+
+    def undrop(self, service_name, protocol=None, service_port=None, source_service=None, source_port=None):
+        protocol_cmd = self.protocol_cmd(protocol)
+        iptables_filter = self._filter(source_service, source_port, service_name, service_port)
+        self._ssh.execute(f"sudo iptables -w --delete {self.AUTOMATION_CHAIN} {protocol_cmd} {iptables_filter} -j DROP")
 
     @staticmethod
     def protocol_cmd(protocol):
