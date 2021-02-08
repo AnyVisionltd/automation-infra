@@ -88,6 +88,11 @@ def pytest_sessionstart(session):
     session.tests_queue = queue.Queue()
 
 
+def pytest_exception_interact(node, call, report):
+    logging.error(call)
+    os._exit(666)
+
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtestloop(session):
     """
