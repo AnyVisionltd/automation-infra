@@ -206,6 +206,8 @@ def download_host_logs(host, logs_dir, download_logs_hook=None):
 
 
 def pytest_runtest_teardown(item):
+    if item._evalxfail.istrue():
+        return
     logging.debug(f"\n<--------------runtest teardown of {'.'.join(item.listnames()[-2:])}------------------->\n")
     base_config = item.funcargs.get('base_config')
     if not base_config:

@@ -5,7 +5,6 @@ import pathlib
 from datetime import datetime
 
 import pytest
-from _pytest.reports import TestReport
 
 from infra.utils.plugin_logging import InfraFormatter
 import pytest_subprocessor
@@ -56,9 +55,10 @@ def pytest_runtest_setup(item):
     item.id = item.config.option.item_id
 
 
-@pytest.hookimpl(tryfirst=True)
+@pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_runtest_makereport(item, call):
-    report = TestReport.from_item_and_call(item, call)
+    outcome = yield
+    report = outcome.get_result()
     report_ser = item.config.hook.pytest_report_to_serializable(report=report, config=item.config)
     os.makedirs(pytest_subprocessor.SERIALIZED_REPORT_LOCATION, exist_ok=True)
     with open(pytest_subprocessor.serialized_path(item, call),  'w') as f:
