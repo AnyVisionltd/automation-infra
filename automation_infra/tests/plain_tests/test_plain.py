@@ -14,15 +14,16 @@ def test_repeat(request):
     logging.info("running test_repeat")
 
 
+@pytest.mark.xfail
 def test_one():
     logging.info("Running test_one...")
     logging.debug(" debug Running test_one...")
-
-    time.sleep(3)
-    assert True
+    time.sleep(1)
+    assert False
     logging.info("finished test one")
 
 
+@pytest.mark.xfail(run=False)
 def test_two():
     logging.info("Running test_two...")
     logging.debug("debug Running test_two...")
