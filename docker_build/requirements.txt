@@ -11,3 +11,4 @@ python-consul
 kafka-python==2.0.1
 munch==2.5.0
 pyzmq==19.0.1
+Flask==1.0.2
