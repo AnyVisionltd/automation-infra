@@ -1,6 +1,0 @@
-# all ignore files
-Dockerfile
-Jenkinsfile
-ci_scripts
-ci_scripts/*
-daemonset.yaml

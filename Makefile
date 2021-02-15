@@ -5,16 +5,6 @@ RESOURCES_CONFIG_FILE ?= ./example.resources.yml
 .PHONY: help
 help: _help
 
-.PHONY: tests
-tests: ## run all tests
-	@cd ./hwprovisioner && make tests
-	@bash ./run_tests.sh
-
-
-.PHONY: run-server
-run-server: ## run allocate, a resource manager etc ...
-	docker-compose up
-
 .PHONY: lint
 lint: _lint ## run generic linters
 
@@ -33,26 +23,19 @@ test-lint-shellcheck: _test-lint-shellcheck =# run only shell/bash linter
 .PHONY: test-lint-docker
 test-lint-docker: _test-lint-docker ## run only docker linter
 
+test-subprocessor:
+	./containerize.sh python -m pytest -p pytest_subprocessor automation_infra/tests/plain_tests/ --num-parallel 3
 
-.PHONY: build-hypervisor
-build-hypervisor:
-	docker build -f Dockerfile.hypervisor -t hypervisor:latest .
-	@echo "Built hypervisor:latest" 
+test-ssh-aws:
+	./run/aws.sh automation_infra/tests/basic_tests/test_ssh.py
 
-.PHONY: test-hypervisor
-test-hypervisor:
-	docker build -t infra_unittests:1.0 -f Dockerfile.infra_unittests .
-	docker run --rm -w /root/automation-infra/lab/vms infra_unittests:1.0 pytest . -vvv -s
+test-infra-aws:
+	./run/aws.sh automation_infra/tests/basic_tests/ --num-parallel 3
 
-.PHONY: test-provisioner
-test-provisioner:
-	cd hwprovisioner/allocate && python -m pytest tests/test_provisioner.py -n 3
+test-devops-aws:
+	./run/aws.sh ../devops-automation-infra/automation/devops_automation_infra/tests/docker_tests/ --sf=\"-p devops_docker_installer -p devops_proxy_container --pdb\" --pdb --num-parallel 3
 
-AUTOMATION_PROXY_VERSION:=$(shell ./docker_build/version.sh)
-build-automation-proxy:
-	echo "building automation-proxy:${AUTOMATION_PROXY_VERSION}"
-	(cd docker_build && docker build -f Dockerfile -t gcr.io/anyvision-training/automation-proxy:${AUTOMATION_PROXY_VERSION} .)
-	
-push-automation-proxy: build-automation-proxy
-	echo "pushing automation-proxy:${AUTOMATION_PROXY_VERSION}"
-	(cd docker_build && docker push gcr.io/anyvision-training/automation-proxy:${AUTOMATION_PROXY_VERSION})
+test-sanity:
+	make test-subprocessor
+	./run/local.sh automation_infra/tests/basic_tests/test_ssh.py --num-parallel 1
+	make test-infra-aws

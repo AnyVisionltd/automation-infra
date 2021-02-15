@@ -6,7 +6,7 @@ from .snippet_test_functions import Person
 
 
 def _run_snippet(expected, host, run_background, target, *args, **kwargs):
-    ssh = host.SSH
+    ssh = host.SshDirect
     result = None
     try:
         if run_background:
