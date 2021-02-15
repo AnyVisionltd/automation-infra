@@ -17,7 +17,7 @@ class SshDirect(object):
     def __init__(self, host):
         self._host = host
         self._connection = None
-        self.home_dir = '/home/' + self._host.user  if self._host.user is not 'root' else '/root'
+        self.home_dir = '/home/' + self._host.user if self._host.user != 'root' else '/root'
 
     @property
     def connection(self):
@@ -114,7 +114,7 @@ class SshDirect(object):
         code = snippet.Snippet(self._host, code_snippet, excludes)
         with tempfile.NamedTemporaryFile(prefix="snippet") as f:
             code.prepare(f.name)
-            instance = code.create_instance(self._host)
+            instance = code.create_instance(self)
         return instance.run(*args, **kwargs)
 
     def run_background_snippet(self, code_snippet, *args, **kwargs):
@@ -122,7 +122,7 @@ class SshDirect(object):
         code = snippet.Snippet(self._host, code_snippet, excludes)
         with tempfile.NamedTemporaryFile(prefix="snippet") as f:
             code.prepare(f.name)
-        instance = code.create_instance(self._host)
+        instance = code.create_instance(self)
         return instance.run_background(*args, **kwargs)
 
     def _install_private_key(self, keyfile, install_to_host):

@@ -81,7 +81,7 @@ class Host(object):
     def mktemp(self, basedir=None, prefix=None, suffix=None):
         counter = self.unique()
         suffix = suffix or ""
-        basedir = basedir or '/tmp'
+        basedir = basedir or 'tmp'
         prefix = prefix or "_tmp_"
         return '/%(basedir)s/%(prefix)s%(counter)d%(suffix)s' % dict(basedir=basedir, prefix=prefix, counter=counter,
                                                                      suffix=suffix)

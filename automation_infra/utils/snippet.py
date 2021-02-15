@@ -51,7 +51,7 @@ class SnippetRunner(object):
 
     def _prepare_params_file(self, args, kwargs):
         with open(self.snippet_params_file_path, 'wb') as f:
-            pickle.dump((args, kwargs), f, pickle.HIGHEST_PROTOCOL)
+            pickle.dump((args, kwargs), f, pickle.DEFAULT_PROTOCOL)
 
     @staticmethod
     def _parse_result(result):
@@ -80,7 +80,7 @@ except ImportError:
     import pickle
 
 def print_result(success, result):
-    output = pickle.dumps((success, result), protocol=pickle.HIGHEST_PROTOCOL)
+    output = pickle.dumps((success, result), protocol=pickle.DEFAULT_PROTOCOL)
     output = base64.b64encode(output).decode().strip()
     sys.stdout.write(output)
     sys.stdout.flush()
@@ -105,5 +105,5 @@ else:
         packed = PythonPacker.from_script(script, outfile or name, excludes=self.excludes)
         self.archive_path = packed.outfile
 
-    def create_instance(self, host, interpreter='python3'):
-        return SnippetRunner(self, host.SSH, interpreter, self.snippet_params_file_path)
+    def create_instance(self, ssh, interpreter='python3'):
+        return SnippetRunner(self, ssh, interpreter, self.snippet_params_file_path)

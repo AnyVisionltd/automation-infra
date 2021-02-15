@@ -19,4 +19,12 @@ class Admin(object):
     def machine_id(self):
         return self._host.SshDirect.execute('sudo cat /sys/class/dmi/id/product_uuid').strip()
 
+    def exists(self, path):
+        try:
+            self._host.SshDirect.execute(f'ls {path}')
+            return True
+        except:
+            return False
+
+
 plugins.register('Admin', Admin)
