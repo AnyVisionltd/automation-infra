@@ -72,13 +72,13 @@ def pytest_runtest_makereport(item, call):
 
 def create_symbolic_link(item, outcome):
     item_logs_dir = os.path.realpath(item.config.getoption("--logs-dir"))
-    if "subprocess" in item_logs_dir:
-        subprocess_dir = pathlib.Path(item_logs_dir)
-        while subprocess_dir.name != 'subprocess':
-            subprocess_dir = subprocess_dir.parent
+    if "test_logs" in item_logs_dir:
+        test_logs_dir = pathlib.Path(item_logs_dir)
+        while test_logs_dir.name != 'test_logs':
+            test_logs_dir = test_logs_dir.parent
     else:
-        subprocess_dir = pathlib.Path(item_logs_dir)
-    by_outcome_dir = os.path.join(subprocess_dir, outcome)
+        test_logs_dir = pathlib.Path(item_logs_dir)
+    by_outcome_dir = os.path.join(test_logs_dir, outcome)
     os.makedirs(by_outcome_dir, exist_ok=True)
     dest = os.path.realpath(os.path.join(by_outcome_dir, sanitize_nodeid(os.path.split(item.nodeid)[1])))
     os.makedirs(os.path.dirname(dest), exist_ok=True)
