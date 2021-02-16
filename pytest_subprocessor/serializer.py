@@ -83,4 +83,4 @@ def create_symbolic_link(item, outcome):
     dest = os.path.realpath(os.path.join(by_outcome_dir, sanitize_nodeid(os.path.split(item.nodeid)[1])))
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     if not os.path.exists(dest):
-        os.symlink(item_logs_dir, dest, target_is_directory=True)
+        os.symlink(os.path.relpath(item_logs_dir, os.path.dirname(dest)), dest, target_is_directory=True)
