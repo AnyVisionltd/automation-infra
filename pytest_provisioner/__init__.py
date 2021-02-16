@@ -15,8 +15,8 @@ from pytest_provisioner.provisioner_client import ProvisionerClient
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_cmdline_parse(pluginmanager, args):
+    now = datetime.now().strftime("%Y_%m_%d__%H%M_%S")
     if not any(['--logs-dir' in arg for arg in args]):
-        now = datetime.now().strftime("%Y_%m_%d__%H%M_%S")
         args.append(f'--logs-dir=logs/{now}')
     if not any(['--html' in arg for arg in args]):
         args.extend([f'--html=logs/{now}/report.html', '--self-contained-html'])
