@@ -67,7 +67,7 @@ class Worker:
         count = f'--count {item.config.getoption("--count", None)}' if item.config.getoption("--count", None) else ''
         pytest_prefix = f"{sys.executable} -m pytest -p pytest_subprocessor.serializer -p no:logging --session-id {self.id} --item-id {item.id} {count} -s"
         pytest_prefix = pytest_prefix.split()
-        logs_dir = os.path.join(item.config.option.logger_logsdir, "subprocess", sanitize_nodeid(os.path.split(item.nodeid)[1]))
+        logs_dir = os.path.join(item.config.option.logger_logsdir, "test_logs", sanitize_nodeid(os.path.split(item.nodeid)[1]))
         os.makedirs(logs_dir, exist_ok=True)
         pytest_prefix.extend(["--logs-dir", logs_dir])
         pytest_prefix.extend(secondary_flags)
