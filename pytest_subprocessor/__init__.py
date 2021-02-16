@@ -62,7 +62,7 @@ def configure_logging(config):
     os.makedirs(session_logs_dir, exist_ok=True)
     config.option.logger_logsdir = session_logs_dir
 
-    main_process_logs_dir = f'{config.option.logger_logsdir}/main_process'
+    main_process_logs_dir = f'{config.option.logger_logsdir}/infra'
     os.makedirs(main_process_logs_dir, exist_ok=True)
 
     root_logger = logging.getLogger()
