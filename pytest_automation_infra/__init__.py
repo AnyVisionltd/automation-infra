@@ -42,13 +42,8 @@ def get_local_config(local_config_path):
     return local_config
 
 
-def handle_timeout(signum, frame):
-    raise TimeoutError("Test has reached timeout threshold, therefore starting teardown")
-
-
 def pytest_sessionstart(session):
     logging.debug("\n<--------------------sesssionstart------------------------>\n")
-    signal.signal(signal.SIGALRM, handle_timeout)
     if session.config.getoption("--provisioned-hardware"):
         session.__initialized_hardware = json.loads(session.config.getoption("--provisioned-hardware"))
 
