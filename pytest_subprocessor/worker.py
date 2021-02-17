@@ -56,7 +56,8 @@ class Worker:
         # Set up something (not install yet bc for install you need base_config)
         item.config.hook.pytest_before_running_test(item=item)
         logging.debug(f"\n\nrunning test {os.path.basename(item.nodeid)} on subprocess")
-        self.run_subprocess_tests(command)
+        timeout_sec = item.config.getoption("timeout", None)
+        self.run_subprocess_tests(command, timeout_sec)
         self.handled_items.append(item)
         item.config.hook.pytest_after_running_test(item=item)
         item.config.hook.pytest_end_subprocess(item=item, worker=self)
@@ -99,9 +100,9 @@ class Worker:
         return f"-k {parametrized}"
 
     @staticmethod
-    def run_subprocess_tests(command):
+    def run_subprocess_tests(command, timeout=None):
         try:
-            subprocess.run(command, timeout=7200)
+            subprocess.run(command, timeout=timeout)
             # TODO: check if as soon as I got an error here the process was kill? if not, try at first with sigint,
             #  and then afterwards if this didnt work with sigkill
         except TimeoutError:
