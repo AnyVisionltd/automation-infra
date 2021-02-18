@@ -13,6 +13,7 @@ from _pytest.fixtures import FixtureLookupError
 from munch import *
 
 from automation_infra.utils import initializer, concurrently
+from infra.model.cluster import Cluster
 from infra.model.host import Host
 from pytest_automation_infra import helpers
 
@@ -113,17 +114,28 @@ def mark_session(request):
 
 
 def init_cluster_structure(base_config, cluster_config):
+    """
+    cluster_config is something like:
+    {"cluster1": {"hosts": ["host1", "host2"]}, "cluster2": {"hosts": ["host3"]}}
+
+    And I want to end up with the ability to use syntax like:
+    base_config.clusters.cluster1, where cluster1 is a Cluster object.
+    base_config.clusters.cluster1.Kubectl.pods()
+    or:
+    base_config.clusters.cluster1.hosts.host1.SshDirect.execute('ls /')
+
+    This function sets up the base_config.clusters Munch with Cluster objects.
+    """
+    base_config.clusters = Munch()
     if cluster_config is None:
         return
-    base_config.clusters = Munch.fromDict(cluster_config)
-    for cluster in base_config.clusters.values():
-        for key, val_list in cluster.items():
-            try:
-                cluster[key] = Munch()
-                for host_name in val_list:
-                    cluster[key][host_name] = base_config.hosts[host_name]
-            except (KeyError, TypeError):
-                cluster[key] = val_list
+    for cluster_name, hosts_dict in cluster_config.items():
+        hostnames = [hostname for hostname in base_config.hosts.keys()]
+        hosts_dict = dict()
+        for hostname in hostnames:
+            host = base_config.hosts[hostname]
+            hosts_dict[hostname] = host
+        base_config.clusters[cluster_name] = Cluster(hosts_dict)
 
 
 def match_base_config_hosts_with_hwreqs(hardware_reqs, base_config):
@@ -182,7 +194,7 @@ def pytest_runtest_setup(item):
     hosts = base_config.hosts.items()
     logging.debug("cleaning between tests..")
     initializer.clean_infra_between_tests(hosts, item, item.config.hook.pytest_clean_between_tests)
-    # init_cluster_structure(base_config, item.function.__cluster_config)
+    init_cluster_structure(base_config, item.function.__cluster_config)
     logging.debug("done runtest_setup")
     logging.debug("\n-----------------runtest call---------------\n")
 
