@@ -96,6 +96,7 @@ def base_config(request):
     hardware = configured_hardware(request)
     assert hardware, "Didnt find configured_hardware in base_config fixture..."
     base = init_base_config(hardware)
+    init_cluster_structure(base, request.session.items[0].function.__cluster_config)
     logging.debug("\n<-----------------sucessfully initialized base_config fixture------------>\n")
     if beginning_of_session(request):
         mark_session(request)
