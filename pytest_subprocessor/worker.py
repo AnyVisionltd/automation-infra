@@ -22,7 +22,7 @@ class Worker:
         self.id = str(uuid.uuid4())
         self.session = session
         self.fut = None
-        self.executor = ThreadPoolExecutor(max_workers=1)
+        self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix=self.id,)
         self.handled_items = list()
 
     def start(self):

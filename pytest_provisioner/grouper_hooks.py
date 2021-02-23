@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 
 import pytest
 
@@ -22,7 +23,8 @@ def pytest_can_run_together(item1, item2):
 
 def pytest_started_handling_group(session, worker):
     worker.refresh_id()
-    logging.info("worker started handling group")
+    logging.info(f"worker refreshed her id to: {worker.id}")
+    threading.current_thread().setName(worker.id)
 
 
 def pytest_finished_handling_group(session, worker):
