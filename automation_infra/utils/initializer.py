@@ -19,3 +19,9 @@ def clean(host, item, clean_between_tests_hook):
 
 def clean_infra_between_tests(hosts, item, hook):
     concurrently.run([(clean, host, item, hook) for _, host in hosts])
+
+
+def clean_base_btwn_tests(base_config, item, hook):
+    for cluster in base_config.clusters.values():
+        cluster.clear_plugins()
+    hook(base_config=base_config, item=item)
