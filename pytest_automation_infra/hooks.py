@@ -21,3 +21,8 @@ def pytest_download_logs(host, dest_dir):
 
 def pytest_after_test(item, base_config):
     """"called after test has finished running and teardown"""
+
+def pytest_clean_base_btwn_tests(base_config, item):
+    """
+    hook for cleaning anything that has to do with base_config for example cluster
+    """

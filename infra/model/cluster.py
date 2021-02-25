@@ -71,3 +71,6 @@ class Cluster(object):
             host.init_ssh()
             print(f"successfully initialized ssh for host: {host}")
             self.hosts.append(host)
+
+    def clear_plugins(self):
+        self.__plugins.clear()
