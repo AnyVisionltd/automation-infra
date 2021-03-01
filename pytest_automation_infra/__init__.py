@@ -72,6 +72,8 @@ def configured_hardware(request):
 
 def init_hosts(hardware, base):
     for machine_name, args in hardware['machines'].items():
+        if 'alias' not in args:
+            args['alias'] = machine_name
         base.hosts[machine_name] = Host(**args)
 
 
