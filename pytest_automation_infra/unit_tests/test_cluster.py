@@ -16,15 +16,11 @@ def test_init_clusters():
     init_cluster_structure(base_config, None)
 
     grouping = {
-        "cluster1": {"hosts": ["host1", "host2", "host3"], "masters": ["host1"], "nodes": ["host2", "host3"]},
+        "cluster1": {"hosts": ["host1", "host2", "host3"]},
         "cluster2": {"hosts": ["host4"], "random_key1": ["val1", "val2"], "random_key2": 2}}
     init_cluster_structure(base_config, grouping)
 
     assert base_config.clusters.cluster1.hosts.host1 is base_config.hosts.host1
     assert base_config.clusters.cluster1.hosts.host2 is base_config.hosts.host2
-    assert base_config.clusters.cluster1.nodes.host3 is base_config.hosts.host3
-    assert base_config.clusters.cluster1.masters.host1 is base_config.hosts.host1
     assert base_config.clusters.cluster2.hosts.host4 is base_config.hosts.host4
-    assert base_config.clusters.cluster2.random_key2 == 2
-    assert base_config.clusters.cluster2.random_key1 == ["val1", "val2"]
 
