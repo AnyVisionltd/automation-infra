@@ -15,6 +15,12 @@ def pytest_clean_between_tests(host, item):
     """
 
 
+def pytest_clean_base_btwn_tests(base_config, item):
+    """
+    hook for cleaning anything that has to do with base_config for example cluster
+    """
+
+
 def pytest_download_logs(host, dest_dir):
     """called after running test to """
 
