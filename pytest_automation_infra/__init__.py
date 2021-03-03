@@ -7,6 +7,7 @@ import re
 import subprocess
 import signal
 
+import gossip
 import pytest
 import yaml
 from _pytest.fixtures import FixtureLookupError
@@ -28,6 +29,7 @@ def pytest_addoption(parser):
     group.addoption("--extra-tests", action="store", default="",
                      help="tests to run in addition to specified tests and marks. eg. 'test_sanity.py test_extra.py'")
     group.addoption("--provisioned-hardware", type=str)
+    group.addoption("--install", action="store_true")
 
 
 def pytest_addhooks(pluginmanager):
@@ -57,7 +59,6 @@ def pytest_collection_modifyitems(session, config, items):
     'module' scope was initialized in function pytest_generate_tests already.
     At the end of this function, hardware has been initialized for all cases of provisioning and fixture-scope.
     """
-
     # Add markers on the fly for extra tests
     extra_tests = config.getoption("--extra-tests").split(",")
     for item in items:
@@ -112,7 +113,40 @@ def base_config(request):
     if beginning_of_session(request):
         mark_session(request)
         request.config.hook.pytest_after_base_config(base_config=base, request=request)
+        _trigger_stage_hooks(base, request, "session")
+        if request.config.option.install:
+            _trigger_stage_hooks(base, request, "session_install")
     return base
+
+
+def cluster_installers(base_config, request):
+    grouping = request.session.items[0].function.__cluster_config
+    if grouping is None:
+        return
+    for name, cluster in grouping.items():
+        installer_type = cluster.get("installer", None)
+        cluster = base_config.clusters[name]
+        if installer_type:
+            yield cluster, installer_type
+
+
+def host_installers(base_config, request):
+    hardware_reqs = request.session.items[0].function.__hardware_reqs
+    for name, req in hardware_reqs.items():
+        host = base_config.hosts[name]
+        installer_type = req.get("installer", None) or getattr(request.module, "installer", None)
+        if installer_type:
+            yield host, installer_type
+
+
+def _trigger_stage_hooks(base_config, request, stage):
+    for cluster, installer_type in cluster_installers(base_config, request):
+        gossip.trigger_with_tags(stage, kwargs=dict(cluster=cluster, request=request), tags=[installer_type])
+
+    for host, installer_type in host_installers(base_config, request):
+        gossip.trigger_with_tags(stage, kwargs=dict(host=host, request=request), tags=[installer_type])
+
+    gossip.trigger_with_tags(stage, kwargs=dict(base_config=base_config, request=request), tags=['base_config'])
 
 
 def beginning_of_session(request):
@@ -173,6 +207,7 @@ def match_base_config_hosts_with_hwreqs(hardware_reqs, base_config):
 @pytest.hookimpl(hookwrapper=True, trylast=True)
 def pytest_runtest_setup(item):
     logging.debug(f"\n<---------runtest_setup {'.'.join(item.listnames()[-2:])}---------------->\n")
+    gossip.trigger("runtest_setup")
     configured_hw = configured_hardware(item._request)
     if not configured_hw:
         hardware = dict()
@@ -205,6 +240,8 @@ def pytest_runtest_setup(item):
     item.funcargs['base_config'] = match_base_config_hosts_with_hwreqs(reqs, base_config)
     hosts = base_config.hosts.items()
     logging.debug("cleaning between tests..")
+    init_cluster_structure(base_config, item.function.__cluster_config)
+    _trigger_stage_hooks(base_config, item._request, "setup")
     initializer.clean_infra_between_tests(hosts, item, item.config.hook.pytest_clean_between_tests)
     init_cluster_structure(base_config, item.function.__cluster_config)
     logging.debug("done runtest_setup")
@@ -232,6 +269,7 @@ def pytest_runtest_teardown(item):
     if not base_config:
         logging.error("base_config fixture wasnt initted properly, cant download logs")
         return
+    _trigger_stage_hooks(base_config, item._request, "teardown")
     try:
         logs_dir = item.config.getoption("--logs-dir", f'logs/{datetime.now().strftime("%Y_%m_%d__%H%M_%S")}')
         logging.debug("concurrently downloading logs from hosts...")
