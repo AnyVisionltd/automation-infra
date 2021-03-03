@@ -71,9 +71,18 @@ def machine_id():
 
 
 def sync_time(hosts):
+    """Will be deprecated, prefer sync_host_time function"""
     local_machine_id = machine_id()
     tz = local_timezone()
     for host in hosts.values():
         remote_machine_id = host.Admin.machine_id()
         if local_machine_id != remote_machine_id:
             host.Admin.set_timezone(tz)
+
+
+def sync_host_time(host):
+    local_machine_id = machine_id()
+    tz = local_timezone()
+    remote_machine_id = host.Admin.machine_id()
+    if local_machine_id != remote_machine_id:
+        host.Admin.set_timezone(tz)
