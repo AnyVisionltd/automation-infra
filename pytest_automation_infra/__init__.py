@@ -81,15 +81,24 @@ def init_base_config(hardware):
     base = DefaultMunch(Munch)
     base.hosts = Munch()
     init_hosts(hardware, base)
-    for host in base.hosts.values():
-        if host.pkey:
-            host.add_to_ssh_agent()
-    for name, host in base.hosts.items():
-        logging.info(f"[{host}] waiting for ssh connection...")
-        host.SshDirect.connect(timeout=60)
-        host.SshDirect.execute("mkdir -p -m 777 /tmp/automation_infra")
-        logging.info(f"[{host}] success!")
+    # TODO in future: remove init_ssh_direct to support hosts of type aicamera who dont have ssh...
+    #   It should happen in some "installer"
+    init_ssh_direct(base)
     return base
+
+
+def init_ssh_direct(base_config):
+    for name, host in base_config.hosts.items():
+        init_host_ssh_direct(host)
+
+
+def init_host_ssh_direct(host):
+    if host.pkey:
+        host.add_to_ssh_agent()
+    logging.info(f"[{host}] waiting for ssh connection...")
+    host.SshDirect.connect(timeout=60)
+    host.SshDirect.execute("mkdir -p -m 777 /tmp/automation_infra")
+    logging.info(f"[{host}] success!")
 
 
 @pytest.fixture()
