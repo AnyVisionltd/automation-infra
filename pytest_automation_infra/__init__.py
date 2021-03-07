@@ -108,6 +108,10 @@ def base_config(request):
     hardware = configured_hardware(request)
     assert hardware, "Didnt find configured_hardware in base_config fixture..."
     base = init_base_config(hardware)
+
+    test_requirements = request.function.__hardware_reqs
+    logging.debug(f"Match base config with {test_requirements}")
+    base = match_base_config_hosts_with_hwreqs(test_requirements, base)
     init_cluster_structure(base, request.session.items[0].function.__cluster_config)
     logging.debug("\n<-----------------sucessfully initialized base_config fixture------------>\n")
     if beginning_of_session(request):
@@ -236,8 +240,6 @@ def pytest_runtest_setup(item):
         # We got an exception trying to init some other fixture, so base_config is available
         raise e
     base_config = item.funcargs['base_config']
-    reqs = item.function.__hardware_reqs
-    item.funcargs['base_config'] = match_base_config_hosts_with_hwreqs(reqs, base_config)
     hosts = base_config.hosts.items()
     logging.debug("cleaning between tests..")
     init_cluster_structure(base_config, item.function.__cluster_config)
