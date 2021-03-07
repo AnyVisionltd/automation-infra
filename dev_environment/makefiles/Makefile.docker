@@ -61,16 +61,3 @@ else ifeq ($(OS),centos)
 endif
 
 	docker --version
-
-
-.PHONY: docker-config
-docker-config:
-
-# if DOCKER_LOGIN_JSON_PATH var not exist get user input 
-ifeq ($(DOCKER_LOGIN_JSON_PATH),)
-	$(eval DOCKER_LOGIN_JSON_PATH := $(shell bash -c 'read -e -p "Docker login json file path: " path; echo $$path'))
-endif
-
-	@echo "get docker login credentials from: $(DOCKER_LOGIN_JSON_PATH)"
-
-	cat $(DOCKER_LOGIN_JSON_PATH)  | docker login "https://gcr.io" --username "_json_key" --password-stdin
