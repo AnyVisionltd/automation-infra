@@ -7,24 +7,25 @@ This is an anyvision open-source project. It is written by the people for the pe
 In other words, pull requests are happily accepted :)
 
 ## Table of Contents  
-* [Background](#background)
-* [Set Up your environment](#set-up-your-environment)
-    * [set working directory](#set-working-directory)
-    * [set connection file](#set-connection-file)
-    * [set docker](#set-docker)
-    * [set aws s3](#set-aws-s3)
-    * [set git](#set-git)
-* [Pytests](#pytests)
-* [Provisioning](#provisioning)
-
-## Quickstart for aws provisioning:
-* Make sure `~/.docker/config.json` exists and you can pull anyvision containers from gcr.
-* Make sure you have `~/.ssh/anyvision-devops.pem` (talk to devops if you need it).
-* Put cert files in place acc to these instructions:
-https://anyvision.atlassian.net/wiki/spaces/PROD/pages/2266464264/Run+test+with+cloud+provisiner
-* run: `./run/aws.sh automation_infra/tests/basic_tests/test_ssh.py`. This should pass, otherwise something isn't set up properly.
+- [Automation labs Confluence space:](#automation-labs-confluence-space)
+          - [DISCLOSURE](#disclosure)
+  - [Table of Contents](#table-of-contents)
+  - [Background](#background)
+- [set up your environment](#set-up-your-environment)
+  - [set Make](#set-make)
+  - [set working directory](#set-working-directory)
+  - [set connection file](#set-connection-file)
+  - [set docker](#set-docker)
+    - [install docker](#install-docker)
+- [Pytests](#pytests)
+  - [Running Unprovisioned](#running-unprovisioned)
+  - [Running provisioned](#running-provisioned)
 
 ## Background
+This project aim is to connect a any *Linux* running hardware that has SSH acess with pytest testing framework.
+There are 2 ways to write and run tests
+* Unprovisioned - In this case you specify the hardware in hardware.yaml file see (#hardware-yaml) section
+* Provisioned - You need "provisioner" installed (#running-provisioned)
 
 Directory Structure and pythonpath calculation:
 All repos will be parallel to automation-infra repo.
@@ -105,168 +106,27 @@ make -f Makefile-env docker-install
 
 *RHEL/CentOS*: https://docs.docker.com/install/linux/docker-ce/centos
 
-**Makefile**
-
-```
-make -f Makefile-env docker-config
-
-# OR
-
-make -f Makefile-env docker-config DOCKER_LOGIN_JSON_PATH=<path to json file>
-```
-
-**or**
-
-**Manual**
-
-```
-docker login "https://gcr.io" -u _json_key -p "$(cat <path to the json file> | tr '\n' ' ')" 
-
-# Example:
-docker login "https://gcr.io" -u _json_key -p "$(cat ~/.gcr/docker-registry-ro.json | tr '\n' ' ')"
-```
-
-## set aws s3
-
-### install aws cli
-
-**Makefile**
-
-```
-make -f Makefile-env aws-install
-```
-
-**or**
-
-**Manual**
-
-*Ubuntu / RHEL / CentOS*: https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html
-
-> You will need to install `unzip` prior the `aws cli` installation
-
-
-### aws config credentials
-
-Ask from you devops guy your **aws login credentials**, you should get: `aws access key` and `aws secret key`
-
-**Makefile**
-
-```
-make -f Makefile-env aws-config
-# OR
-make -f Makefile-env aws-config S3_KEY=<access key> S3_SECRET=<secret key>
-```
->  you can use also `S3_REGION=<region>` (default: `eu-central-1`)
-
-**or**
-
-**Manual**
-
-set you aws config by running:
-
-```
-aws configure set aws_access_key_id <aws_access_key_id>
-aws configure set aws_secret_access_key <aws_secret_access_key>
-aws configure set default.region eu-central-1
-```
-
-## set git
-
-### install git cli
-
-**Makefile**
-
-```
-make -f Makefile-env git-install
-```
-
-**or**
-
-**Manual**
-
-*Ubuntu / RHEL / CentOS*: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
-
-### configure git credentials
-
-**github**:
-
-*token*: https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
-
-or
-
-*ssh key*: https://help.github.com/en/enterprise/2.15/user/articles/adding-a-new-ssh-key-to-your-github-account 
-
-## git repositories
-
-Let's `git pull` all the relevant git repositories by product
-
-Now we can pull all the relevant git repositories by product
-
-**Makefile**
-
-```
-make -f Makefile-env git-pull
-
-# OR
-
-make -f Makefile-env git-pull PRODUCT=<product name>
-
-# OR clone using url instead of ssh
-
-make -f Makefile-env git-pull PRODUCT=<product name> CLONE_METHOD=url
-
-# OR clone using url instead of ssh and set user and token
-
-make -f Makefile-env git-pull PRODUCT=<product name> CLONE_METHOD=url GIT_USER=<user> GIT_TOKEN=<token>
-```
-**or**
-
-**Manual**
-
-git clone each line in $HOME/automation_repos/dev_environment/{product name}.txt
-```
-
-cat $HOME/automation_repos/automation-infra/dev_environment/{product name}.txt
-git clone -C $HOME/automation_repos/automation-infra {line}
-
-# Example:
-cat $HOME/automation_repos/dev_environment/core.txt
-# Output:
-git@github.com:AnyVisionltd/devops-automation-infra.git
-git@github.com:AnyVisionltd/camera-service.git
-git@github.com:AnyVisionltd/pipeng.git
-git@github.com:AnyVisionltd/protobuf-contract.git
-git@github.com:AnyVisionltd/core-products.git
-
-# clone:
-git -C $HOME/automation_repos clone git@github.com:AnyVisionltd/devops-automation-infra.git
-git -C $HOME/automation_repos clone git@github.com:AnyVisionltd/camera-service.git
-git -C $HOME/automation_repos clone git@github.com:AnyVisionltd/pipeng.git
-git -C $HOME/automation_repos clone git@github.com:AnyVisionltd/protobuf-contract.git
-git -C $HOME/automation_repos clone git@github.com:AnyVisionltd/core-product.git
-```
-
-At the end you will get this directory structure for **core** product
-```
-automation_repos
-├── automation-infra
-├── camera-service
-├── core-product
-├── devops-automation-infra
-├── pipeng
-└── protobuf-contract
-```
-
-
 # Pytests
 
 + run 
-  ```make test-sanity```
+  ```make test-local```
   this should pass, this means the repo and requirements are set up properly.
 if you get an error "sudo: a terminal is required..." then you need to be a sudoer. something like this should do the 
 trick (obv change 'user' with your username):
 ```echo "user  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/user ```
-  
+## Running Unprovisioned
+   ```
+   run/local.sh automation_infra/tests/basic_tests/test_ssh.py
+   ```
+   Will run the test unprovisioned according to hardware specified in `$HOME/.local/hardware.yaml`
+
+## Running provisioned
+   ```
+   run/aws.sh automation_infra/tests/basic_tests/test_ssh.py
+   ```
+   Assume that you have provisioner, it will provision the machine and run the test on the provisoner
+   Look at documentation of habertest-backend project to learn more on how to install provisioner
+
 ./run folder:
 + there is a run folder which has various shell scripts in it, aws.sh, local.sh, etc
 + These are helper scripts which wrap calls to pytest invoking various infrastructure plugins automatically, so that it wont be necessary to write out tedious commands when trying to run a test.
@@ -284,26 +144,21 @@ ___ ___ ___ ___ ssh.py
 ___ ___ pytest_automation_infra
 ___ ___ ___ unit_tests
 ___ ___ run      
-___ camera-service
+___ my_service
 ___ ___ automation
-___ ___ ___ camera_service
+___ ___ ___ my_service
 ___ ___ ___ ___ utils
-___ ___ ___ ___ ___ cs_util.py
-___ pipeNG
+___ ___ ___ ___ ___ my_util.py
+___ my_other_service
 ___ ___ automation
-___ ___ ___ pipeng
+___ ___ ___ my_other_service
 ___ ___ ___ ___ plugins
-___ ___ ___ ___ ___ pipeng.py
-___ ___ ___ devops_docker_installer
-___ ___ ___ devops_proxy_container
-___ ___ ___ proxy_container
-___ ___ run
+___ ___ ___ ___ ___ myplugin.py
 ...
 ```
 And then the imports would be:
 ```
 from automation_infra.plugins.ssh import SSH
-from pipeng.plugins.pipeng import Pipeng
-from camera_service.utils import cs_util
+from my_other_service.plugins.my_other_service import myplugin
+from my_service.utils import my_util.py
 ```
-
