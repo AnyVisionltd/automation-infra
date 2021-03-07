@@ -32,10 +32,7 @@ test-ssh-aws:
 test-infra-aws:
 	./run/aws.sh automation_infra/tests/basic_tests/ --num-parallel 3
 
-test-devops-aws:
-	./run/aws.sh ../devops-automation-infra/automation/devops_automation_infra/tests/docker_tests/ --sf=\"-p devops_docker_installer -p devops_proxy_container --pdb\" --pdb --num-parallel 3
+test-local:
+	./run/local.sh automation_infra/tests/basic_tests/
 
-test-sanity:
-	make test-subprocessor
-	./run/local.sh automation_infra/tests/basic_tests/test_ssh.py --num-parallel 1
-	make test-infra-aws
+tests: | test-subprocessor test-local test-infra-aws
