@@ -64,21 +64,7 @@ function kill_ssh_agent () {
 
 function _docker_image() {
     local tag=$1
-    echo "gcr.io/anyvision-training/automation-infra:${tag}"
-}
-
-function _docker_login() {
-    local DOCKER_CONFIG=${HOME}/.docker/config.json
-    local FILE=${HOME}/.gcr/docker-registry-rw.json
-    if [ ! -f $DOCKER_CONFIG ]; then
-        if [ -f $FILE ] ; then
-            docker login -u _json_key -p "$(cat "$FILE")" https://gcr.io
-        else
-            >&2 echo "didnt find docker-registry-rw file! "
-            exit 1
-        fi
-    fi
-
+    echo "anyvisionltd1/automation-infra:${tag}"
 }
 
 function build_docker_image () {
@@ -94,7 +80,6 @@ function build_docker_image () {
            return
         fi
         debug_print "image not found locally, try to pull image from registry"
-        _docker_login
         if docker pull "$image_name";
         then
            debug_print "image pulled ${image_name}"
