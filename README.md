@@ -105,15 +105,6 @@ make -f Makefile-env docker-install
 
 *RHEL/CentOS*: https://docs.docker.com/install/linux/docker-ce/centos
 
-### docker login
-
-You will need to configure **docker login credentials** in your local machine so the pytest will be able to use your **docker login credentials** in the remote host that you mentioned in the `hardware.yaml` above for docker image pull from our private docker registry (gcr)
-
-#### docker login credentials using json file
-
-Instructions for setting up docker credentials: 
-https://anyvision.atlassian.net/wiki/spaces/INTEGRATION/pages/752321438/Software+Installation+from+scratch
-
 **Makefile**
 
 ```
