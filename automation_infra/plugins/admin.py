@@ -26,5 +26,8 @@ class Admin(object):
         except:
             return False
 
+    def rm(self, path):
+        return self._host.SshDirect.execute(f"rm {path} -rf")
+
 
 plugins.register('Admin', Admin)
