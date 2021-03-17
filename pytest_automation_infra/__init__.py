@@ -13,7 +13,7 @@ import yaml
 from _pytest.fixtures import FixtureLookupError
 from munch import *
 
-from automation_infra.utils import initializer, concurrently
+from automation_infra.utils import concurrently
 from infra.model.cluster import Cluster
 from infra.model.host import Host
 from pytest_automation_infra import helpers
