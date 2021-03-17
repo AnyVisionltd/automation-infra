@@ -107,7 +107,8 @@ class SshDirect(object):
         return self.connection.get_contents(remote_path)
 
     def disconnect(self):
-        self.connection.close()
+        if self._connection:
+            self.connection.close()
 
     def run_snippet(self, code_snippet, *args, **kwargs):
         excludes = kwargs.pop('excludes', [])
