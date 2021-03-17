@@ -96,6 +96,13 @@ class Host(object):
             self.__plugins.pop(name)
 
     def clear_plugins(self):
+        for name, plugin in self.__plugins.items():
+            if hasattr(plugin, "clear"):
+                plugin.clear()
+        if "SSH" in self.__plugins:
+            self.SSH.disconnect()
+        if "SshDirect" in self.__plugins:
+            self.SshDirect.disconnect()
         self.__plugins.clear()
 
     def unique(self):
