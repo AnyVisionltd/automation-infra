@@ -240,12 +240,12 @@ def pytest_runtest_setup(item):
         # We got an exception trying to init some other fixture, so base_config is available
         raise e
     base_config = item.funcargs['base_config']
-    hosts = base_config.hosts.items()
     logging.debug("cleaning between tests..")
     init_cluster_structure(base_config, item.function.__cluster_config)
-    initializer.clean_infra_between_tests(hosts, item, item.config.hook.pytest_clean_between_tests)
+    if base_config.clusters:
+        concurrently.run([(cluster.clear_plugins) for _, cluster in base_config.clusters.items()])
+    concurrently.run([(host.clear_plugins) for _, host in base_config.hosts.items()])
     _trigger_stage_hooks(base_config, item._request, "setup")
-    init_cluster_structure(base_config, item.function.__cluster_config)
     logging.debug("done runtest_setup")
     logging.debug("\n-----------------runtest call---------------\n")
 
