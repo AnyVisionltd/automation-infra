@@ -7,6 +7,10 @@ from automation_infra.plugins.admin import Admin
 
 from pytest_automation_infra.helpers import hardware_config
 
+
+installer = "ssh"
+
+
 def _test_fileobj_upload(host):
     string_obj = io.StringIO("sasha king")
     host.SshDirect.put_content_from_fileobj(string_obj, "/tmp/test_obj/file")
