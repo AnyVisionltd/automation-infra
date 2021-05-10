@@ -14,16 +14,6 @@ docker-%:
 include $(ROOT_DIR)/dev_environment/makefiles/Makefile.docker
 
 
-.PHONY: aws-%
-aws-%:
-include $(ROOT_DIR)/dev_environment/makefiles/Makefile.aws
-
-
-.PHONY: git-%
-git-%:
-include $(ROOT_DIR)/dev_environment/makefiles/Makefile.git
-
-
 .PHONY: packages-%
 packages-%:
 include $(ROOT_DIR)/dev_environment/makefiles/Makefile.packages
