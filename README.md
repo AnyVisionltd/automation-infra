@@ -118,15 +118,18 @@ host:
 ```
 > key_file_path and password are mutually exclusive so use only 1 type of auth
 
+## be a sudoer
+
+Its necessary no to require a password when doing sudo operations. This command will make you a sudoer, ie a user who
+can do sudo operations without requiring a password
+
+```echo "$USER  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$USER ```
+
 # Pytests
 
 + run 
   ```make test-local```
   this should pass, this means the repo and requirements are set up properly.
-if you get an error "sudo: a terminal is required..." then you need to be a sudoer. something like this should do the 
-trick (obv change 'user' with your username):
-  
-```echo "user  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/user ```
 
 ## Running Unprovisioned
    ```
