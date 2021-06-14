@@ -1,4 +1,5 @@
 import logging
+import socket
 import time
 import yaml
 import paramiko
@@ -24,9 +25,11 @@ def hardware_config(hardware, grouping=None):
 
 def is_k8s(connected_ssh_module):
     try:
-        connected_ssh_module.execute("kubectl get po")
+        connected_ssh_module.execute("kubectl get po", timeout=5)
         return True
     except SSHCalledProcessError:
+        return False
+    except socket.timeout:
         return False
 
 
