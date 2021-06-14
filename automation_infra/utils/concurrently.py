@@ -1,5 +1,6 @@
 import concurrent.futures
 import logging
+from enum import Enum
 
 
 def prepare_jobs(executor, jobs):
@@ -34,6 +35,14 @@ def call(*callables):
     run(jobs)
 
 
+class Completion(Enum):
+    WAIT_ALL = 1
+    WAIT_FIRST_SUCCESS = 2
+
+    def to_future(self):
+        return {Completion.WAIT_ALL : concurrent.futures.ALL_COMPLETED,
+                Completion.WAIT_FIRST_SUCCESS : concurrent.futures.FIRST_COMPLETED}[self]
+
 
 class Background(object):
 
@@ -47,16 +56,37 @@ class Background(object):
     def start(self):
         self._futures = prepare_jobs(self._executor, self._jobs)
 
-    def wait(self, timeout=None):
-        results = {}
-        for future in concurrent.futures.as_completed(self._futures, timeout=timeout):
-            job_id = self._futures[future]
-            try:
-                results[job_id] = future.result()
-            except:
-                logging.exception("When concurrently running '%(job_id)s'", dict(job_id=str(job_id)))
-                raise
-        return results
+    def wait(self, timeout=None, return_when=Completion.WAIT_ALL):
+
+        def _make_result(futures):
+            results = {}
+            for fut in futures:
+                job_id = self._futures[fut]
+                try:
+                    results[job_id] = fut.result()
+                except:
+                    logging.exception("When concurrently running '%(job_id)s'", dict(job_id=str(job_id)))
+                    raise
+            return results
+
+        wait_futures = self._futures
+        while len(wait_futures) > 0:
+            done, not_done = concurrent.futures.wait(wait_futures, timeout=timeout, return_when=return_when.to_future())
+
+            if return_when == Completion.WAIT_FIRST_SUCCESS:
+                completed = [completion for completion in done if not completion.exception()]
+                if len(completed):
+                    logging.debug("Attempt to cancel all not completed")
+                    [f.cancel() for f in not_done]
+                    return _make_result(completed)
+
+                # If we dont have any more features to wait .. we fail .. lets throw the last failure
+                wait_futures = not_done
+                if len(wait_futures) == 0:
+                    raise done[0].exception()
+                continue
+            else:
+                return _make_result(done)
 
     @property
     def exception(self, timeout=0):
