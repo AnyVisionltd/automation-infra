@@ -87,7 +87,6 @@ class Connection(object):
 
     def close(self):
         self._ssh_client.close()
-        self._ssh_client = None
 
     def _credentials(self):
         if self.password:
@@ -96,10 +95,7 @@ class Connection(object):
         return dict(key_filename=self._keyfile,
                     pkey=self._pkey)
 
-
-
     def _try_connect(self, timeout, credentials):
-        self._ssh_client = paramiko.SSHClient()
         self._ssh_client.known_hosts = None
         self._ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self._ssh_client.connect(
@@ -121,6 +117,7 @@ class Connection(object):
     def connect(self, timeout=10):
         begin = time.time()
         credentials = self._credentials()
+        self._ssh_client = paramiko.SSHClient()
         while True:
             try:
                 self._try_connect(3, credentials)
@@ -128,6 +125,7 @@ class Connection(object):
                 self._specify_very_large_rekey_interval()
                 return
             except:
+                self.close()
                 if time.time() - begin < timeout:
                     time.sleep(0.1)
                     continue
