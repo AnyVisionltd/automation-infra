@@ -128,7 +128,7 @@ def cluster_installers(base_config, request):
     if grouping is None:
         return
     for name, cluster in grouping.items():
-        installer_type = cluster.get("installer", None)
+        installer_type = cluster.get("installer", None) or getattr(request.module, "cluster_installer", None)
         cluster = base_config.clusters[name]
         if installer_type:
             yield cluster, installer_type
