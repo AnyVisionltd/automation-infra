@@ -1,4 +1,5 @@
 import itertools
+import logging
 import random
 import subprocess
 
@@ -68,7 +69,7 @@ class Host(object):
             self.__plugins[name] = plugins.plugins[name](self)
             return self.__plugins[name]
         except KeyError:
-            print(f"plugin {name} wasnt found!")
+            logging.debug(f"plugin {name} wasnt found!")
             raise AttributeError
 
     def __getattr__(self, name):
