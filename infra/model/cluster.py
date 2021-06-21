@@ -1,3 +1,4 @@
+import logging
 import threading
 
 from munch import Munch
@@ -60,7 +61,7 @@ class Cluster(object):
             self.__plugins[name] = cluster_plugins.plugins[name](self)
             return self.__plugins[name]
         except KeyError:
-            print(f"plugin {name} wasnt found!")
+            logging.debug(f"plugin {name} wasn't found!")
             raise AttributeError
 
     def init_host_sshs(self, hosts_munch):
