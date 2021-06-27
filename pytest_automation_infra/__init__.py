@@ -179,8 +179,8 @@ def init_cluster_structure(base_config, cluster_config):
     base_config.clusters = Munch()
     if cluster_config is None:
         return
-    for cluster_name, hosts_dict in cluster_config.items():
-        hostnames = [hostname for hostname in base_config.hosts.keys()]
+    for cluster_name, config in cluster_config.items():
+        hostnames = config['hosts']
         hosts_dict = dict()
         for hostname in hostnames:
             host = base_config.hosts[hostname]
