@@ -1,8 +1,8 @@
 {
   "scanSettings": {
-    "configMode": "AUTO",
-    "configExternalURL": "",
-    "projectToken": "",
+    "configMode": "EXTERNAL",
+    "configExternalURL": "https://open-test-public-anv.s3.eu-west-3.amazonaws.com/wss-unified-agent-1.config",
+    "projectToken": "f3be6a700fe24f2e809270842d04ce3937ed91e24561456a970304eac18e4181",
     "baseBranches": []
   },
   "checkRunSettings": {
@@ -10,6 +10,6 @@
     "displayMode": "diff"
   },
   "issueSettings": {
-    "minSeverityLevel": "LOW"
+    "minSeverityLevel": "NONE"
   }
 }
