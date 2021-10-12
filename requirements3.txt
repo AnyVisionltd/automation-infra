@@ -23,7 +23,7 @@ jedi==0.15.1
 jmespath==0.9.4
 more-itertools==7.2.0
 munch==2.5.0
-opencv-python==4.1.1.26
+opencv-python==4.2.0.32
 packaging==19.2
 paramiko==2.7.2
 parso==0.5.1

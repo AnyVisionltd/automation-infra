@@ -3,7 +3,7 @@ confluent_kafka
 google
 protobuf
 numpy
-opencv-python==4.4.0.42
+opencv-python==4.2.0.32
 boto3
 grpcio==1.21.1
 PyMySQL==0.9.3
