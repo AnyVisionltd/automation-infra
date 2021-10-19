@@ -58,6 +58,6 @@ RUN pip3 install -r /tmp/requirements3.txt \
 
 COPY ./entrypoint.sh environ /
 RUN chmod ugo+x /entrypoint.sh
-
+RUN echo "NAME_REGEX=[A-Z,a-z,0-9]" >> /etc/adduser.conf
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]
