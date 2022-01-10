@@ -3,6 +3,8 @@ import signal
 import time
 from contextlib import contextmanager
 
+import pytest
+
 
 def wait_for_predicate_nothrow(predicate, timeout=10, interval=1.0, exception_cls=Exception):
     before = time.time()
@@ -44,6 +46,16 @@ def wait_for_predicates(*callables, timeout=60):
         wait_nothrow(callable, timeout=timeout)
 
 
+def await_changing_error_throwing(predicate, interval=2, tries=10):
+    for i in range(tries):
+        try:
+            prev_res = predicate()
+        except Exception:
+            return
+        time.sleep(interval)
+    logging.info("out of tries")
+
+
 def await_changing_result(predicate, interval=2, tries=10):
     prev_res = predicate()
     for i in range(tries):
@@ -53,6 +65,24 @@ def await_changing_result(predicate, interval=2, tries=10):
             return res
         else:
             prev_res = res
+
+
+def await_changing_result_exception_accepting(predicate, interval=2, tries=10):
+    try:
+        prev_res = predicate()
+    except Exception:
+        prev_res = None
+
+    for i in range(tries):
+        time.sleep(interval)
+        try:
+            res = predicate()
+        except Exception:
+            res = None
+        if res != prev_res:
+            logging.info(i)
+            return res
+    logging.info("out of tries")
 
 
 def await_and_aggregate_changing_until_result_match(predicate,expected_len_stop, interval=2, tries=10,timeout=30):
