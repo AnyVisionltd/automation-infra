@@ -73,7 +73,7 @@ class Cluster(object):
             print(f"successfully initialized ssh for host: {host}")
             self.hosts.append(host)
 
-    def show_plugins(self):
+    def get_plugins(self):
         return self.__plugins
 
     def clear_plugins(self):
