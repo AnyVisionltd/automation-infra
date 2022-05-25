@@ -3,7 +3,6 @@ import signal
 import time
 from contextlib import contextmanager
 
-import pytest
 
 
 def wait_for_predicate_nothrow(predicate, timeout=10, interval=1.0, exception_cls=Exception):
@@ -113,6 +112,23 @@ def await_and_aggregate_changing_until_result_match(predicate,expected_len_stop,
             break
         time.sleep(interval)
     return res
+
+
+def await_for_stable_result(predicate, max_delta, stable_time, timeout):
+    """create a range of possible results and verify the results are stable in this range for x time"""
+    successes = 0
+    sum = 0
+    with time_limit(timeout):
+        prev_res = predicate()
+        while successes < stable_time:
+            time.sleep(1)
+            res = predicate()
+            if prev_res - max_delta <= res <= prev_res + max_delta:
+                successes += 1
+                sum += res
+            else:
+                successes = 0
+    return sum/stable_time
 
 
 @contextmanager
