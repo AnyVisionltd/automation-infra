@@ -61,6 +61,7 @@ class Host(object):
         self.__plugins = {}
         self._temp_dir_counter = itertools.count()
         self._plugins_init_lock = threading.RLock()
+        self.arch = host_config.pop('arch', None)
 
     def _init_plugin_locked(self, name):
         if name in self.__plugins:
@@ -113,12 +114,13 @@ class Host(object):
         return self.ip
 
     @classmethod
-    def from_args(cls, ip, user, password=None, key_file_path=None, pem_key_string=None, **kwargs):
+    def from_args(cls, ip, user, arch=None, password=None, key_file_path=None, pem_key_string=None, **kwargs):
         basic = {"ip": ip,
         "user": user,
         "password": password,
         "key_file_path": key_file_path,
-        "pem_key_string": pem_key_string }
+        "pem_key_string": pem_key_string,
+        "arch": arch}
         basic.update(**kwargs)
         return cls(**basic)
 
