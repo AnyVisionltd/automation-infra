@@ -1,6 +1,9 @@
 import concurrent.futures
 import logging
+import time
 from enum import Enum
+
+from automation_infra.utils import waiter
 
 
 def prepare_jobs(executor, jobs):
@@ -87,6 +90,18 @@ class Background(object):
                 continue
             else:
                 return _make_result(done)
+
+    def force_stop(self, end_time=None, predicate=None, end_task=None):
+        """in case you want to kill all threads in a certain way"""
+        if end_time:
+            time.sleep(end_time)
+        if predicate:
+            waiter.wait_for_predicate_nothrow(lambda: predicate, end_time)
+        for future in self._futures:
+            future.cancel()
+        if end_task:
+            end_task()
+
 
     @property
     def exception(self, timeout=0):
