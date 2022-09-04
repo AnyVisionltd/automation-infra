@@ -2,8 +2,9 @@ FROM ubuntu:18.04
 LABEL maintainer="orielh@anyvision.co"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.8\
     python3-pip \
-    python3-dev \
+    python3.8-dev \
     python3-setuptools \
     vim \
     sudo \
@@ -51,11 +52,14 @@ RUN  apt-get update && apt-get install -y --no-install-recommends \
 # Set the locale
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1 \
+    && python3 -m pip install --upgrade pip
 
 COPY  ./requirements3.txt /tmp/requirements3.txt
 RUN pip3 install -r /tmp/requirements3.txt \
   && rm /tmp/requirements3.txt
 
+RUN playwright install --with-deps chromium
 COPY ./entrypoint.sh environ /
 RUN chmod ugo+x /entrypoint.sh
 RUN echo "NAME_REGEX=[A-Z,a-z,0-9]" >> /etc/adduser.conf
