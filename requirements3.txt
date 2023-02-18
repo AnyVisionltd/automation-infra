@@ -101,8 +101,8 @@ paho-mqtt==1.5.1
 schedule==1.0.0
 kubernetes==12.0.1
 gossip==2.4.0
-playwright==1.18
-pytest-base-url==1.0.0
+playwright==1.30.0
+pytest-base-url==2.0.0
 python-slugify==6.0.0
 pytest-playwright==0.3.0
 pytest-reportlog==0.1.2
