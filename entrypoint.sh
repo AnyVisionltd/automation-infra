@@ -21,6 +21,9 @@ echo "alias sudo='sudo -h 127.0.0.1'" >> ~/.bash_aliases
 # so that we will be able to run docker inside docker
 # groupmod -g "${DOCKER_GROUP_ID}" docker
 
+mkdir $userhome/.cache
+cp -r $HOME/.cache/ms-playwright/ $userhome/.cache
+
 if [ ${username} == "root" ]; then
     echo "running as root"
 else
