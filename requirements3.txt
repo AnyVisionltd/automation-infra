@@ -83,7 +83,7 @@ sklearn
 lxml
 zeep
 pytest-repeat==0.8.0
-kafka-python==2.0.1
+kafka-python==2.0.2
 pytest-rerunfailures==9.0
 pytest-logger==0.5.1
 pyexecjs==1.5.1
